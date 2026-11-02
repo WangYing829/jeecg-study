@@ -1,0 +1,39 @@
+spring:
+  datasource:
+    dynamic:
+      primary: master
+      strict: false
+      datasource:
+        master:
+          url: jdbc:mysql://127.0.0.1:3306/jeecg-study?characterEncoding=UTF-8&useUnicode=true&useSSL=false&tinyInt1isBit=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+          username: root
+          # 数据库口令走环境变量：本地跑测试前设置 DB_PASSWORD；未设置时回落上游默认 root
+          password: ${DB_PASSWORD:root}
+          driver-class-name: com.mysql.cj.jdbc.Driver
+  autoconfigure:
+    # 测试只跑本模块，不引入动态数据源的多数据源切换
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+mybatis-plus:
+  mapper-locations: classpath*:org/jeecg/modules/**/mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
+    db-config:
+      logic-delete-field: delFlag
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+jeecg:
+  study:
+    # 测试用家庭码 pepper；生产由部署方注入，禁止入库
+    family-code-pepper: jeecg-study-ut-pepper-2026
+    eye-interval-min: 15
+
+logging:
+  level:
+    org.jeecg.modules.study: INFO
+    com.baomidou.mybatisplus: WARN

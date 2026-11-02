@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>jeecg-boot-module</artifactId>
+        <groupId>org.jeecgframework.boot3</groupId>
+        <version>3.9.2</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>jeecg-module-study</artifactId>
+    <description>jeecg-study 学习助手业务模块（多家庭 / 多孩子 / 多家长）</description>
+
+    <dependencies>
+        <!-- 底座：Shiro+JWT 认证、MyBatis-Plus、通用工具、AOP -->
+        <dependency>
+            <groupId>org.jeecgframework.boot3</groupId>
+            <artifactId>jeecg-boot-base-core</artifactId>
+        </dependency>
+        <!-- 系统消息：ISysBaseAPI.sendSysAnnouncement 等 -->
+        <dependency>
+            <groupId>org.jeecgframework.boot3</groupId>
+            <artifactId>jeecg-system-local-api</artifactId>
+        </dependency>
+        <!--
+          系统用户/角色：孩子账号复用 sys_user（角色 study_kid），家长账号复用 sys_user（角色 study_parent）。
+          需要 ISysUserService.getUserByName / addUserWithRole 与 ISysRoleService。
+          system-biz 不依赖本模块，无循环依赖。ADR-029。
+        -->
+        <dependency>
+            <groupId>org.jeecgframework.boot3</groupId>
+            <artifactId>jeecg-system-biz</artifactId>
+        </dependency>
+        <!-- R-02 的 ArchUnit 断言（判定层零 AI 依赖）需要 test 作用域依赖 -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- 测试骨架：JUnit5 + Mockito + Spring Boot Test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- The JeecgBoot parent POM skips tests globally. Keep study-module tests runnable. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <skipTests>false</skipTests>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -1,0 +1,2356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jeecg-study · 系统设计说明书</title>
+<style>
+
+  :root{
+    --bg:#fafaf9; --surface:#ffffff; --chrome:#f7f7f5; --line:#e6e6e1; --line-soft:#eeeeea;
+    --ink:#15171c; --ink-2:#454b58; --muted:#8b8f98;
+    --accent:#10b981; --accent-ink:#047857; --accent-soft:rgba(16,185,129,.10); --accent-line:rgba(16,185,129,.28);
+    --up:#d93a2b; --up-soft:rgba(217,58,43,.10); --up-line:rgba(217,58,43,.28);
+    --down:#0f8a6d; --down-soft:rgba(15,138,109,.10); --down-line:rgba(15,138,109,.28);
+    --amber:#b07d12; --amber-soft:rgba(176,125,18,.10); --amber-line:rgba(176,125,18,.28);
+    --sans:'Outfit','PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif;
+    --mono:'JetBrains Mono','SFMono-Regular',Consolas,monospace;
+    --nav-w:272px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:var(--sans);font-size:15px;line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(720px 300px at 10% -8%, rgba(16,185,129,.06), transparent 62%),
+      radial-gradient(620px 280px at 94% -6%, rgba(21,94,117,.05), transparent 60%);
+    background-repeat:no-repeat;
+  }
+  a{color:inherit;}
+  code{font-family:var(--mono);font-size:.88em;background:#f4f4f1;border:1px solid var(--line-soft);border-radius:4px;padding:1px 5px;overflow-wrap:anywhere;}
+
+  /* ============ 布局：侧边导航 + 章节正文 ============ */
+  .shell{display:flex;align-items:flex-start;max-width:1280px;margin:0 auto;gap:0;}
+  .sidebar{
+    width:var(--nav-w);flex:none;position:sticky;top:0;align-self:flex-start;
+    height:100vh;overflow-y:auto;padding:26px 20px 40px 24px;border-right:1px solid var(--line);
+  }
+  .sidebar::-webkit-scrollbar{width:8px;}
+  .sidebar::-webkit-scrollbar-thumb{background:#dcdcd6;border-radius:6px;}
+  .brand{display:flex;align-items:center;gap:9px;margin-bottom:6px;}
+  .brand-mark{width:26px;height:26px;flex:none;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--accent-line);}
+  .brand-mark svg{width:14px;height:14px;}
+  .brand h1{font-size:15px;font-weight:600;margin:0;letter-spacing:-.01em;}
+  .meta-line{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-bottom:18px;}
+  .nav-title{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;padding-left:11px;}
+  .nav-link{
+    display:flex;align-items:center;gap:8px;padding:7px 11px;border-radius:9px;
+    font-size:13.5px;color:var(--ink-2);text-decoration:none;border-left:2px solid transparent;
+    transition:background .15s,color .15s,border-color .15s;
+  }
+  .nav-link:hover{background:#f0f0ec;color:var(--ink);}
+  .nav-link.active{background:var(--accent-soft);color:var(--accent-ink);border-left-color:var(--accent);font-weight:500;}
+  .nav-link .lv{
+    margin-left:auto;font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:999px;
+    border:1px solid var(--line);background:var(--surface);color:var(--muted);white-space:nowrap;
+  }
+  .nav-link.active .lv{border-color:var(--accent-line);background:var(--surface);}
+  .mini-rate{margin-top:14px;border-top:1px solid var(--line);padding-top:14px;}
+  .mini-row{display:flex;align-items:center;gap:8px;margin-bottom:9px;font-size:12px;color:var(--ink-2);}
+  .mini-row .bar{flex:1;height:6px;background:#eeeeea;border-radius:4px;overflow:hidden;}
+  .mini-row .bar i{display:block;height:100%;border-radius:4px;}
+  .mini-row .n{font-family:var(--mono);font-size:10.5px;color:var(--muted);width:58px;text-align:right;}
+
+  .main{flex:1;min-width:0;padding:34px 40px 80px;}
+
+  /* ============ 标题区 ============ */
+  .kicker{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink);background:var(--accent-soft);border:1px solid var(--accent-line);padding:5px 11px;border-radius:999px;}
+  .kicker i{width:6px;height:6px;border-radius:50%;background:var(--accent);}
+  h2.title{font-size:32px;line-height:1.25;font-weight:600;letter-spacing:-.018em;margin:16px 0 0;}
+  .sub{color:var(--ink-2);font-size:15px;margin:10px 0 0;max-width:74ch;}
+  .facts{display:flex;flex-wrap:wrap;gap:9px;margin-top:20px;}
+  .fact{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:9px 13px;box-shadow:0 2px 8px rgba(0,0,0,.03);}
+  .fact b{display:block;font-family:var(--mono);font-size:15px;font-weight:600;letter-spacing:-.01em;}
+  .fact span{font-size:11.5px;color:var(--muted);}
+
+  /* 语义色工具类 */
+  .up{color:var(--up);} .down{color:var(--down);} .flat{color:var(--muted);} .amber{color:var(--amber);}
+
+  /* ============ 章节 ============ */
+  section{margin-top:52px;scroll-margin-top:24px;}
+  .sec-head{display:flex;align-items:baseline;gap:11px;padding-bottom:11px;border-bottom:1px solid var(--line);margin-bottom:20px;}
+  .sec-num{font-family:var(--mono);font-size:12px;color:var(--accent-ink);font-weight:600;}
+  .sec-head h3{font-size:21px;font-weight:600;letter-spacing:-.012em;margin:0;}
+  .sec-head .tag{margin-left:auto;font-size:11.5px;color:var(--muted);font-family:var(--mono);}
+  p{margin:0 0 11px;}
+  .lead-p{font-size:15.5px;color:var(--ink-2);max-width:78ch;margin-bottom:18px;}
+  h4.sub-h{font-size:15px;font-weight:600;margin:26px 0 10px;letter-spacing:-.008em;}
+  h5.sub-h5{font-size:13.5px;font-weight:600;margin:18px 0 7px;color:var(--ink-2);}
+  ul.plain{margin:6px 0 12px;padding-left:20px;}
+  ul.plain li{margin:5px 0;font-size:13.5px;color:var(--ink-2);}
+  ol.plain{margin:6px 0 12px;padding-left:20px;}
+  ol.plain li{margin:5px 0;font-size:13.5px;color:var(--ink-2);}
+  .cite-src{display:inline-block;margin-top:5px;font-family:var(--mono);font-size:10.5px;color:var(--muted);
+    border:1px solid var(--line);border-radius:5px;padding:1px 6px;background:var(--surface);}
+  .cite-src a{color:var(--accent-ink);text-decoration:none;}
+
+  /* ============ 核心信息 ============ */
+  .core-list{list-style:none;padding:0;margin:0;}
+  .core-item{display:flex;gap:13px;padding:13px 0;border-bottom:1px solid var(--line-soft);}
+  .core-item:last-child{border-bottom:0;}
+  .core-dot{width:9px;height:9px;border-radius:50%;flex:none;margin-top:7px;background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .core-dot.r{background:var(--up);box-shadow:0 0 0 3px var(--up-soft);}
+  .core-dot.a{background:var(--amber);box-shadow:0 0 0 3px var(--amber-soft);}
+  .core-body{min-width:0;}
+  .core-body h4{margin:0 0 3px;font-size:14.5px;font-weight:600;}
+  .core-body p{margin:0;font-size:13.5px;color:var(--ink-2);}
+
+  /* ============ 数据卡 ============ */
+  .grid4{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));margin:18px 0 4px;}
+  .dcard{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:14px 15px;box-shadow:0 2px 8px rgba(0,0,0,.03);}
+  .dcard .k{font-size:11.5px;color:var(--muted);margin-bottom:5px;}
+  .dcard .v{font-family:var(--mono);font-size:19px;font-weight:600;letter-spacing:-.02em;line-height:1.2;}
+  .dcard .d{font-family:var(--mono);font-size:11.5px;margin-top:3px;}
+
+  /* ============ 表格 ============ */
+  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13.5px;}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line-soft);vertical-align:top;}
+  th{font-size:11.5px;color:var(--muted);font-weight:500;letter-spacing:.04em;background:#f7f7f4;border-bottom:1px solid var(--line);}
+  td:first-child{font-weight:500;white-space:normal;min-width:72px;}
+  td.mono{font-family:var(--mono);font-size:12px;white-space:nowrap;}
+  .pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap;}
+  .p-ok{background:var(--down-soft);color:var(--down);border:1px solid var(--down-line);}
+  .p-warn{background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber-line);}
+  .p-bad{background:var(--up-soft);color:var(--up);border:1px solid var(--up-line);}
+  .p-info{background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--accent-line);}
+  .p-gray{background:#f2f2ef;color:var(--muted);border:1px solid var(--line);}
+
+  /* ============ 来源表：长名称不撑破表格 + 可点链接 ============ */
+  .tbl-src td:first-child{white-space:normal;min-width:150px;}
+  .tbl-src .u-cell{font-family:var(--mono);font-size:11.5px;line-height:1.5;word-break:break-all;overflow-wrap:anywhere;}
+  .src-link{color:var(--accent-ink);text-decoration:none;border-bottom:1px solid var(--accent-line);word-break:break-all;}
+  .src-link:hover{color:var(--accent);border-bottom-color:var(--accent);}
+
+  /* ============ 流程/命令块：宽内容内部滚动，不撑破页面 ============ */
+  pre.cmd{background:#15171c;color:#e6e8ec;border-radius:12px;padding:14px 16px;overflow-x:auto;
+    font-family:var(--mono);font-size:12px;line-height:1.7;margin:10px 0 14px;
+    -webkit-overflow-scrolling:touch;}
+  pre.cmd code{background:transparent;border:0;padding:0;color:inherit;font-size:inherit;overflow-wrap:normal;white-space:pre;}
+  pre.cmd .c{color:#8b8f98;}
+  pre.cmd .ok{color:#34d399;font-weight:600;}
+  pre.cmd .bad{color:#f87171;font-weight:600;}
+  pre.cmd .warn{color:#fbbf24;font-weight:600;}
+
+  /* ============ 双栏 ============ */
+  .cols{display:grid;gap:14px;grid-template-columns:1fr 1fr;margin-top:14px;}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 17px;box-shadow:0 2px 8px rgba(0,0,0,.03);}
+  .panel h4{margin:0 0 10px;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:7px;}
+  .panel h4 svg{width:15px;height:15px;}
+  .panel.bad h4{color:var(--up);}
+  .panel.good h4{color:var(--down);}
+  .panel.info h4{color:var(--accent-ink);}
+  .panel.warn h4{color:var(--amber);}
+  .panel ul{margin:0;padding-left:0;list-style:none;}
+  .panel li{position:relative;padding-left:15px;margin-bottom:9px;font-size:13.5px;color:var(--ink-2);line-height:1.6;}
+  .panel li:last-child{margin-bottom:0;}
+  .panel li::before{content:"";position:absolute;left:0;top:9px;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.45;}
+  .panel p{font-size:13.5px;color:var(--ink-2);}
+
+  /* ============ 结论条 ============ */
+  .callout{border:1px solid var(--accent-line);background:var(--accent-soft);border-radius:14px;padding:16px 18px;margin-top:18px;}
+  .callout h4{margin:0 0 7px;font-size:14px;font-weight:600;color:var(--accent-ink);display:flex;align-items:center;gap:8px;}
+  .callout h4 svg{width:15px;height:15px;}
+  .callout p{margin:0;font-size:13.5px;color:#2c4a3e;}
+  .callout p+p{margin-top:7px;}
+  .callout.warn{border-color:var(--amber-line);background:var(--amber-soft);}
+  .callout.warn h4{color:var(--amber);} .callout.warn p{color:#5c4413;}
+  .callout.bad{border-color:var(--up-line);background:var(--up-soft);}
+  .callout.bad h4{color:var(--up);} .callout.bad p{color:#6b2018;}
+  .note{border:1px solid var(--line);background:var(--surface);border-radius:13px;padding:14px 16px;margin-top:14px;font-size:12.5px;color:var(--muted);}
+  .note b{color:var(--ink-2);}
+
+  /* ============ 风险条 ============ */
+  .risk{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px dashed var(--line);}
+  .risk:last-child{border-bottom:0;}
+  .risk .lv-badge{flex:none;font-family:var(--mono);font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;}
+  .risk .rb{min-width:0;}
+  .risk .rb b{display:block;font-size:13.5px;margin-bottom:2px;}
+  .risk .rb span{font-size:13px;color:var(--ink-2);}
+
+  /* 正文 markdown 渲染补充 */
+  .main h4{font-size:15px;font-weight:600;margin:26px 0 10px;letter-spacing:-.008em;}
+  .main h5{font-size:13.5px;font-weight:600;margin:18px 0 7px;color:var(--ink-2);}
+  .main ul,.main ol{margin:6px 0 12px;padding-left:20px;}
+  .main li{margin:5px 0;font-size:13.5px;color:var(--ink-2);}
+  .main strong{color:var(--ink);font-weight:600;}
+  .main blockquote{border-left:3px solid var(--accent-line);background:var(--accent-soft);
+    border-radius:0 12px 12px 0;padding:11px 15px;margin:12px 0;font-size:13.5px;color:#2c4a3e;}
+  .main blockquote p{margin:0;}
+  .main hr{border:0;border-top:1px solid var(--line);margin:26px 0;}
+  .main img{max-width:100%;}
+
+  .foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px 20px;}
+  .foot code{background:transparent;border:0;padding:0;color:var(--muted);}
+
+  /* ============ 移动端：悬浮导航面板 ============ */
+  .m-topbar,.m-fab,.scrim,.m-close{display:none;}
+
+  @media (max-width:1000px){
+    .shell{display:block;}
+    body{padding-top:48px;}
+
+    .m-topbar{
+      display:flex;align-items:center;gap:9px;
+      position:fixed;top:0;left:0;right:0;height:48px;z-index:45;
+      padding:0 12px;background:rgba(250,250,249,.94);backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--line);
+    }
+    .m-topbar .t-btn{
+      display:inline-flex;align-items:center;gap:5px;flex:none;
+      font-family:var(--sans);font-size:12.5px;color:var(--ink-2);
+      background:var(--surface);border:1px solid var(--line);border-radius:8px;
+      padding:6px 10px;cursor:pointer;transition:all .16s;
+    }
+    .m-topbar .t-btn:hover{border-color:#d3d3cd;color:var(--ink);}
+    .m-topbar .t-btn svg{width:14px;height:14px;color:var(--muted);}
+    .m-topbar .t-title{
+      flex:1;min-width:0;font-size:13px;color:var(--ink-2);font-weight:500;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+
+    .sidebar{
+      position:fixed;left:auto;right:14px;top:auto;bottom:78px;
+      width:min(80vw,320px);height:auto;max-height:min(64vh,580px);
+      z-index:70;border:1px solid var(--line);border-radius:18px;
+      background:var(--chrome);padding:16px 16px 22px;
+      box-shadow:0 20px 56px -14px rgba(0,0,0,.32);
+      opacity:0;transform:translateY(18px) scale(.97);pointer-events:none;
+      transition:opacity .26s ease,transform .26s cubic-bezier(.2,.8,.3,1);
+    }
+    .sidebar.open{opacity:1;transform:none;pointer-events:auto;}
+    .m-close{
+      display:inline-flex;align-items:center;justify-content:center;margin-left:auto;flex:none;
+      width:30px;height:30px;border-radius:8px;border:1px solid var(--line);
+      background:var(--surface);color:var(--muted);cursor:pointer;padding:0;
+    }
+    .m-close svg{width:14px;height:14px;}
+    .m-close:hover{color:var(--ink);border-color:#d3d3cd;}
+
+    .scrim{
+      display:block;position:fixed;inset:0;z-index:65;
+      background:rgba(21,23,28,.34);opacity:0;pointer-events:none;transition:opacity .26s;
+    }
+    .scrim.show{opacity:1;pointer-events:auto;}
+
+    .m-fab{
+      display:inline-flex;align-items:center;gap:7px;
+      position:fixed;right:14px;bottom:16px;z-index:60;
+      font-family:var(--sans);font-size:13px;color:#fff;
+      background:var(--ink);border:1px solid var(--ink);border-radius:999px;
+      padding:11px 16px;cursor:pointer;
+      box-shadow:0 10px 26px -6px rgba(0,0,0,.45);
+      opacity:0;transform:translateY(14px) scale(.9);pointer-events:none;
+      transition:opacity .24s,transform .24s,background .16s;
+    }
+    .m-fab.show{opacity:1;transform:none;pointer-events:auto;}
+    .m-fab:hover{background:#2b2f38;}
+    .m-fab svg{width:15px;height:15px;}
+
+    .main{padding:26px 22px 96px;}
+    .cols{grid-template-columns:1fr;}
+  }
+
+  /* 手机小屏：表格转卡片 */
+  @media (max-width:820px){
+    table,tbody,tr,td{display:block;width:100%;}
+    thead{display:none;}
+    table{font-size:12.5px;}
+    tr{
+      background:var(--surface);border:1px solid var(--line);border-radius:12px;
+      padding:11px 14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.03);
+    }
+    td{border:0;padding:3px 0;}
+    td:first-child{font-weight:600;font-size:13.5px;padding-bottom:6px;white-space:normal;}
+    td:not(:first-child){
+      position:relative;padding:3px 0 3px 76px;font-size:12.5px;color:var(--ink-2);
+    }
+    td:not(:first-child)::before{
+      content:attr(data-label);position:absolute;left:0;top:3px;width:68px;
+      font-size:11px;color:var(--muted);
+    }
+  }
+
+  @media (max-width:680px){
+    body{font-size:14px;line-height:1.72;overflow-wrap:anywhere;}
+    h2.title{font-size:23px;letter-spacing:-.015em;}
+    .sub{font-size:14px;}
+    .kicker{font-size:10px;padding:4px 9px;}
+    .facts{gap:7px;}
+    .fact{flex:1 1 calc(50% - 4px);min-width:0;padding:9px 11px;}
+    .fact b{font-size:14px;}
+    .fact span{font-size:10.5px;}
+    .grid4{grid-template-columns:1fr 1fr;gap:9px;}
+    .dcard{padding:12px 13px;}
+    .dcard .v{font-size:16px;}
+    .main{padding:22px 15px 92px;}
+    section{margin-top:38px;}
+    .sec-head{flex-wrap:wrap;gap:8px;}
+    .sec-head h3{font-size:18px;}
+    .sec-head .tag{margin-left:0;width:100%;}
+    .core-body h4{font-size:14px;}
+    .core-body p{font-size:13px;}
+    .panel{padding:14px 15px;}
+    .panel li{font-size:13px;}
+    .panel h4{font-size:13px;}
+    .callout{padding:14px 15px;}
+    .callout p{font-size:13px;}
+    .foot{gap:6px 14px;font-size:11.5px;}
+    .note{font-size:12px;}
+  }
+
+  :root{--accent:#2563eb;--accent-ink:#0027b9;--accent-soft:rgba(37,99,235,.10);--accent-line:rgba(37,99,235,.28);}
+  .tbl-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .tbl-wrap table{margin-top:0;}
+  @media (max-width:820px){ .tbl-wrap{overflow-x:visible;} }
+</style>
+</head>
+<body id="top">
+<div class="scrim" id="scrim"></div>
+
+<div class="m-topbar">
+  <button class="t-btn" id="menuBtn" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+    目录
+  </button>
+  <span class="m-title" id="mTitle">jeecg-study</span>
+  <button class="t-btn" id="topBtn" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/></svg>
+    顶部
+  </button>
+</div>
+
+<div class="shell">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg></span>
+      <h1>jeecg-study</h1>
+      <button class="m-close" id="closeBtn" type="button" aria-label="关闭导航">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="meta-line">20261030 · V1.1 · 系统设计</div>
+
+    <div class="nav-title">快速跳转</div>
+    <a class="nav-link" href="#top"><span>↑ 页面顶部</span></a>
+    <a class="nav-link" href="#bottom"><span>↓ 页面底部</span></a>
+
+    <div class="nav-title">章节</div>
+    <a class="nav-link" href="#goal">设计目标与原则</a>
+    <a class="nav-link" href="#arch">总体架构<span class="lv">分层</span></a>
+    <a class="nav-link" href="#extend">JeecgBoot 拓展方式</a>
+    <a class="nav-link" href="#pkg">包结构与分层职责</a>
+    <a class="nav-link" href="#auth">认证与多用户<span class="lv">新</span></a>
+    <a class="nav-link" href="#base">底座设计<span class="lv">5 组件</span></a>
+    <a class="nav-link" href="#review">复习调度引擎<span class="lv">核心</span></a>
+    <a class="nav-link" href="#judge">判对错与 AI 解释层<span class="lv">R-02</span></a>
+    <a class="nav-link" href="#modules">六模块设计</a>
+    <a class="nav-link" href="#eye">护眼实现<span class="lv">R-03</span></a>
+    <a class="nav-link" href="#api">接口与前端契约</a>
+    <a class="nav-link" href="#security">安全与隐私</a>
+    <a class="nav-link" href="#perf">性能与容量</a>
+    <a class="nav-link" href="#deploy">部署拓扑</a>
+    <a class="nav-link" href="#trace">需求追溯矩阵</a>
+    <a class="nav-link" href="#risk">设计风险与待决</a>
+
+    <div class="nav-title">设计覆盖</div><div class="mini-rate"><div class="mini-row"><span>底座五组件</span><span class="bar"><i style="width:100%;background:#2563eb"></i></span><span class="n">P0</span></div><div class="mini-row"><span>错题复盘</span><span class="bar"><i style="width:100%;background:#2563eb"></i></span><span class="n">P0</span></div><div class="mini-row"><span>背单词</span><span class="bar"><i style="width:85%;background:#2563eb"></i></span><span class="n">V1</span></div><div class="mini-row"><span>数学母题</span><span class="bar"><i style="width:95%;background:#2563eb"></i></span><span class="n">V2</span></div><div class="mini-row"><span>英语语法</span><span class="bar"><i style="width:70%;background:#b07d12"></i></span><span class="n">V3</span></div><div class="mini-row"><span>语文写作</span><span class="bar"><i style="width:60%;background:#b07d12"></i></span><span class="n">V4</span></div></div>
+  </aside>
+
+  <main class="main">
+    <div class="kicker"><i></i>代码开发 · 总体设计</div>
+    <h2 class="title">系统设计说明书</h2>
+    <p class="sub">jeecg-study 系统设计说明书 V1.1。基于 JeecgBoot 3.9.2 独立基座拓展，以「底座五组件 + 六业务模块」为骨架，落地 PRD V1.1 的全部需求编号（含多用户 F-FAM-01…08），并给出可执行的包结构、认证与数据范围、扩展点与关键技术决策。</p>
+    <div class="facts"><div class="fact"><b>1</b><span>新增业务模块</span></div><div class="fact"><b>5</b><span>底座组件</span></div><div class="fact"><b>6</b><span>业务模块</span></div><div class="fact"><b>10</b><span>核心实体</span></div><div class="fact"><b>3.9.2</b><span>JeecgBoot 锁定</span></div><div class="fact"><b>4</b><span>产品红线</span></div></div>
+
+<section id="goal">
+  <div class="sec-head"><span class="sec-num">01</span><h3>设计目标与原则</h3><span class="tag">从 PRD 来</span></div>
+  <p>设计目标与原则</p>
+<h3>1.1 设计目标</h3>
+<p>本设计说明书承接《产品需求说明书 V1.1》的全部 P0 需求与红线，目标是让<strong>「六模块共享一份学情」</strong>这一唯一结构性差异在代码层面真正成立。</p>
+<p>三个可验证的设计目标：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>编号</th>
+<th>目标</th>
+<th>验证方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>G-01</td>
+<td>任意两个模块的错题能在同一个池子里被同一套排期调度</td>
+<td>跨模块错题汇聚集成测试（对应验收 A-02）</td>
+</tr>
+<tr>
+<td>G-02</td>
+<td>六个模块的内容全部挂到同一棵坐标树</td>
+<td>库表外键与数据完整性检查</td>
+</tr>
+<tr>
+<td>G-03</td>
+<td>判对错结果 100% 可溯源到确定性逻辑，AI 输出不参与结论落库</td>
+<td>判对错接口返回体审计 + 代码走查</td>
+</tr>
+</tbody>
+</table></div>
+<h3>1.2 五条设计原则</h3>
+<ol>
+<li><strong>底座先行，不为省事绕过底座</strong>。任何模块写数据必须走底座服务，不允许模块自建错题表。绕过底座在代码评审时直接打回——这是保证 G-01 的唯一手段。</li>
+<li><strong>确定性优先，AI 后置</strong>。先问「这个结论能不能用规则算出来」，能就不许调模型。</li>
+<li><strong>写入即终态</strong>。错因、排期、掌握度三者在同一事务内落库，要么全成要么全滚。</li>
+<li><strong>按需抽象，不为假想需求抽象</strong>。不预留租户字段、不做通用权限体系、不做埋点看板；但<strong>已明确的隔离维度必须落地</strong>——多用户场景下 <code>child_id</code> 数据范围隔离是硬约束（N-05 / ADR-018），不能用「以后再说」搪塞。</li>
+<li><strong>可解释优先于可配置</strong>。配置项越少越稳；需要配置的地方一定是考纲版本、教材版本这类外部变量。</li>
+</ol>
+<h3>1.3 需求到设计的映射总览</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>PRD 分区</th>
+<th>设计落点</th>
+<th>本文档章节</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F-BASE-01…08 底座</td>
+<td><code>base</code> / <code>review</code> / <code>judge</code> 三个核心包</td>
+<td>第 5、6、7 章</td>
+</tr>
+<tr>
+<td>F-REG-01…05 坐标树</td>
+<td><code>coordinate</code> 包（树 + 版本化）</td>
+<td>第 5.2 节</td>
+</tr>
+<tr>
+<td>F-WRG-01…06 错题复盘</td>
+<td><code>error</code> 包 + <code>review</code> 引擎</td>
+<td>第 5.4、6 章</td>
+</tr>
+<tr>
+<td>F-WRD-01…06 背单词</td>
+<td><code>word</code> 包（课内/课外双算法）</td>
+<td>第 8.3 节</td>
+</tr>
+<tr>
+<td>F-MTH-01…06 母题</td>
+<td><code>math</code> 包（母题五段 + 变式生成器）</td>
+<td>第 8.4 节</td>
+</tr>
+<tr>
+<td>F-GRM-01…06 语法</td>
+<td><code>grammar</code> 包（变形器 + 错误入口）</td>
+<td>第 8.5 节</td>
+</tr>
+<tr>
+<td>F-WRT-01…07 写作</td>
+<td><code>writing</code> 包（六层拆解 + 对照批改）</td>
+<td>第 8.6 节</td>
+</tr>
+<tr>
+<td>F-PAR-01…04 家长端</td>
+<td><code>parent</code> 包（只读报表）</td>
+<td>第 8.7 节</td>
+</tr>
+<tr>
+<td>F-EYE-01…04 护眼</td>
+<td><code>eye</code> 包 + 前端护眼组件</td>
+<td>第 9 章</td>
+</tr>
+<tr>
+<td>R-01…R-04 红线</td>
+<td>横切约束，落在第 7、9 章与前端契约</td>
+<td>第 7、9、10 章</td>
+</tr>
+<tr>
+<td>N-01…N-09 非功能</td>
+<td>第 11、12 章</td>
+<td>第 11、12 章</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="arch">
+  <div class="sec-head"><span class="sec-num">02</span><h3>总体架构</h3><span class="tag">怎么搭</span></div>
+  <p>总体架构</p>
+<h3>2.1 分层视图</h3>
+<pre class="cmd"><code>┌──────────────────────────────────────────────────────────────┐
+│  展示层  前端 jeecgboot-vue3 / src/views/study/               │
+│  ├── kid/      学习端（做题、闯关、错题录入）                 │
+│  ├── parent/   家长端（多孩子管理 + 只读报表）                 │
+│  ├── login/    孩子端两步登录（家庭码 → 选孩子 + PIN）        │
+│  └── shared/   共用组件（护眼护罩、判对错反馈、题目渲染器）    │
+└──────────────────────────────────────────────────────────────┘
+                          │  REST /api/v1/study/**
+┌──────────────────────────────────────────────────────────────┐
+│  应用层  jeecg-module-study（单模块 · 域优先分包）            │
+│  ├── controller   仅做参数校验与鉴权，不写业务逻辑            │
+│  ├── service      业务编排，事务边界在此                     │
+│  ├── engine       复习调度 / 变式生成 / 遗忘衰减 / 批改对照   │
+│  ├── ai           解释层适配器（只出不判）                    │
+│  └── rule         确定性判定规则（判对错、掌握度、过关判据）  │
+└──────────────────────────────────────────────────────────────┘
+                          │
+┌──────────────────────────────────────────────────────────────┐
+│  领域层  同一模块内的领域包（entity / mapper / dto / vo）      │
+│  ├── base/ error/ review/ word/ math/ grammar/ writing/ …     │
+│  └── family/  家庭与成员（多孩子多家长，V1.1 新增）           │
+└──────────────────────────────────────────────────────────────┘
+                          │
+┌──────────────────────────────────────────────────────────────┐
+│  存储层  MySQL 8 (jeecg-study 单库：平台表+业务表)            │
+│          Redis · 文件存储(图片)                                │
+└──────────────────────────────────────────────────────────────┘
+</code></pre>
+<blockquote>
+<p><strong>V1.1 变更</strong>：① 由「双库 + 双模块」改为「<strong>单库 + 单模块</strong>」（见 §3.1、§3.3 与 ADR-015/016）；
+② 新增 <code>family</code> 领域包与 <code>login/</code> 前端目录（多孩子多家长）；③ 分包改为<strong>域优先</strong>（§4）。</p>
+</blockquote>
+<h3>2.2 请求主链路（以「答一题」为例）</h3>
+<pre class="cmd"><code>POST /api/v1/study/practice/answer
+  │
+  ├─ PracticeController.answer()            参数校验 + 鉴权
+  │
+  ├─ PracticeService.submit()               开启事务
+  │    ├─ rule.JudgeEngine.judge()          确定性判定 ← R-02 落点
+  │    │     ├─ 题型匹配器（题干/选项/填空）
+  │    │     ├─ 数值容差判定（数学计算，带容差区间）
+  │    │     └─ 字符串规范化比对（英语语法/单词）
+  │    ├─ judgeResult = {correct, source:&quot;rule&quot;, basis}
+  │    │
+  │    ├─ if (!correct)                      错题入池
+  │    │    ├─ ErrorPoolService.record()    强制错因（缺错因直接抛 4001）
+  │    │    ├─ ReviewScheduler.schedule()   排期：当天
+  │    │    └─ MasteryService.update()       掌握度下降
+  │    │
+  │    ├─ ai.ExplainService.explain()       ← 只在判定之后调用，可失败
+  │    │     └─ 超时/失败 → 返回降级文案，不影响事务
+  │    │
+  │    └─ ErrorCauseService.tagStep()       母题步骤打标（F-MTH-04）
+  │
+  └─ 返回 { correct, source, basis, explain?, nextReviewAt }
+</code></pre>
+<p><strong>关键设计点</strong>：</p>
+<ul>
+<li><strong>AI 调用在事务内但被隔离</strong>：即使 AI 超时，事务内已写入的判定与错题记录照常提交。AI 失败只影响 <code>explain</code> 字段（返回 null + 降级提示），不抛异常。</li>
+<li><strong><code>source</code> 字段强制</strong>：返回体必带 <code>source</code>，取值 <code>rule</code> / <code>rule+model</code> / <code>model</code>。前端据此决定是否显示「AI 仅供参考」角标，且<strong><code>model</code> 不得作为唯一判定来源</strong>。</li>
+<li><strong><code>basis</code> 字段必带</strong>：判定依据（命中了哪条规则、答案比对详情），供申诉与家长复核。</li>
+</ul>
+<h3>2.3 扩展点设计</h3>
+<p>系统需要在不重构的前提下接入后续模块（物理、化学、英语阅读等）。预留四个扩展点：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>扩展点</th>
+<th>接口</th>
+<th>新增模块需实现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>内容接入</td>
+<td><code>StudyContentProvider</code></td>
+<td>内容实体 → 坐标树挂载、统一 ID 分配、错题入池回调</td>
+</tr>
+<tr>
+<td>判定规则</td>
+<td><code>JudgeStrategy</code></td>
+<td>按题型注册一个 <code>JudgeStrategy</code> 实现</td>
+</tr>
+<tr>
+<td>遗忘模型</td>
+<td><code>ForgettingModel</code></td>
+<td>单词/词条的衰减更新公式（默认 SM-2 变体）</td>
+</tr>
+<tr>
+<td>解释层</td>
+<td><code>AiExplainer</code></td>
+<td>针对内容类型的讲解生成器</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>V1.1（ADR-016）</strong>：本项目<strong>只有一个</strong> <code>jeecg-module-study</code> 模块，这些扩展点接口直接定义在该模块的 <code>service</code> / <code>engine</code> 包内，<strong>不另建 <code>jeecg-module-study-api</code></strong>。</p>
+</blockquote>
+</section>
+<section id="extend">
+  <div class="sec-head"><span class="sec-num">03</span><h3>JeecgBoot 拓展方式</h3><span class="tag">怎么接进底座</span></div>
+  <p>JeecgBoot 拓展方式</p>
+<h3>3.1 决策：独立业务模块，不并入 system 模块</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>缺点</th>
+<th>结论</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A. 独立 Maven 模块 <code>jeecg-module-study</code></td>
+<td>业务代码边界清晰；可整体摘除；与上游 <code>jeecg-module-demo</code>、monitorV2 的 <code>jeecg-module-monitor</code> 做法一致</td>
+<td>需要在 <code>jeecg-system-start</code> 中注册依赖</td>
+<td>✅ <strong>采用</strong></td>
+</tr>
+<tr>
+<td>B. 并入 <code>jeecg-module-system</code></td>
+<td>少一处依赖注册</td>
+<td>系统管理模块膨胀；学习业务与平台管理耦合</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>C. 独立仓库独立部署</td>
+<td>隔离彻底</td>
+<td>失去 JeecgBoot 的用户/菜单/权限/代码生成器复用</td>
+<td>❌</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>方案 A 与 <code>20260722-monitorV2</code> 的既有做法一致，工程形态已被验证。
+<strong>V1.1 调整</strong>：原计划拆 <code>jeecg-module-study</code> + <code>jeecg-module-study-api</code> <strong>两个</strong>模块，
+现改为<strong>单模块 + 域优先分包</strong>——上游 <code>jeecg-module-system</code> 之所以拆 api/biz 是因为它被跨模块引用，
+而本模块无此需求，多一个模块只增加构建复杂度（ADR-016）。</p>
+</blockquote>
+<h3>3.2 接入底座的具体步骤</h3>
+<blockquote>
+<p><strong>状态：1–4 已完成</strong>（基座已拉取并改造，见 <code>02-代码开发/05-源码/01-JeecgBoot基座/</code>，分支 <code>feature/jeecg-study</code>）。</p>
+</blockquote>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>动作</th>
+<th>落点</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>拉取 JeecgBoot <strong>v3.9.2</strong> 独立基座</td>
+<td><code>02-代码开发/05-源码/01-JeecgBoot基座/</code></td>
+<td>✅ 完成（tag <code>v3.9.2</code>，commit <code>7df07a8</code>）</td>
+</tr>
+<tr>
+<td>2</td>
+<td>在 <code>jeecg-boot-module/pom.xml</code> 的 <code>&lt;modules&gt;</code> 注册 <code>jeecg-module-study</code></td>
+<td><code>jeecg-boot/jeecg-boot-module/pom.xml</code></td>
+<td>✅ 完成</td>
+</tr>
+<tr>
+<td>3</td>
+<td>在 <code>jeecg-system-start</code> 的 pom 依赖 <code>jeecg-module-study</code></td>
+<td><code>jeecg-system-start/pom.xml</code></td>
+<td>✅ 完成</td>
+</tr>
+<tr>
+<td>4</td>
+<td>数据源改为 <code>jeecg-study</code>（dev/test/prod/docker 四份 yml + docker-compose）</td>
+<td><code>jeecg-system-start/src/main/resources/application-*.yml</code></td>
+<td>✅ 完成</td>
+</tr>
+<tr>
+<td>5</td>
+<td>生成平台库脚本（上游 133 张表，只改库名）</td>
+<td><code>05-公共资源/2026103018-平台库脚本.py</code> → <code>03-脚本/01-平台库初始化.sql</code></td>
+<td>✅ 完成</td>
+</tr>
+<tr>
+<td>6</td>
+<td>确认 MyBatis-Plus 扫描包包含 <code>org.jeecg.modules.study</code></td>
+<td><code>application-dev.yml</code> → <code>mybatis-plus.mapper-locations</code></td>
+<td>⬜ 待做</td>
+</tr>
+<tr>
+<td>7</td>
+<td>生成菜单与权限（<code>sys_permission</code> 表）、建 <code>study_parent</code> / <code>study_kid</code> 角色</td>
+<td>V0 实施阶段</td>
+<td>⬜ 待做</td>
+</tr>
+<tr>
+<td>8</td>
+<td>前端在 <code>jeecgboot-vue3/src/views/study/</code> 建目录并接入菜单</td>
+<td>V0 实施阶段</td>
+<td>⬜ 待做</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>⚠️ <strong>第 6 步最容易漏</strong>：漏了<strong>不会报错</strong>，只是查不到数据，表现为「接口 404 / 返回空列表」。</p>
+</blockquote>
+<h3>3.3 数据库接入（V1.1：双库 → <strong>单库</strong>）</h3>
+<pre class="cmd"><code class="language-yaml"># application-dev.yml（jeecg-study 单库：平台表 + 业务表）
+spring:
+  datasource:
+    dynamic:
+      datasource:
+        master:
+          url: jdbc:mysql://127.0.0.1:3306/jeecg-study?characterEncoding=UTF-8&amp;useUnicode=true&amp;useSSL=false&amp;tinyInt1isBit=false&amp;allowPublicKeyRetrieval=true&amp;serverTimezone=Asia/Shanghai
+          username: root
+          password: ${DB_PASSWORD:root}   # 口令由环境变量注入，真实口令不入库
+</code></pre>
+<blockquote>
+<p><strong>V1.1 决策（ADR-015 取代 ADR-001）</strong>：jeecg-study 使用<strong>自己拉取的 JeecgBoot v3.9.2 独立基座</strong>，
+与 monitorV2 完全隔离，<strong>不共享</strong> <code>jeecg-boot</code> 库——共享就谈不上「独立基座」。
+加上多用户需要平台表（家长与孩子都是 <code>sys_user</code>），平台表与业务表同库最简单。</p>
+<p><strong>因此 <code>@DS("study")</code> 取消</strong>，全部走默认 <code>master</code>。
+若将来要拆库，只需在 <code>spring.datasource.dynamic.datasource</code> 下加一个 <code>study</code> 键并给业务 Mapper 加 <code>@DS("study")</code>，
+<strong>业务代码无需改动</strong>——底座的 dynamic-datasource 已经就位（<code>jeecg-boot-base-core/pom.xml:128-133</code>）。</p>
+</blockquote>
+</section>
+<section id="pkg">
+  <div class="sec-head"><span class="sec-num">04</span><h3>包结构与分层职责</h3><span class="tag">代码落点</span></div>
+  <p>包结构与分层职责</p>
+<h3>4.1 包结构（<strong>域优先</strong> —— V1.1 变更）</h3>
+<blockquote>
+<p><strong>分包口径已定（ADR-014 关闭）</strong>：采用<strong>业务域 → 技术层</strong>。
+依据：① JeecgBoot 官方 <code>CLAUDE.md</code> 明确约定 <code>org.jeecg.modules.&lt;module&gt;.{controller,entity,mapper,service,vo}</code>；
+② monitorV2 的 <code>jeecg-module-monitor</code> 实际就是这么分的；③ 同一业务域代码物理聚合，<strong>AI 更不容易漏建目录</strong>。</p>
+</blockquote>
+<pre class="cmd"><code>org.jeecg.modules.study
+├── family/                      ── 家庭与成员（V1.1 新增 · 多孩子多家长）
+│   ├── controller/              FamilyController / ChildController / KidLoginController
+│   ├── entity/                  StudyFamily / StudyFamilyMember / StudyChild / StudyParentChildRel
+│   ├── mapper/                  （MyBatis-Plus BaseMapper）
+│   ├── service/ + service/impl/ 家庭、孩子档案、关联关系、PIN 校验
+│   └── scope/                   ChildScopeHelper（child_id 数据范围）
+├── base/                        ── 底座：五个共享组件
+│   ├── context/                 全局上下文（省/学段/年级/教材版本）
+│   ├── coordinate/              坐标树（树构建、版本化、失效标记）
+│   ├── idgen/                   统一 ID 分配器
+│   ├── error/                   统一错题池
+│   └── review/                  统一复习调度
+├── word/                        ── 模块③ 背单词
+│   ├── catalog/                 教材单元映射、课内外分线
+│   ├── srs/                     遗忘模型、熟词过滤、四档反馈
+│   └── practice/                闯关、连续天数
+├── math/                        ── 模块④ 数学母题
+│   ├── mother/                  母题五段结构
+│   ├── variant/                 三层变式生成器
+│   └── pass/                    过关判据（含口述确认）
+├── grammar/                     ── 模块⑤ 英语语法
+│   ├── transformer/              句子变形器
+│   ├── detect/                  错误定位（确定性规则优先）
+│   └── collect/                 错句收藏馆
+├── writing/                     ── 模块⑥ 语文写作
+│   ├── dissect/                 六层拆解库
+│   ├── train/                   三步训练流
+│   └── review/                  对照式批改
+├── region/                      ── 模块① 地区与考纲
+├── parent/                      ── 家长端（多孩子管理 + 只读报表）
+├── eye/                         ── 护眼
+├── engine/                      ── 引擎层
+│   ├── judge/                   JudgeStrategy 注册与执行
+│   ├── mastery/                 掌握度状态机
+│   ├── forgetting/              遗忘衰减
+│   └── explain/                 AI 解释层适配
+├── ai/                          ── AI 接入（只出不判）
+└── config/                      ── 扫描、拦截器、线程池、规则注册
+</code></pre>
+<blockquote>
+<p><strong>每个业务域包内部</strong>统一是 <code>controller/ entity/ mapper/ service/ service/impl/ vo/ dto/</code>（域优先，层在域内）。
+<code>family/scope/</code> 是唯一的例外——它是<strong>横切</strong>的数据范围组件，被所有业务域引用。</p>
+</blockquote>
+<h3>4.2 分层职责与红线</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>层</th>
+<th>允许做</th>
+<th>禁止做</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Controller</td>
+<td>参数校验、鉴权、DTO↔VO 转换</td>
+<td>写业务逻辑、直接用 Mapper</td>
+</tr>
+<tr>
+<td>Service</td>
+<td>业务编排、<strong>事务边界</strong>、调用 engine</td>
+<td>绕过底座服务直接写错题表</td>
+</tr>
+<tr>
+<td>Engine</td>
+<td>纯计算（判定、变式生成、衰减、掌握度）</td>
+<td>访问数据库、访问网络</td>
+</tr>
+<tr>
+<td>Rule</td>
+<td>确定性判定规则</td>
+<td>调用 AI</td>
+</tr>
+<tr>
+<td>AI 适配层</td>
+<td>生成讲解、追问、批改建议</td>
+<td>返回「对/错」「得分」结论</td>
+</tr>
+<tr>
+<td>Mapper</td>
+<td>单表持久化</td>
+<td>多表业务编排</td>
+</tr>
+<tr>
+<td>Scope（数据范围）</td>
+<td>解析当前身份可见的 <code>child_id</code> 集合</td>
+<td>放业务逻辑</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>红线落地检查点</strong>：<code>Engine</code> 与 <code>Rule</code> 包<strong>不允许</strong>引入 AI 客户端依赖（ArchUnit 单元测试断言）。这条断言把 R-02 从口头约定变成编译期事实。</p>
+<p><strong>多用户落地检查点</strong>：<code>Scope</code> 包是<strong>唯一</strong>允许解析 <code>child_id</code> 的地方；Service 层取 child 集合时<strong>必须</strong>经由 <code>ChildScopeHelper</code>，<strong>不得</strong>直接信任前端传入的 <code>childId</code>（越权 → 4010）。</p>
+</section>
+<section id="auth">
+  <div class="sec-head"><span class="sec-num">05</span><h3>认证与多用户</h3><span class="tag">多孩子多家长</span></div>
+  <p>认证与多用户</p>
+<blockquote>
+<p><strong>V1.1 新增章节。</strong> 系统从「单用户（一个孩子 + 一个家长）」改为「<strong>多家庭 / 多孩子 / 多家长</strong>」。
+完整契约见 <code>06-AI协作/01-任务台账/2026103019-多用户改造契约.md</code>。</p>
+</blockquote>
+<h3>5.1 身份模型：三类身份，两种登录方式</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>身份</th>
+<th>载体</th>
+<th>凭据</th>
+<th>登录端点</th>
+<th>权限码</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>家长</td>
+<td><code>sys_user</code> + 角色 <code>study_parent</code></td>
+<td>用户名 + 密码</td>
+<td><code>POST /sys/login</code>（<strong>底座原生，不新增</strong>）</td>
+<td><code>study:parent:*</code></td>
+</tr>
+<tr>
+<td>孩子</td>
+<td><code>sys_user</code> + 角色 <code>study_kid</code> + <code>study_child</code> 档案</td>
+<td><strong>PIN</strong>（4–6 位数字）</td>
+<td><code>POST /api/v1/study/kid/login</code></td>
+<td><code>study:kid:*</code></td>
+</tr>
+<tr>
+<td>管理员</td>
+<td><code>sys_user</code> + 底座 <code>admin</code> 角色</td>
+<td>用户名 + 密码</td>
+<td><code>POST /sys/login</code></td>
+<td>全部</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>关键设计：孩子也是 <code>sys_user</code>。</strong>
+这样 Shiro 2.0.5 + JWT 4.5.0、Redis 会话、<code>@RequiresPermissions</code>、菜单权限<strong>全部复用底座现成能力</strong>，
+不新增第二套认证栈。孩子只是<strong>登录方式</strong>不同（PIN 代替密码），
+登录成功后签发的 token 与家长<strong>完全同构</strong>（底座 <code>JwtUtil.sign(username, password, clientType)</code> + Redis 存 token）。
+这也是「不引入第二套权限体系」的关键——<strong>多用户不等于要重写认证</strong>。</p>
+</blockquote>
+<h3>5.2 孩子端两步登录</h3>
+<pre class="cmd"><code>孩子端打开
+  ↓
+① POST /api/v1/study/kid/lookup  { familyCode }        ← 免认证
+  → 校验家庭码 → 返回该家庭孩子候选列表（仅 id / nickname / avatar）
+  → 失败 → 4009「家庭码不正确」
+  ↓
+② POST /api/v1/study/kid/login   { childId, pin }       ← 免认证
+  → 校验孩子状态 + PIN 哈希（连续失败 5 次锁 10 分钟）
+  → 复用底座 JwtUtil.sign + Redis 发 token
+  → 返回 token + 孩子信息 + 绑定的家长昵称列表（仅昵称，不含账号）
+</code></pre>
+<p><strong>为什么要有「家庭码」这一步</strong>：孩子端<strong>不能公开列出所有孩子</strong>（信息泄露），也<strong>不能暴露底座登录页</strong>。
+家庭码由家长在家长端生成/重置，<strong>明文只在生成时返回一次</strong>，库里只存哈希。
+孩子端因此是<strong>独立的登录页</strong>，不出现「用户名/密码」。</p>
+<h3>5.3 数据范围（越权防线）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>身份</th>
+<th>可读范围</th>
+<th>判定来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>管理员</td>
+<td>全部</td>
+<td>—</td>
+</tr>
+<tr>
+<td>家长</td>
+<td><strong>仅 <code>study_parent_child_rel</code> 中与自己关联的 <code>child_id</code></strong></td>
+<td>每次请求<strong>实时查关系表</strong></td>
+</tr>
+<tr>
+<td>孩子</td>
+<td><strong>仅自己的 <code>child_id</code></strong></td>
+<td>JWT 附加 claim <code>childId</code></td>
+</tr>
+</tbody>
+</table></div>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>返回</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>家长 A 请求孩子 B 的数据</td>
+<td><strong>4010 越权</strong>（不是 404，避免资源探测）</td>
+</tr>
+<tr>
+<td>家长 A 传孩子 B 的 <code>childCode</code></td>
+<td><strong>4010</strong></td>
+</tr>
+<tr>
+<td>孩子 A 请求孩子 B 的数据</td>
+<td><strong>4010</strong></td>
+</tr>
+<tr>
+<td>家长 A 不在目标家庭</td>
+<td><strong>4010</strong></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>实现约定</strong>：家长侧 <code>child_id</code> 集合 = <code>ChildScopeHelper.childIdsOf(userId)</code> <strong>实时查关系表</strong>的结果，
+与前端传入的 <code>childId</code> <strong>求交集</strong>后才能进 where 条件。<strong>不得</strong>直接信任前端参数。</p>
+</blockquote>
+<h3>5.4 家长之间的隔离</h3>
+<ul>
+<li>家长 A <strong>看不到</strong>家长 B 的反馈、评价、申诉记录。</li>
+<li>家长只看到<strong>孩子</strong>的客观趋势（与单用户时一致）。</li>
+<li><strong>R-04 强化</strong>：多家长场景下<strong>明确禁止家庭内比较</strong>——不出现「谁的孩子更…」「家长评分对比」等任何形式。
+  新增红线断言 <code>R04-5</code>（家长响应不含他人标识）与 <code>R04-6</code>（全站无家庭内比较措辞）。</li>
+</ul>
+<h3>5.5 凭据存储</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>凭据</th>
+<th>存储</th>
+<th>强度策略</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>家长密码</td>
+<td><code>sys_user.password</code> + <code>salt</code>（底座 <code>PasswordUtil.encrypt(username, password, salt)</code>）</td>
+<td>底座策略，失败 5 次锁 10 分钟</td>
+</tr>
+<tr>
+<td>孩子 PIN</td>
+<td><code>study_child.pin_hash</code> + <code>pin_salt</code>（同款 <code>PasswordUtil.encrypt(childCode, pin, pinSalt)</code>）</td>
+<td><strong>4–6 位数字</strong>——低龄孩子记不住复杂密码，靠失败锁定兜底；<strong>不存明文</strong></td>
+</tr>
+<tr>
+<td>家庭码</td>
+<td><code>study_family.family_code</code> + <code>family_code_salt</code>（同款哈希）</td>
+<td>6 位大写字母数字，<strong>明文仅生成时返回一次</strong></td>
+</tr>
+</tbody>
+</table></div>
+<h3>5.6 与既有红线的关系</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>红线</th>
+<th>多用户下的变化</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>R-01 反搜题</td>
+<td>不变</td>
+</tr>
+<tr>
+<td>R-02 AI 只做解释层</td>
+<td>不变</td>
+</tr>
+<tr>
+<td>R-03 护眼硬指标</td>
+<td><strong>统计按 <code>child_id</code> 隔离</strong>；家长查看某孩子用眼时条件由关系表求交集</td>
+</tr>
+<tr>
+<td>R-04 不做公开比较</td>
+<td><strong>强化</strong>：追加「家长之间互不可见」「禁止家庭内比较」两条断言</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="base">
+  <div class="sec-head"><span class="sec-num">06</span><h3>底座设计</h3><span class="tag">P0 先行</span></div>
+  <p>底座设计</p>
+<h3>5.1 全局上下文（F-BASE-01）</h3>
+<p><strong>实现</strong>：<code>StudyContextHolder</code>（ThreadLocal）+ <code>study_context</code> 表。</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>行为</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>进入任一模块</td>
+<td>自动从 <code>study_context</code> 取当前上下文，模块<strong>不得</strong>再弹选择框</td>
+</tr>
+<tr>
+<td>修改上下文</td>
+<td>写新记录 + 将旧记录置 <code>effective=false</code>（保留历史，不删除）</td>
+</tr>
+<tr>
+<td>历史记录与旧上下文</td>
+<td>错题、练习记录携带<strong>当时的 context_id</strong>，切换后仍可追溯</td>
+</tr>
+<tr>
+<td>内容过滤</td>
+<td>上下文决定「课内词表」「母题排序」「考点树」的默认取数范围</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>补全点</strong>：历史记录不回填到新上下文。这是刻意的——孩子换年级后，旧的错题仍属于旧年级，不应被拉进新队列造成干扰。</p>
+<h3>5.2 坐标树（F-BASE-02 / F-REG-01…05）</h3>
+<p><strong>结构</strong>：四层固定 <code>地区考纲 → 学科 → 单元/章节 → 考点</code>。</p>
+<p><strong>关键设计：树节点版本化而非单表树</strong></p>
+<pre class="cmd"><code class="language-sql">study_knowledge_point(
+  id              varchar(32)  主键（KPT-{学科码}-{序号}）
+  parent_id       varchar(32)  父节点
+  level           tinyint      1=考纲 2=学科 3=单元 4=考点
+  name            varchar(128)
+  question_type   varchar(64)   考点：题型
+  score_weight   decimal(5,2)  考点：分值权重
+  error_types     varchar(256)  考点：常见错误类型（逗号分隔）
+  mother_q_id    varchar(32)   考点：对应母题 ID
+  version         varchar(16)  节点版本
+  effective_from  date         生效日期
+  invalid_at      date         失效日期（NULL = 现行）
+  status          tinyint      1=现行 0=失效
+)
+</code></pre>
+<p><strong>版本化策略</strong>：考纲调整时<strong>不更新旧节点</strong>，而是插入新版本节点并把旧节点 <code>invalid_at</code> 置为调整日。历史错题指向的旧节点仍然可查。</p>
+<p><strong>树的加载</strong>：单次加载当前 <code>status=1</code> 的全树进 Redis（key <code>study:kp:tree:{contextId}</code>），内存内做父子索引。改动后主动失效该 key。节点量级预计 &lt; 5,000，全量缓存无压力。</p>
+<h3>5.3 统一 ID 体系（F-BASE-03）</h3>
+<p><strong>分配器</strong>：<code>IdGenerator</code>，按前缀 + 序列生成，序列来自 Redis 自增（<code>INCR study:seq:{PREFIX}</code>），保证全局唯一且可读。</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>实体</th>
+<th>前缀</th>
+<th>格式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>考点</td>
+<td>KPT</td>
+<td><code>KPT-{学科码}-{6位序列}</code></td>
+</tr>
+<tr>
+<td>题目</td>
+<td>QST</td>
+<td><code>QST-{来源码}-{年份}-{4位序列}</code></td>
+</tr>
+<tr>
+<td>母题</td>
+<td>MTH</td>
+<td><code>MTH-{学科码}-{6位序列}</code></td>
+</tr>
+<tr>
+<td>单词</td>
+<td>WRD</td>
+<td><code>WRD-{首字母}-{6位序列}</code></td>
+</tr>
+<tr>
+<td>语法点</td>
+<td>GRP</td>
+<td><code>GRP-{4位序列}</code></td>
+</tr>
+<tr>
+<td>作文拆解</td>
+<td>WRT</td>
+<td><code>WRT-{层级码}-{4位序列}</code></td>
+</tr>
+<tr>
+<td>错题</td>
+<td>ERR</td>
+<td><code>ERR-{8位序列}</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>补全的不可回收约定</strong>：ID 一经分配永久保留，序列不回退，内容修订不改 ID。跨模块引用只存 ID，不复制内容——这保证了 G-02 的可验证性。</p>
+<h3>5.4 统一错题池（F-BASE-04 / F-WRG-04）</h3>
+<p><strong>唯一入口</strong>：<code>ErrorPoolService.record(ErrorRecord)</code>。<strong>这是全系统唯一被允许写错题表的入口。</strong></p>
+<pre class="cmd"><code class="language-java">public interface ErrorPoolService {
+    /**
+     * 记录一次错误。errCause 为空直接抛 BusinessException(4001)。
+     * 本方法必须在调用方的事务内执行。
+     */
+    String record(ErrorRecord record);
+}
+</code></pre>
+<p><strong>ErrorRecord 必填项</strong>：<code>sourceModule</code>（来源模块）、<code>contentId</code>（关联内容 ID）、<code>knowledgePointId</code>（知识点）、<code>errorCause</code>（错因）、<code>rawAnswer</code>（孩子原始作答）、<code>correctAnswer</code>。</p>
+<p><strong>各模块接入方式</strong>：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>模块</th>
+<th>触发点</th>
+<th>内容 ID</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>背单词</td>
+<td>单词练习答错</td>
+<td><code>WRD-xxx</code></td>
+</tr>
+<tr>
+<td>数学母题</td>
+<td>变式题答错</td>
+<td><code>QST-xxx</code>（变式题也是题目）</td>
+</tr>
+<tr>
+<td>英语语法</td>
+<td>句子纠错</td>
+<td><code>GRP-xxx</code> + 句子哈希</td>
+</tr>
+<tr>
+<td>语文写作</td>
+<td>批改发现病句/表达问题</td>
+<td><code>WRT-xxx</code> + 句段定位</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>错因五维（F-WRG-01）</strong>：<code>CONCEPT</code>（概念不清）/ <code>READING</code>（审题偏差）/ <code>CALC</code>（计算失误）/ <code>METHOD</code>（方法不会）/ <code>TIME</code>（时间不够）。</p>
+<blockquote>
+<p><strong>设计注记</strong>：错误码用 <code>ERROR_CAUSE</code> 固定五维，但<strong>同时记录</strong>每个错因标签的使用频次（<code>study_error_cause_stat</code>）。V1 结束后按频次评估是否扩展或允许自定义——这是对竞品证据「错因维度必须由真实错题反推，不能预设」的工程化妥协。</p>
+</blockquote>
+<h3>5.5 练习作答的统一契约</h3>
+<p>所有模块的练习走同一套「作答 → 判定 → 记录」骨架，差异只在 <code>JudgeStrategy</code> 与内容渲染。</p>
+<pre class="cmd"><code class="language-java">public interface JudgeStrategy {
+    /** 该策略适用的题型/内容类型 */
+    String contentType();
+    /**
+     * 确定性判定。禁止调用 AI。
+     * @return 判定结果，必须带 source=&quot;rule&quot; 与 basis 依据描述
+     */
+    JudgeResult judge(AnswerContext ctx);
+}
+</code></pre>
+<p><strong>已规划策略</strong>：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>策略</th>
+<th>适用</th>
+<th>判定方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SingleChoiceJudge</code></td>
+<td>选择题</td>
+<td>选项 ID 精确比对</td>
+</tr>
+<tr>
+<td><code>FillBlankJudge</code></td>
+<td>填空</td>
+<td>规范化后比对（去空格/全半角/大小写）</td>
+</tr>
+<tr>
+<td><code>NumericJudge</code></td>
+<td>数值计算</td>
+<td>带容差区间比对（容差可按考点配置）</td>
+</tr>
+<tr>
+<td><code>ExpressionJudge</code></td>
+<td>数学表达式</td>
+<td>符号规范化 + 等价式判定</td>
+</tr>
+<tr>
+<td><code>WordJudge</code></td>
+<td>单词释义</td>
+<td>同义词典匹配 + 容错字符</td>
+</tr>
+<tr>
+<td><code>SentenceJudge</code></td>
+<td>英文句子</td>
+<td>语法点规则匹配 + 关键词命中</td>
+</tr>
+<tr>
+<td><code>ManualJudge</code></td>
+<td>写作段落</td>
+<td><strong>不由系统判定对错</strong>，只产出「待批改」记录，交给对照式批改</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>红线实现（R-02）</strong>：<code>JudgeResult.source</code> 字段的枚举只有 <code>rule</code> 与 <code>rule+model</code>。<strong>不存在 <code>model</code> 单独取值</strong>——类型层面杜绝「AI 直接判对错」。</p>
+</section>
+<section id="review">
+  <div class="sec-head"><span class="sec-num">07</span><h3>复习调度引擎</h3><span class="tag">排期</span></div>
+  <p>复习调度引擎</p>
+<h3>6.1 排期状态机</h3>
+<pre class="cmd"><code>                    ┌──────────────┐
+   答错 ──────────▶ │  PENDING(当日) │ ── 做对1次 ──▶ +1天 ──┐
+                    └──────────────┘                          │
+                    ┌──────────────┐                          ▼
+   做错(复习中) ───▶ │ PENDING(重排) │ ◀── 做对2次 ──▶ +3天 ──▶ ...
+                    └──────────────┘                          ▼
+                    ┌──────────────┐
+   连续3次做对 ─────▶ │  ARCHIVED     │  ← 移出队列
+                    └──────────────┘
+</code></pre>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>当前间隔</th>
+<th>做对后</th>
+<th>移出条件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>当天</td>
+<td>+1 天</td>
+<td>—</td>
+</tr>
+<tr>
+<td>+1 天</td>
+<td>+3 天</td>
+<td>—</td>
+</tr>
+<tr>
+<td>+3 天</td>
+<td>+7 天</td>
+<td><strong>连续三次做对</strong></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>移出阈值取 3（不是 2），否则第 3 次做对即移出、<strong>+7 天档不可达</strong>。<code>+14 天</code>档仅在策略层保留（连对 3 次即毕业）。</p>
+</blockquote>
+<p><strong>「做对」的严格定义</strong>：母题的「过关」额外要求口述关键关系通过，口述未过时该母题保持 PENDING，<strong>不计入做对次数</strong>（F-MTH-03）。</p>
+<h3>6.2 队列生成算法</h3>
+<pre class="cmd"><code>今日队列 = { 错题池中 next_review_at &lt;= today 的条目 }
+         ∪ { 单词 SRS 到期条目 }
+         ∪ { 语法错句（复用错题池条目） }
+         ∪ { 写作病句（复用错题池条目） }
+排序键 = 薄弱度(考点掌握度) × 遗忘风险(距上次复习天数 / 预期半衰期)
+</code></pre>
+<p><strong>关键设计</strong>：单词、语法、写作的复习条目<strong>复用错题池的记录</strong>，而非各自建表。否则「一条间隔重复队列管全部模块」就落空了。</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>实现要点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>队列物化</td>
+<td>每日首次访问时物化到 <code>study_review_schedule</code>（含 <code>sort_score</code>），当天不变</td>
+</tr>
+<tr>
+<td>排序稳定性</td>
+<td>同分按 <code>next_review_at</code> 升序，再按 <code>id</code> 升序，保证顺序可预期</td>
+</tr>
+<tr>
+<td>跨线升级</td>
+<td>课内背错的词 <code>upgrade=1</code>，在课外线的到期队列中优先级加权（F-WRD-05）</td>
+</tr>
+<tr>
+<td>容量上限</td>
+<td>单日队列上限 50 条，超出按 <code>sort_score</code> 截断，其余顺延——避免孩子被任务压垮</td>
+</tr>
+</tbody>
+</table></div>
+<h3>6.3 掌握度模型</h3>
+<pre class="cmd"><code class="language-java">public enum MasteryState { UNKNOWN, LEARNING, FAMILIAR, MASTERED }
+</code></pre>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>状态</th>
+<th>进入条件</th>
+<th>退出</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>UNKNOWN</td>
+<td>新内容</td>
+<td>首次答对 → LEARNING</td>
+</tr>
+<tr>
+<td>LEARNING</td>
+<td>连续做对 1–2 次</td>
+<td>连续做对 3 次 → FAMILIAR</td>
+</tr>
+<tr>
+<td>FAMILIAR</td>
+<td>连续做对 3 次</td>
+<td>连续做对 5 次 → MASTERED；答错 → LEARNING</td>
+</tr>
+<tr>
+<td>MASTERED</td>
+<td>连续做对 5 次</td>
+<td>答错 → LEARNING（直接跌两级）</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>掌握度是<strong>考点级</strong>而非内容级：同一考点的所有内容共享一个掌握度，由该考点下所有作答结果聚合。这是「知识点」成为唯一坐标的意义所在。</p>
+</blockquote>
+</section>
+<section id="judge">
+  <div class="sec-head"><span class="sec-num">08</span><h3>判对错与 AI 解释层</h3><span class="tag">红线实现</span></div>
+  <p>判对错与 AI 解释层</p>
+<h3>7.1 双层结构</h3>
+<pre class="cmd"><code>┌────────────────────────────────────────────────┐
+│  判定层（确定性）                                  │
+│  JudgeStrategy → JudgeResult{source:&quot;rule&quot;,    │
+│                  correct, basis, detail}       │
+│  ── 落库的是这一层的结果 ──                        │
+└────────────────────────────────────────────────┘
+                    │ 拿着已确定的结论去要解释
+                    ▼
+┌────────────────────────────────────────────────┐
+│  解释层（AI，可失败）                              │
+│  AiExplainer.explain(judgeResult, content)      │
+│  → 讲解 / 追问 / 变式提示 / 差异清单              │
+│  ── 落库的是这一层的产出 ──                        │
+└────────────────────────────────────────────────┘
+</code></pre>
+<h3>7.2 AI 接入规范</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>规范</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>位置</td>
+<td><code>org.jeecg.modules.study.ai</code> 与 <code>engine.explain</code>，<strong>不引入到 <code>rule</code>/<code>engine.judge</code> 包</strong></td>
+</tr>
+<tr>
+<td>输入</td>
+<td>只能是「已判定的结论」+「内容」+「孩子原始作答」，<strong>不允许</strong>把内容交给模型让它判断</td>
+</tr>
+<tr>
+<td>输出约束</td>
+<td>结构化 JSON，schema 固定；解析失败即视为无输出</td>
+</tr>
+<tr>
+<td>超时</td>
+<td>3 秒；超时返回降级文案（静态讲解），不抛异常</td>
+</tr>
+<tr>
+<td>失败语义</td>
+<td><strong>降级而非报错</strong>：AI 挂了只影响讲解文案的丰富度，不影响练习流程</td>
+</tr>
+<tr>
+<td>幻觉防护</td>
+<td>讲解中引用的知识点必须来自坐标树白名单；生成后做一次引用校验，不匹配则丢弃生成结果</td>
+</tr>
+<tr>
+<td>申诉</td>
+<td>每条 AI 讲解附「我不同意」入口，记录到 <code>study_feedback</code>，家长端可见</td>
+</tr>
+</tbody>
+</table></div>
+<h3>7.3 解释层的四种用法</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>输入</th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>讲题</td>
+<td>题目 + 判定结果 + 孩子作答</td>
+<td>分步讲解（题干→思路→步骤→答案）</td>
+</tr>
+<tr>
+<td>追问</td>
+<td>题目 + 错因</td>
+<td>苏格拉底式追问（不给答案）</td>
+</tr>
+<tr>
+<td>变式提示</td>
+<td>母题 + 孩子错在哪一步</td>
+<td>指向关键关系的一句话提示</td>
+</tr>
+<tr>
+<td>写作对照</td>
+<td>作文 + 同题材佳作拆解</td>
+<td>差异清单（最多 3 条）</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>「暴露错误思路」机制</strong>（借鉴豆包爱学「深度解题」）：讲题时可先复述一条孩子可能走的错误路径，再说明错在哪。这条路径由规则从错因推导，不由模型自由发挥。</p>
+</section>
+<section id="modules">
+  <div class="sec-head"><span class="sec-num">09</span><h3>六模块设计</h3><span class="tag">业务</span></div>
+  <p>六模块设计</p>
+<h3>8.1 模块① 地区与考纲（F-REG）</h3>
+<p><strong>核心职责</strong>：产出坐标树，不产出内容。</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>设计点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>树构建</td>
+<td>由「省 + 学段 + 年级 + 教材版本」查配置表得到节点集合，初始化时批量插入并打版本</td>
+</tr>
+<tr>
+<td>节点来源</td>
+<td>首版由人工整理的考纲配置表导入；后续可对接公开考纲样题做结构映射</td>
+</tr>
+<tr>
+<td>教材版本</td>
+<td>7 个版本全支持（人教/苏教/北师大/浙教/沪教/京教/鲁教），以 <code>study_textbook_version</code> 维表承载</td>
+</tr>
+<tr>
+<td>超纲过滤</td>
+<td>词表、母题均按 <code>textbook_version_id</code> 标记，查询时强制过滤</td>
+</tr>
+<tr>
+<td>考点四属性</td>
+<td>题型、分值权重、常见错误类型、对应母题 ID，均可维护</td>
+</tr>
+</tbody>
+</table></div>
+<h3>8.2 模块② 错题集与复盘（F-WRG）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>设计点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>录入</td>
+<td>图片上传 → 笔迹擦除 → 人工框选确认 → 关联科目/考点 → <strong>强制选错因</strong></td>
+</tr>
+<tr>
+<td>擦除</td>
+<td>采用二值化 + 形态学去噪的确定性图像处理；输出供人工校正，<strong>不承诺全自动</strong></td>
+</tr>
+<tr>
+<td>重做队列</td>
+<td>完全委托 <code>review</code> 引擎，本模块不实现排期</td>
+</tr>
+<tr>
+<td>一题多变</td>
+<td>变式来自母题的变式生成器；非母题来源的错题走「模板换数字」降级路径，并在 UI 标注「变式为自动生成」</td>
+</tr>
+<tr>
+<td>统计看板</td>
+<td>热点统计（高频错因/薄弱考点）走独立查询接口，不进错题池写入路径</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>「一题多变」的降级策略</strong>（补全）：不是所有错题都有母题。无母题时用<strong>同知识点同题型</strong>的兄弟题做换数字变式；找不到则标记「暂无可用变式」，该题仍进入重做队列但不要求变式全对。</p>
+<h3>8.3 模块③ 背单词（F-WRD）</h3>
+<p><strong>双算法分线，但共用一套队列。</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>线</th>
+<th>数据来源</th>
+<th>算法</th>
+<th>UI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>课内</td>
+<td>教材单元词表 1:1 映射</td>
+<td>完成度优先：进度条、连续天数、养成激励</td>
+<td>闯关、奖励、连续天数</td>
+</tr>
+<tr>
+<td>课外</td>
+<td>考纲高频词 + 真题熟词生义</td>
+<td>抗遗忘优先：遗忘衰减、四档反馈、间隔重复</td>
+<td>队列、效率视图</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>四档反馈（F-WRD-04）</strong>：<code>认识</code> / <code>模糊</code> / <code>忘记</code> / <code>熟知</code>。每档对应不同的记忆强度更新：</p>
+<pre class="cmd"><code>认识： S += 0.35, λ 不变
+模糊： S += 0.10, λ *= 1.20
+忘记： S = 0,     λ *= 1.60
+熟知： S += 0.50, λ *= 0.80
+下次复习间隔 = 基础间隔(S) × λ
+</code></pre>
+<blockquote>
+<p>遗忘模型接口化（<code>ForgettingModel</code>），可替换为 SSP-MMC 类模型而不动业务代码。</p>
+</blockquote>
+<p><strong>熟词过滤（F-WRD-03）</strong>：首次进入课外线做词汇量测试，命中的词直接标记为 <code>known</code>，不进队列。过滤量在报告中可见。</p>
+<p><strong>四个坑的设计对策</strong>：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>坑</th>
+<th>对策（落到设计）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>只记图不记词</td>
+<td>课内词条<strong>必须包含无图回忆环节</strong>，图形不得作为唯一线索</td>
+</tr>
+<tr>
+<td>只打卡不复习</td>
+<td>新词配额受「当日复习欠账」约束；欠账 &gt; 阈值时禁止发新词</td>
+</tr>
+<tr>
+<td>工具切换过频</td>
+<td>课内课外共用同一队列与同一 SRS 内核</td>
+</tr>
+<tr>
+<td>课内超纲污染</td>
+<td>按教材版本强制过滤</td>
+</tr>
+</tbody>
+</table></div>
+<h3>8.4 模块④ 数学母题（F-MTH）</h3>
+<p><strong>母题五段结构</strong>：<code>母题实体</code> 用五个独立字段组承载，每段可单独编辑与单独渲染：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>段</th>
+<th>存储</th>
+<th>渲染用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>题型名</td>
+<td><code>title</code></td>
+<td>关卡名、检索</td>
+</tr>
+<tr>
+<td>已知条件类型</td>
+<td><code>condition_types</code>（JSON 数组）</td>
+<td>变式生成器的输入</td>
+</tr>
+<tr>
+<td>关键关系</td>
+<td><code>key_relation</code></td>
+<td><strong>口述过关的对象</strong>、提示语</td>
+</tr>
+<tr>
+<td>解题步骤链</td>
+<td><code>steps</code>（JSON 数组，每步含公式与说明）</td>
+<td>讲解、步骤打标</td>
+</tr>
+<tr>
+<td>易错点清单</td>
+<td><code>pitfalls</code>（JSON 数组）</td>
+<td>错因预判、追问</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>三层变式生成器（F-MTH-02）</strong>：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>层</th>
+<th>生成方式</th>
+<th>检验力</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L1 换数字</td>
+<td>保持结构，替换数值参数</td>
+<td>低（防记答案）</td>
+</tr>
+<tr>
+<td>L2 换情境</td>
+<td>保持结构，替换表层情境（人物/物品/场景）</td>
+<td>中（防记套路）</td>
+</tr>
+<tr>
+<td>L3 逆向提问</td>
+<td>由结果反推条件</td>
+<td>高（检验真懂）</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>实现约束（补全）</strong>：变式生成是<strong>结构化模板变换</strong>，不是模型自由生成。生成器读取母题的条件类型与关系式，做参数替换后由规则引擎校验答案（数值/符号等价）。模型只负责把变式<strong>转写成自然语言表述</strong>（可失败，失败则用模板文案）。这保证 R-02 不被绕过——变式的答案仍然必须算得出来。</p>
+<p><strong>过关判据（F-MTH-03）</strong>：</p>
+<pre class="cmd"><code>过关 = 全部 N 道变式（首版 N=3）判定为对
+     AND 口述关键关系通过（孩子口述或用语音转文字后由规则匹配关键关系关键词）
+</code></pre>
+<p><strong>口述未过的处理</strong>：给一道苏格拉底式追问（针对 <code>key_relation</code> 的一个提示问题），<strong>不给答案</strong>。追问后仍不过关，母题保持 PENDING。</p>
+<p><strong>闯关顺序（F-MTH-05）</strong>：按考纲优先级排序——<code>score_weight</code> 降序 + 掌握度升序 + 薄弱度降序。<strong>不是随机推荐，也不是按录入顺序</strong>。</p>
+<h3>8.5 模块⑤ 英语语法（F-GRM）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>设计点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>句子变形器</td>
+<td>输入中文意思，输出 5 种英文表达。<strong>优先从语料库检索</strong>，无命中时由模型生成并经校验</td>
+</tr>
+<tr>
+<td>错误定位</td>
+<td>确定性规则优先：句法模式匹配 + 形态规则（时态一致、主谓一致、冠词、介词搭配）。规则无法定位时才交给模型</td>
+</tr>
+<tr>
+<td>最小讲解</td>
+<td>每个语法点自带 <code>rule</code>（一句话规则）、<code>example</code>（同类例句）、<code>counterExample</code>（反例）三件套，存库而非现生成</td>
+</tr>
+<tr>
+<td>考纲锚定</td>
+<td>语法点挂考点树，<code>exam_type</code> 字段标注单选/完形/语法填空/书面表达</td>
+</tr>
+<tr>
+<td>错句收藏馆</td>
+<td>复用统一错题池，只做视图筛选</td>
+</tr>
+<tr>
+<td>语境库复用</td>
+<td>与背单词共用 <code>study_sentence_context</code> 表，一份语料两处用</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>「错误即入口」的链路</strong>：</p>
+<pre class="cmd"><code>写句子 → 提交 → 规则定位错误 → 点击错误 → 弹出三件套 → 立刻改一次 → 改对则标记该错误点已掌握
+</code></pre>
+<h3>8.6 模块⑥ 语文写作（F-WRT）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>设计点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>六层拆解</td>
+<td><code>WRT-HOOK</code>（题目钩子）/ <code>WRT-OPEN</code>（开篇三句）/ <code>WRT-MATERIAL</code>（选材角度）/ <code>WRT-STRUCT</code>（结构图）/ <code>WRT-HAND</code>（三个手法例句）/ <code>WRT-END</code>（结尾回扣）。每层末尾附「换到你的题目上会怎么写」的提示题</td>
+</tr>
+<tr>
+<td>对照式批改</td>
+<td>输出「你这篇 vs 同题材佳作的差异清单」，<strong>最多 3 条</strong>。条数上限在服务层强制</td>
+</tr>
+<tr>
+<td>三步训练流</td>
+<td>审题 → 列提纲 → 写初稿。<strong>提纲未通过不允许提交初稿</strong>（服务端校验，非前端禁用）</td>
+</tr>
+<tr>
+<td>情境库</td>
+<td>同主题给不同处境/年龄/细节的情境，不给金句</td>
+</tr>
+<tr>
+<td>温和分寸</td>
+<td>只在语法/逻辑/结构层给建议，不做主观评价，不评价情感表达</td>
+</tr>
+<tr>
+<td>错因入池</td>
+<td>病句/表达问题按错因标签入统一错题池</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>防代写的服务端校验</strong>：</p>
+<pre class="cmd"><code>if (submission.step != &quot;DRAFT&quot; &amp;&amp; !outline.passed) {
+    throw new BusinessException(4002, &quot;请先完成并通过提纲步骤&quot;);
+}
+</code></pre>
+<h3>8.7 家长端（F-PAR）</h3>
+<p><strong>只读实现</strong>：家长端所有接口走独立的 <code>ParentReadController</code>，<strong>复用同一套 Service 但只暴露读方法</strong>。写操作仅限「一句话反馈」与「提醒偏好」两个白名单接口。</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>硬约束</th>
+<th>实现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>无辅导建议</td>
+<td>报表接口的 DTO 中<strong>不含</strong>任何建议/讲解字段</td>
+</tr>
+<tr>
+<td>无排名</td>
+<td>DTO 字段不含 rank/percentile/compare；文案层无相关词</td>
+</tr>
+<tr>
+<td>无答案查询</td>
+<td>不提供按 ID 取答案的接口；<code>JudgeResult</code> 不对外暴露</td>
+</tr>
+<tr>
+<td>一句话反馈</td>
+<td><code>parent_feedback</code> 表，<code>content</code> 长度上限 100 字，只关联练习/作文记录</td>
+</tr>
+<tr>
+<td>身份区分</td>
+<td>家长端与孩子端通过角色区分；家长操作写 <code>parent_operation_log</code></td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="eye">
+  <div class="sec-head"><span class="sec-num">10</span><h3>护眼实现</h3><span class="tag">硬指标</span></div>
+  <p>护眼实现（F-EYE）</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>需求</th>
+<th>实现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F-EYE-01 用眼时长</td>
+<td>前端 <code>useEyeGuard</code> composable 记录会话起止，节流上报到 <code>study_eye_usage</code></td>
+</tr>
+<tr>
+<td>F-EYE-02 蓝光过滤</td>
+<td>全局 CSS 滤镜 + 可切换 class，状态存 localStorage 并同步家长端偏好</td>
+</tr>
+<tr>
+<td>F-EYE-03 定时休息</td>
+<td>15 分钟阈值触发<strong>阻断式</strong>遮罩（不可绕过，须确认）；服务端同时记录</td>
+</tr>
+<tr>
+<td>F-EYE-04 可配置</td>
+<td>间隔按学段配置（低年级 10 分钟、高年级 20 分钟），存 <code>study_context</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>护眼统计的可靠性</strong>：用眼时长以<strong>服务端心跳</strong>为准（客户端每 30 秒上报一次活跃心跳，服务端按心跳间隔累加），避免客户端关闭页面导致漏记。</p>
+<blockquote>
+<p><strong>多用户补充（V1.1）</strong>：<code>study_eye_usage</code> 增加 <code>child_id</code> 字段，用眼时长<strong>按孩子隔离</strong>；
+家长端查看某孩子的用眼统计时，条件由 <code>study_parent_child_rel</code> 求交集得到，<strong>不得</strong>直接信任前端传入的孩子标识。</p>
+</blockquote>
+</section>
+<section id="api">
+  <div class="sec-head"><span class="sec-num">11</span><h3>接口与前端契约</h3><span class="tag">前后端约定</span></div>
+  <p>接口与前端契约</p>
+<h3>10.1 统一响应与错误码</h3>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true,
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: { }
+}
+</code></pre>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>错误码</th>
+<th>含义</th>
+<th>典型场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4001</td>
+<td>缺少错因</td>
+<td>提交练习未选错因</td>
+</tr>
+<tr>
+<td>4002</td>
+<td>前置步骤未完成</td>
+<td>写作未过提纲提交初稿</td>
+</tr>
+<tr>
+<td>4003</td>
+<td>违反练习顺序</td>
+<td>未作答就请求解析</td>
+</tr>
+<tr>
+<td>4004</td>
+<td>上下文未配置</td>
+<td>首次使用未配置地区/教材</td>
+</tr>
+<tr>
+<td>5001</td>
+<td>判定策略缺失</td>
+<td>该题型未注册 JudgeStrategy</td>
+</tr>
+</tbody>
+</table></div>
+<h3>10.2 判对错响应契约</h3>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true,
+  &quot;result&quot;: {
+    &quot;contentId&quot;: &quot;QST-SELF-2026-0088&quot;,
+    &quot;correct&quot;: false,
+    &quot;source&quot;: &quot;rule&quot;,
+    &quot;basis&quot;: &quot;数值容差判定：期望 12.5，实际 12，允许偏差 ±0.05&quot;,
+    &quot;detail&quot;: { &quot;expected&quot;: &quot;12.5&quot;, &quot;actual&quot;: &quot;12&quot;, &quot;tolerance&quot;: 0.05 },
+    &quot;explain&quot;: { &quot;type&quot;: &quot;STEP_BY_STEP&quot;, &quot;text&quot;: &quot;...&quot; },
+    &quot;explainStatus&quot;: &quot;OK&quot;,
+    &quot;nextReviewAt&quot;: &quot;2026-10-30&quot;,
+    &quot;errorId&quot;: &quot;ERR-00000123&quot;
+  }
+}
+</code></pre>
+<p><strong>契约要点</strong>：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>约束</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>source</code></td>
+<td>必带；<code>rule</code> 或 <code>rule+model</code>；<strong>无 <code>model</code> 单独取值</strong></td>
+</tr>
+<tr>
+<td><code>basis</code></td>
+<td>必带；人可读的判定依据；家长端可见（脱敏后）</td>
+</tr>
+<tr>
+<td><code>explain</code></td>
+<td>可为 null；<code>explainStatus</code> 取 <code>OK</code> / <code>TIMEOUT</code> / <code>UNAVAILABLE</code> / <code>SKIPPED</code></td>
+</tr>
+<tr>
+<td><code>nextReviewAt</code></td>
+<td>仅在 <code>correct=false</code> 时返回</td>
+</tr>
+<tr>
+<td><code>errorId</code></td>
+<td>仅在 <code>correct=false</code> 时返回；与 <code>errorPool</code> 表记录一一对应</td>
+</tr>
+</tbody>
+</table></div>
+<h3>10.3 练习页作答顺序契约（R-01）</h3>
+<p>练习页的「解析/答案」区块由前端 <code>PracticeAnswerGate</code> 组件控制：</p>
+<pre class="cmd"><code>状态机：UNANSWERED → ANSWERED → (可选) REVEALED
+- UNANSWERED：解析组件不渲染到 DOM（不是 CSS 隐藏）
+- ANSWERED：判定结果返回后才挂载解析组件
+- REVEALED：孩子主动点「看解析」后才展开
+</code></pre>
+<p><strong>「不渲染到 DOM」而非 <code>display:none</code></strong>：这样「未作答即无法看到答案」在 DOM 层面即成立，评审可直接用 DOM 查询验证（对应验收 A-08）。</p>
+</section>
+<section id="security">
+  <div class="sec-head"><span class="sec-num">12</span><h3>安全与隐私</h3><span class="tag">未成年人</span></div>
+  <p>安全与隐私</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>措施</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>未成年人身份</td>
+<td>孩子端与家长端角色分离；家长操作留痕（N-07）</td>
+</tr>
+<tr>
+<td>数据边界</td>
+<td>全部数据留在本地 MySQL，不出网（N-06）</td>
+</tr>
+<tr>
+<td>无第三方 SDK</td>
+<td>禁止接入统计、广告、崩溃上报 SDK；CI 加依赖扫描断言</td>
+</tr>
+<tr>
+<td>图片存储</td>
+<td>错题照片存本地文件目录，不上传第三方；文件名用 ID 而非原始名</td>
+</tr>
+<tr>
+<td>依赖漏洞</td>
+<td><code>npm audit</code> / Maven 依赖检查纳入构建门禁</td>
+</tr>
+<tr>
+<td>口令管理</td>
+<td>数据库口令在 <code>application-dev.yml</code>，该文件 gitignore；生产用环境变量注入</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="perf">
+  <div class="sec-head"><span class="sec-num">13</span><h3>性能与容量</h3><span class="tag">指标</span></div>
+  <p>性能与容量</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>目标</th>
+<th>验证方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>列表页首屏</td>
+<td>≤ 1.5s</td>
+<td>本地环境实测</td>
+</tr>
+<tr>
+<td>判对错接口</td>
+<td>≤ 300ms（不含 AI）</td>
+<td>压测</td>
+</tr>
+<tr>
+<td>AI 解释</td>
+<td>≤ 3s，超时降级</td>
+<td>模拟超时</td>
+</tr>
+<tr>
+<td>坐标树加载</td>
+<td>缓存命中 &lt; 50ms</td>
+<td>Redis 命中测试</td>
+</tr>
+<tr>
+<td>队列物化</td>
+<td>≤ 200ms（50 条）</td>
+<td>压测</td>
+</tr>
+<tr>
+<td>数据规模</td>
+<td>错题 ≤ 20,000 条；单词 ≤ 30,000 条；作答记录 ≤ 500,000 条</td>
+<td>按 3 年使用估算</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>容量应对</strong>：</p>
+<ul>
+<li>作答记录表按月分表（<code>study_practice_record_yyyymm</code>），避免单表膨胀。</li>
+<li>坐标树全量缓存 Redis，变更主动失效。</li>
+<li>错题池按 <code>next_review_at</code> 建索引，队列查询走索引。</li>
+</ul>
+</section>
+<section id="deploy">
+  <div class="sec-head"><span class="sec-num">14</span><h3>部署拓扑</h3><span class="tag">本地</span></div>
+  <p>部署拓扑</p>
+<pre class="cmd"><code>┌──────────────────────────────────────────────┐
+│  浏览器                                      │
+│  ├── jeecgboot-vue3 (dist) → nginx :8589    │
+│  └── 静态资源                                │
+└───────────────────┬──────────────────────────┘
+                    │ /api/v1/study/**  →  :8590
+┌───────────────────▼──────────────────────────┐
+│  nginx :8589                                 │
+│  ├── /  → 前端 dist                          │
+│  └── /api/ → 后端 :8590                      │
+└───────────────────┬──────────────────────────┘
+                    │
+┌───────────────────▼──────────────────────────┐
+│  jeecg-system-start :8590                    │
+│  ├── jeecg-module-system（用户/菜单/字典）    │
+│  └── jeecg-module-study（业务）               │
+└──────┬─────────────┬──────────────┬──────────┘
+       │             │              │
+   MySQL:3306    Redis:6379    本地文件存储
+   ├ jeecg-boot（平台表）
+   └ jeecg-study（业务表）
+</code></pre>
+<p><strong>与 monitorV2 并行</strong>：端口、库名、Redis 库索引全部错开，可同时运行。</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>服务</th>
+<th>本项目</th>
+<th>monitorV2</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>后端</td>
+<td>8590</td>
+<td>8088</td>
+<td>错开</td>
+</tr>
+<tr>
+<td>前端</td>
+<td>8589</td>
+<td>3100 / 3200</td>
+<td>错开</td>
+</tr>
+<tr>
+<td>MySQL 库</td>
+<td><code>jeecg-study</code></td>
+<td><code>jeecg-boot</code></td>
+<td>库名不同，同实例</td>
+</tr>
+<tr>
+<td>Redis</td>
+<td>库索引 3</td>
+<td>库索引 2</td>
+<td>错开</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="trace">
+  <div class="sec-head"><span class="sec-num">15</span><h3>需求追溯矩阵</h3><span class="tag">覆盖检查</span></div>
+  <p>需求追溯矩阵</p>
+<blockquote>
+<p>覆盖检查：PRD 的每一条 P0/P1 需求都必须在本设计中找到落点。</p>
+</blockquote>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>PRD 编号</th>
+<th>设计落点</th>
+<th>章节</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F-BASE-01 全局上下文</td>
+<td><code>StudyContextHolder</code> + <code>study_context</code></td>
+<td>5.1</td>
+</tr>
+<tr>
+<td>F-BASE-02 坐标树</td>
+<td><code>study_knowledge_point</code> 版本化</td>
+<td>5.2</td>
+</tr>
+<tr>
+<td>F-BASE-03 统一 ID</td>
+<td><code>IdGenerator</code></td>
+<td>5.3</td>
+</tr>
+<tr>
+<td>F-BASE-04 统一错题池</td>
+<td><code>ErrorPoolService</code> 唯一入口</td>
+<td>5.4</td>
+</tr>
+<tr>
+<td>F-BASE-05 复习调度</td>
+<td><code>ReviewScheduler</code> 引擎</td>
+<td>6</td>
+</tr>
+<tr>
+<td>F-REG-01…05</td>
+<td><code>region</code> 包 + 坐标树版本化</td>
+<td>8.1 / 5.2</td>
+</tr>
+<tr>
+<td>F-WRG-01…06</td>
+<td><code>base.error</code> + <code>review</code> 引擎</td>
+<td>5.4 / 8.2</td>
+</tr>
+<tr>
+<td>F-WRD-01…06</td>
+<td><code>word</code> 包（双算法）</td>
+<td>8.3</td>
+</tr>
+<tr>
+<td>F-MTH-01…06</td>
+<td><code>math</code> 包（母题五段 + 变式生成器）</td>
+<td>8.4</td>
+</tr>
+<tr>
+<td>F-GRM-01…06</td>
+<td><code>grammar</code> 包</td>
+<td>8.5</td>
+</tr>
+<tr>
+<td>F-WRT-01…07</td>
+<td><code>writing</code> 包</td>
+<td>8.6</td>
+</tr>
+<tr>
+<td>F-PAR-01…04</td>
+<td><code>parent</code> 包 + 只读控制器</td>
+<td>8.7</td>
+</tr>
+<tr>
+<td>F-EYE-01…04</td>
+<td><code>eye</code> 包 + <code>useEyeGuard</code></td>
+<td>8.8</td>
+</tr>
+<tr>
+<td>R-01 反搜题</td>
+<td><code>PracticeAnswerGate</code> 状态机</td>
+<td>10.3</td>
+</tr>
+<tr>
+<td>R-02 AI 只做解释层</td>
+<td><code>JudgeResult.source</code> 枚举 + ArchUnit 断言</td>
+<td>7.1 / 4.2</td>
+</tr>
+<tr>
+<td>R-03 护眼硬指标</td>
+<td>阻断式遮罩 + 服务端心跳统计</td>
+<td>8.8</td>
+</tr>
+<tr>
+<td>R-04 不做公开比较</td>
+<td>家长端 DTO 无排名字段</td>
+<td>8.7</td>
+</tr>
+<tr>
+<td>N-01…N-09</td>
+<td>性能、隐私、事务、数据隔离</td>
+<td>11 / 12 / 5.1</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="risk">
+  <div class="sec-head"><span class="sec-num">16</span><h3>设计风险与待决</h3><span class="tag">评审议题</span></div>
+  <p>设计风险与待决</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>编号</th>
+<th>议题</th>
+<th>现状</th>
+<th>待决</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>D-01</td>
+<td>平台表与业务表分库的取舍</td>
+<td><strong>已定（V1.1）</strong>：改为<strong>单库</strong> <code>jeecg-study</code>，平台表与业务表同库，<code>@DS("study")</code> 取消</td>
+<td>见 ADR-015 取代 ADR-001；将来若要拆库，业务代码无需改动</td>
+</tr>
+<tr>
+<td>D-02</td>
+<td>模块形态（Web vs 小程序）</td>
+<td>本期按 Web 双视图，接口无状态化</td>
+<td>若确认小程序，需补小程序端视图层设计</td>
+</tr>
+<tr>
+<td>D-03</td>
+<td>变式生成的口语化改写</td>
+<td>结构变换确定性，语序表述交给模型</td>
+<td>模型不可用时的模板文案质量需评估</td>
+</tr>
+<tr>
+<td>D-04</td>
+<td>坐标树首版数据来源</td>
+<td>人工整理考纲配置表</td>
+<td>内容整理的工作量与准确率需试算</td>
+</tr>
+<tr>
+<td>D-05</td>
+<td>写作批改「差异清单」的确定性程度</td>
+<td>目前必须依赖模型</td>
+<td>需探索可规则化的差异维度（字数/句长/连接词覆盖）以降低对模型的依赖</td>
+</tr>
+<tr>
+<td>D-06</td>
+<td>错因五维是否开放自定义</td>
+<td>首版固定五维 + 频次统计</td>
+<td>V1 后按频次评估</td>
+</tr>
+<tr>
+<td>D-07</td>
+<td>图片笔迹擦除的自动化率</td>
+<td>确定性图像处理 + 人工校正</td>
+<td>需实测自动擦除率与人工校正耗时</td>
+</tr>
+<tr>
+<td>D-08</td>
+<td><strong>多用户下 kid 与 parent 的角色模型</strong></td>
+<td>孩子也是 <code>sys_user</code>（角色 <code>study_kid</code>），复用底座认证</td>
+<td>需确认是否允许一个账号既是家长又是孩子</td>
+</tr>
+<tr>
+<td>D-09</td>
+<td><strong>家庭码的强度与轮换策略</strong></td>
+<td>6 位码 + 失败锁定</td>
+<td>需确认是否要求定期轮换、是否允许关闭</td>
+</tr>
+<tr>
+<td>D-10</td>
+<td><strong>家长之间的反馈是否共享</strong></td>
+<td><strong>不共享</strong>（家长 A 看不到家长 B 的反馈）</td>
+<td>若家庭内希望共享反馈，需重新评估 R-04 边界</td>
+</tr>
+<tr>
+<td>D-11</td>
+<td><strong>孩子 PIN 的记忆负担</strong></td>
+<td>4–6 位数字，失败 5 次锁 10 分钟</td>
+<td>低龄孩子能否独立完成两步登录需实测</td>
+</tr>
+<tr>
+<td>D-12</td>
+<td><strong>base 独立基座的后续升级路径</strong></td>
+<td>锁定 v3.9.2，本地克隆 + <code>feature/jeecg-study</code> 分支</td>
+<td>上游发新版时的合并成本需评估</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>以上十二项在<strong>设计评审</strong>中逐条确认；未确认项不影响 V0 启动，但影响 V2 之后的排期。</p>
+</blockquote>
+<h3>15.1 已关闭的待决项</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>待决项</th>
+<th>结论</th>
+<th>依据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ADR-014</td>
+<td>包结构：域优先 vs 层优先</td>
+<td>✅ <strong>域优先</strong>（业务域 → 技术层）</td>
+<td>JeecgBoot 官方 <code>CLAUDE.md</code> 的包结构约定 + monitorV2 实际工程形态 + AI 不易漏建目录</td>
+</tr>
+<tr>
+<td>ADR-002</td>
+<td>模块形态：api + biz 两个模块 vs 单模块</td>
+<td>✅ <strong>单模块</strong> <code>jeecg-module-study</code> + 域内分层</td>
+<td>上游 <code>jeecg-module-demo</code> 与 monitorV2 <code>jeecg-module-monitor</code> 均为单模块；本模块无跨模块引用需求</td>
+</tr>
+<tr>
+<td>ADR-001</td>
+<td>双数据源</td>
+<td>⛔ <strong>被 ADR-015 取代</strong></td>
+<td>独立基座不共享 <code>jeecg-boot</code> 库</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+
+    <div id="bottom"></div>
+    <footer class="foot"><span>jeecg-study · 系统设计说明书 V1.1</span><span>2026-10-30</span><span>上游：01-产品需求说明书.html</span><span>下游：数据库设计说明书 · 接口设计说明书 · 前端页面清单 · 测试大纲</span></footer>
+  </main>
+
+</div>
+
+<button class="m-fab" id="fab" type="button">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/></svg>
+  目录
+</button>
+
+
+<script>
+(function(){
+  var BRAND = (document.getElementById('mTitle')||{}).textContent || '文档';
+  var links   = Array.prototype.slice.call(document.querySelectorAll('.nav-link'));
+  var pairs   = links.map(function(l){
+    var id = l.getAttribute('href').replace('#','');
+    var isJump = (id === 'top' || id === 'bottom');
+    return { link:l, sec: isJump ? null : document.getElementById(id) };
+  });
+  var sidebar = document.querySelector('.sidebar');
+  var scrim   = document.getElementById('scrim');
+  var fab     = document.getElementById('fab');
+  var mTitle  = document.getElementById('mTitle');
+  var panelOpen = false;
+
+  function isMobile(){ return window.matchMedia('(max-width:1000px)').matches; }
+  function openPanel(){
+    panelOpen = true;
+    if (sidebar) sidebar.classList.add('open');
+    if (scrim)   scrim.classList.add('show');
+  }
+  function closePanel(){
+    panelOpen = false;
+    if (sidebar) sidebar.classList.remove('open');
+    if (scrim)   scrim.classList.remove('show');
+  }
+  function togglePanel(){ panelOpen ? closePanel() : openPanel(); }
+
+  function onScroll(){
+    var y = window.scrollY + 140, idx = -1;
+    for (var i=0;i<pairs.length;i++){
+      if (pairs[i].sec && pairs[i].sec.offsetTop <= y) { idx = i; }
+    }
+    if (idx < 0) { idx = 0; for (var j=0;j<pairs.length;j++){ if (pairs[j].sec){ idx = j; break; } } }
+
+    pairs.forEach(function(p,i){ if (p.sec) p.link.classList.toggle('active', i === idx); });
+
+    if (mTitle) {
+      mTitle.textContent = window.scrollY < 40
+        ? BRAND
+        : pairs[idx].link.textContent.replace(/[↑↓]\s*/g,'').trim();
+    }
+    // 下滑后导航不可见 → 收起来为悬浮按钮
+    if (fab) fab.classList.toggle('show', window.scrollY > 80);
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', onScroll);
+  onScroll();
+
+  // 导航点击：顶/底跳转 或 锚点定位
+  pairs.forEach(function(p){
+    p.link.addEventListener('click', function(e){
+      e.preventDefault();
+      var href = p.link.getAttribute('href');
+      if (href === '#top') {
+        window.scrollTo({top:0, behavior:'smooth'});
+      } else if (href === '#bottom') {
+        window.scrollTo({top:document.documentElement.scrollHeight, behavior:'smooth'});
+      } else if (p.sec) {
+        window.scrollTo({top: p.sec.getBoundingClientRect().top + window.scrollY - 18, behavior:'smooth'});
+        history.replaceState(null,'',href);
+      }
+      closePanel();
+    });
+  });
+
+  var menuBtn  = document.getElementById('menuBtn');
+  var closeBtn = document.getElementById('closeBtn');
+  var topBtn   = document.getElementById('topBtn');
+  if (menuBtn)  menuBtn.addEventListener('click', togglePanel);
+  if (closeBtn) closeBtn.addEventListener('click', closePanel);
+  if (fab)      fab.addEventListener('click', togglePanel);
+  if (scrim)    scrim.addEventListener('click', closePanel);
+  if (topBtn)   topBtn.addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closePanel(); });
+
+  // 移动端表格卡片：为每个单元格补列名标签
+  Array.prototype.forEach.call(document.querySelectorAll('table'), function(t){
+    var heads = Array.prototype.map.call(t.querySelectorAll('thead th'), function(th){
+      return th.textContent.trim();
+    });
+    Array.prototype.forEach.call(t.querySelectorAll('tbody tr'), function(tr){
+      Array.prototype.forEach.call(tr.children, function(td,i){
+        if (heads[i]) td.setAttribute('data-label', heads[i]);
+      });
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

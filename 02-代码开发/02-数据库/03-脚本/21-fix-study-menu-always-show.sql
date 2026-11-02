@@ -1,0 +1,51 @@
+-- =============================================================================
+-- 21-fix-study-menu-always-show.sql · 增量：修正 study 一级菜单的聚合路由标记
+-- =============================================================================
+-- 缺陷来源（2026-11-02 管理端反馈）：
+--   「学习助手和家长端的下级菜单没有展示出来」——
+--   两个一级菜单能看到，但点开是空的，7 个 / 3 个子菜单一个都不渲染。
+--
+-- 根因（前端渲染规则，数据侧触发）：
+--   前端 src/components/Menu/src/components/BasicSubMenuItem.vue 的
+--   menuHasChildren() 判定「这个节点要不要渲染成可展开的 SubMenu」：
+--
+--     return !meta?.hideChildrenInMenu
+--         && Reflect.has(item, 'children')
+--         && item.children.length > 0
+--         && checkChildrenHidden(item);          ← 最后一项
+--
+--   而 checkChildrenHidden()（src/utils/common/compUtils.ts）第一句就是：
+--
+--     let alwaysShow = menuTreeItem.alwaysShow;
+--     if (alwaysShow) { return false; }           ← 直接返回 false
+--
+--   两个函数用 **&&** 串联 ⇒ **只要 alwaysShow 为真，menuHasChildren 恒为 false**，
+--   该节点就被当成「没有子菜单的叶子节点」渲染成一个普通链接，
+--   children 数组里那 7 个 / 3 个子菜单**一个都不会渲染**。
+--
+--   而 alwaysShow 来自 sys_permission.always_show（后端 getPermissionJsonObject 下发）。
+--   07 号种子给 st_menu_study / st_menu_parent 写的是 always_show = 1（聚合路由），
+--   正好踩中这条规则。
+--
+-- 旁证（全库实测）：
+--   上游 12 个一级菜单的 always_show **全部是 0**
+--   （主页 / AI应用平台 / 低代码开发 / 数据可视化 / 系统管理 / 我的租户 /
+--     系统监控 / 消息中心 / 统计报表 / 组件示例 / 导航示例 / 关于），
+--   上游与本项目的所有子菜单也全部是 0；
+--   全库只有学习助手与家长端这两个一级菜单是 1。
+--   后端下发的 JSON 也印证：上游一级菜单没有 alwaysShow 字段，
+--   我们这两个有 "alwaysShow": true。
+--
+-- 修复：把这两个一级菜单的 always_show 改回 0，与上游口径一致。
+--   —— 这不是「关掉聚合路由」的功能取舍，而是**纠正与上游不一致的种子数据**：
+--   聚合路由（always_show=1）在 Vue3 菜单渲染里与 children 互斥，
+--   上游自己的一级菜单也都不开这个标记。
+--
+-- 幂等：UPDATE 命中不到行时不做任何事，重复执行结果一致。
+-- 不改 07 号历史脚本（铁律 2：变更走增量脚本，不改历史脚本）。
+-- =============================================================================
+
+UPDATE `sys_permission`
+SET `always_show` = 0
+WHERE `id` IN ('st_menu_study', 'st_menu_parent')
+  AND `always_show` <> 0;

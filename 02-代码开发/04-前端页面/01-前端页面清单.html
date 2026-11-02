@@ -1,0 +1,2716 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jeecg-study · 前端页面清单</title>
+<style>
+
+  :root{
+    --bg:#fafaf9; --surface:#ffffff; --chrome:#f7f7f5; --line:#e6e6e1; --line-soft:#eeeeea;
+    --ink:#15171c; --ink-2:#454b58; --muted:#8b8f98;
+    --accent:#10b981; --accent-ink:#047857; --accent-soft:rgba(16,185,129,.10); --accent-line:rgba(16,185,129,.28);
+    --up:#d93a2b; --up-soft:rgba(217,58,43,.10); --up-line:rgba(217,58,43,.28);
+    --down:#0f8a6d; --down-soft:rgba(15,138,109,.10); --down-line:rgba(15,138,109,.28);
+    --amber:#b07d12; --amber-soft:rgba(176,125,18,.10); --amber-line:rgba(176,125,18,.28);
+    --sans:'Outfit','PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif;
+    --mono:'JetBrains Mono','SFMono-Regular',Consolas,monospace;
+    --nav-w:272px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:var(--sans);font-size:15px;line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(720px 300px at 10% -8%, rgba(16,185,129,.06), transparent 62%),
+      radial-gradient(620px 280px at 94% -6%, rgba(21,94,117,.05), transparent 60%);
+    background-repeat:no-repeat;
+  }
+  a{color:inherit;}
+  code{font-family:var(--mono);font-size:.88em;background:#f4f4f1;border:1px solid var(--line-soft);border-radius:4px;padding:1px 5px;overflow-wrap:anywhere;}
+
+  /* ============ 布局：侧边导航 + 章节正文 ============ */
+  .shell{display:flex;align-items:flex-start;max-width:1280px;margin:0 auto;gap:0;}
+  .sidebar{
+    width:var(--nav-w);flex:none;position:sticky;top:0;align-self:flex-start;
+    height:100vh;overflow-y:auto;padding:26px 20px 40px 24px;border-right:1px solid var(--line);
+  }
+  .sidebar::-webkit-scrollbar{width:8px;}
+  .sidebar::-webkit-scrollbar-thumb{background:#dcdcd6;border-radius:6px;}
+  .brand{display:flex;align-items:center;gap:9px;margin-bottom:6px;}
+  .brand-mark{width:26px;height:26px;flex:none;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--accent-line);}
+  .brand-mark svg{width:14px;height:14px;}
+  .brand h1{font-size:15px;font-weight:600;margin:0;letter-spacing:-.01em;}
+  .meta-line{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-bottom:18px;}
+  .nav-title{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;padding-left:11px;}
+  .nav-link{
+    display:flex;align-items:center;gap:8px;padding:7px 11px;border-radius:9px;
+    font-size:13.5px;color:var(--ink-2);text-decoration:none;border-left:2px solid transparent;
+    transition:background .15s,color .15s,border-color .15s;
+  }
+  .nav-link:hover{background:#f0f0ec;color:var(--ink);}
+  .nav-link.active{background:var(--accent-soft);color:var(--accent-ink);border-left-color:var(--accent);font-weight:500;}
+  .nav-link .lv{
+    margin-left:auto;font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:999px;
+    border:1px solid var(--line);background:var(--surface);color:var(--muted);white-space:nowrap;
+  }
+  .nav-link.active .lv{border-color:var(--accent-line);background:var(--surface);}
+  .mini-rate{margin-top:14px;border-top:1px solid var(--line);padding-top:14px;}
+  .mini-row{display:flex;align-items:center;gap:8px;margin-bottom:9px;font-size:12px;color:var(--ink-2);}
+  .mini-row .bar{flex:1;height:6px;background:#eeeeea;border-radius:4px;overflow:hidden;}
+  .mini-row .bar i{display:block;height:100%;border-radius:4px;}
+  .mini-row .n{font-family:var(--mono);font-size:10.5px;color:var(--muted);width:58px;text-align:right;}
+
+  .main{flex:1;min-width:0;padding:34px 40px 80px;}
+
+  /* ============ 标题区 ============ */
+  .kicker{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink);background:var(--accent-soft);border:1px solid var(--accent-line);padding:5px 11px;border-radius:999px;}
+  .kicker i{width:6px;height:6px;border-radius:50%;background:var(--accent);}
+  h2.title{font-size:32px;line-height:1.25;font-weight:600;letter-spacing:-.018em;margin:16px 0 0;}
+  .sub{color:var(--ink-2);font-size:15px;margin:10px 0 0;max-width:74ch;}
+  .facts{display:flex;flex-wrap:wrap;gap:9px;margin-top:20px;}
+  .fact{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:9px 13px;box-shadow:0 2px 8px rgba(0,0,0,.03);}
+  .fact b{display:block;font-family:var(--mono);font-size:15px;font-weight:600;letter-spacing:-.01em;}
+  .fact span{font-size:11.5px;color:var(--muted);}
+
+  /* 语义色工具类 */
+  .up{color:var(--up);} .down{color:var(--down);} .flat{color:var(--muted);} .amber{color:var(--amber);}
+
+  /* ============ 章节 ============ */
+  section{margin-top:52px;scroll-margin-top:24px;}
+  .sec-head{display:flex;align-items:baseline;gap:11px;padding-bottom:11px;border-bottom:1px solid var(--line);margin-bottom:20px;}
+  .sec-num{font-family:var(--mono);font-size:12px;color:var(--accent-ink);font-weight:600;}
+  .sec-head h3{font-size:21px;font-weight:600;letter-spacing:-.012em;margin:0;}
+  .sec-head .tag{margin-left:auto;font-size:11.5px;color:var(--muted);font-family:var(--mono);}
+  p{margin:0 0 11px;}
+  .lead-p{font-size:15.5px;color:var(--ink-2);max-width:78ch;margin-bottom:18px;}
+  h4.sub-h{font-size:15px;font-weight:600;margin:26px 0 10px;letter-spacing:-.008em;}
+  h5.sub-h5{font-size:13.5px;font-weight:600;margin:18px 0 7px;color:var(--ink-2);}
+  ul.plain{margin:6px 0 12px;padding-left:20px;}
+  ul.plain li{margin:5px 0;font-size:13.5px;color:var(--ink-2);}
+  ol.plain{margin:6px 0 12px;padding-left:20px;}
+  ol.plain li{margin:5px 0;font-size:13.5px;color:var(--ink-2);}
+  .cite-src{display:inline-block;margin-top:5px;font-family:var(--mono);font-size:10.5px;color:var(--muted);
+    border:1px solid var(--line);border-radius:5px;padding:1px 6px;background:var(--surface);}
+  .cite-src a{color:var(--accent-ink);text-decoration:none;}
+
+  /* ============ 核心信息 ============ */
+  .core-list{list-style:none;padding:0;margin:0;}
+  .core-item{display:flex;gap:13px;padding:13px 0;border-bottom:1px solid var(--line-soft);}
+  .core-item:last-child{border-bottom:0;}
+  .core-dot{width:9px;height:9px;border-radius:50%;flex:none;margin-top:7px;background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .core-dot.r{background:var(--up);box-shadow:0 0 0 3px var(--up-soft);}
+  .core-dot.a{background:var(--amber);box-shadow:0 0 0 3px var(--amber-soft);}
+  .core-body{min-width:0;}
+  .core-body h4{margin:0 0 3px;font-size:14.5px;font-weight:600;}
+  .core-body p{margin:0;font-size:13.5px;color:var(--ink-2);}
+
+  /* ============ 数据卡 ============ */
+  .grid4{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));margin:18px 0 4px;}
+  .dcard{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:14px 15px;box-shadow:0 2px 8px rgba(0,0,0,.03);}
+  .dcard .k{font-size:11.5px;color:var(--muted);margin-bottom:5px;}
+  .dcard .v{font-family:var(--mono);font-size:19px;font-weight:600;letter-spacing:-.02em;line-height:1.2;}
+  .dcard .d{font-family:var(--mono);font-size:11.5px;margin-top:3px;}
+
+  /* ============ 表格 ============ */
+  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13.5px;}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line-soft);vertical-align:top;}
+  th{font-size:11.5px;color:var(--muted);font-weight:500;letter-spacing:.04em;background:#f7f7f4;border-bottom:1px solid var(--line);}
+  td:first-child{font-weight:500;white-space:normal;min-width:72px;}
+  td.mono{font-family:var(--mono);font-size:12px;white-space:nowrap;}
+  .pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap;}
+  .p-ok{background:var(--down-soft);color:var(--down);border:1px solid var(--down-line);}
+  .p-warn{background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber-line);}
+  .p-bad{background:var(--up-soft);color:var(--up);border:1px solid var(--up-line);}
+  .p-info{background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--accent-line);}
+  .p-gray{background:#f2f2ef;color:var(--muted);border:1px solid var(--line);}
+
+  /* ============ 来源表：长名称不撑破表格 + 可点链接 ============ */
+  .tbl-src td:first-child{white-space:normal;min-width:150px;}
+  .tbl-src .u-cell{font-family:var(--mono);font-size:11.5px;line-height:1.5;word-break:break-all;overflow-wrap:anywhere;}
+  .src-link{color:var(--accent-ink);text-decoration:none;border-bottom:1px solid var(--accent-line);word-break:break-all;}
+  .src-link:hover{color:var(--accent);border-bottom-color:var(--accent);}
+
+  /* ============ 流程/命令块：宽内容内部滚动，不撑破页面 ============ */
+  pre.cmd{background:#15171c;color:#e6e8ec;border-radius:12px;padding:14px 16px;overflow-x:auto;
+    font-family:var(--mono);font-size:12px;line-height:1.7;margin:10px 0 14px;
+    -webkit-overflow-scrolling:touch;}
+  pre.cmd code{background:transparent;border:0;padding:0;color:inherit;font-size:inherit;overflow-wrap:normal;white-space:pre;}
+  pre.cmd .c{color:#8b8f98;}
+  pre.cmd .ok{color:#34d399;font-weight:600;}
+  pre.cmd .bad{color:#f87171;font-weight:600;}
+  pre.cmd .warn{color:#fbbf24;font-weight:600;}
+
+  /* ============ 双栏 ============ */
+  .cols{display:grid;gap:14px;grid-template-columns:1fr 1fr;margin-top:14px;}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 17px;box-shadow:0 2px 8px rgba(0,0,0,.03);}
+  .panel h4{margin:0 0 10px;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:7px;}
+  .panel h4 svg{width:15px;height:15px;}
+  .panel.bad h4{color:var(--up);}
+  .panel.good h4{color:var(--down);}
+  .panel.info h4{color:var(--accent-ink);}
+  .panel.warn h4{color:var(--amber);}
+  .panel ul{margin:0;padding-left:0;list-style:none;}
+  .panel li{position:relative;padding-left:15px;margin-bottom:9px;font-size:13.5px;color:var(--ink-2);line-height:1.6;}
+  .panel li:last-child{margin-bottom:0;}
+  .panel li::before{content:"";position:absolute;left:0;top:9px;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.45;}
+  .panel p{font-size:13.5px;color:var(--ink-2);}
+
+  /* ============ 结论条 ============ */
+  .callout{border:1px solid var(--accent-line);background:var(--accent-soft);border-radius:14px;padding:16px 18px;margin-top:18px;}
+  .callout h4{margin:0 0 7px;font-size:14px;font-weight:600;color:var(--accent-ink);display:flex;align-items:center;gap:8px;}
+  .callout h4 svg{width:15px;height:15px;}
+  .callout p{margin:0;font-size:13.5px;color:#2c4a3e;}
+  .callout p+p{margin-top:7px;}
+  .callout.warn{border-color:var(--amber-line);background:var(--amber-soft);}
+  .callout.warn h4{color:var(--amber);} .callout.warn p{color:#5c4413;}
+  .callout.bad{border-color:var(--up-line);background:var(--up-soft);}
+  .callout.bad h4{color:var(--up);} .callout.bad p{color:#6b2018;}
+  .note{border:1px solid var(--line);background:var(--surface);border-radius:13px;padding:14px 16px;margin-top:14px;font-size:12.5px;color:var(--muted);}
+  .note b{color:var(--ink-2);}
+
+  /* ============ 风险条 ============ */
+  .risk{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px dashed var(--line);}
+  .risk:last-child{border-bottom:0;}
+  .risk .lv-badge{flex:none;font-family:var(--mono);font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;}
+  .risk .rb{min-width:0;}
+  .risk .rb b{display:block;font-size:13.5px;margin-bottom:2px;}
+  .risk .rb span{font-size:13px;color:var(--ink-2);}
+
+  /* 正文 markdown 渲染补充 */
+  .main h4{font-size:15px;font-weight:600;margin:26px 0 10px;letter-spacing:-.008em;}
+  .main h5{font-size:13.5px;font-weight:600;margin:18px 0 7px;color:var(--ink-2);}
+  .main ul,.main ol{margin:6px 0 12px;padding-left:20px;}
+  .main li{margin:5px 0;font-size:13.5px;color:var(--ink-2);}
+  .main strong{color:var(--ink);font-weight:600;}
+  .main blockquote{border-left:3px solid var(--accent-line);background:var(--accent-soft);
+    border-radius:0 12px 12px 0;padding:11px 15px;margin:12px 0;font-size:13.5px;color:#2c4a3e;}
+  .main blockquote p{margin:0;}
+  .main hr{border:0;border-top:1px solid var(--line);margin:26px 0;}
+  .main img{max-width:100%;}
+
+  .foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px 20px;}
+  .foot code{background:transparent;border:0;padding:0;color:var(--muted);}
+
+  /* ============ 移动端：悬浮导航面板 ============ */
+  .m-topbar,.m-fab,.scrim,.m-close{display:none;}
+
+  @media (max-width:1000px){
+    .shell{display:block;}
+    body{padding-top:48px;}
+
+    .m-topbar{
+      display:flex;align-items:center;gap:9px;
+      position:fixed;top:0;left:0;right:0;height:48px;z-index:45;
+      padding:0 12px;background:rgba(250,250,249,.94);backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--line);
+    }
+    .m-topbar .t-btn{
+      display:inline-flex;align-items:center;gap:5px;flex:none;
+      font-family:var(--sans);font-size:12.5px;color:var(--ink-2);
+      background:var(--surface);border:1px solid var(--line);border-radius:8px;
+      padding:6px 10px;cursor:pointer;transition:all .16s;
+    }
+    .m-topbar .t-btn:hover{border-color:#d3d3cd;color:var(--ink);}
+    .m-topbar .t-btn svg{width:14px;height:14px;color:var(--muted);}
+    .m-topbar .t-title{
+      flex:1;min-width:0;font-size:13px;color:var(--ink-2);font-weight:500;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+
+    .sidebar{
+      position:fixed;left:auto;right:14px;top:auto;bottom:78px;
+      width:min(80vw,320px);height:auto;max-height:min(64vh,580px);
+      z-index:70;border:1px solid var(--line);border-radius:18px;
+      background:var(--chrome);padding:16px 16px 22px;
+      box-shadow:0 20px 56px -14px rgba(0,0,0,.32);
+      opacity:0;transform:translateY(18px) scale(.97);pointer-events:none;
+      transition:opacity .26s ease,transform .26s cubic-bezier(.2,.8,.3,1);
+    }
+    .sidebar.open{opacity:1;transform:none;pointer-events:auto;}
+    .m-close{
+      display:inline-flex;align-items:center;justify-content:center;margin-left:auto;flex:none;
+      width:30px;height:30px;border-radius:8px;border:1px solid var(--line);
+      background:var(--surface);color:var(--muted);cursor:pointer;padding:0;
+    }
+    .m-close svg{width:14px;height:14px;}
+    .m-close:hover{color:var(--ink);border-color:#d3d3cd;}
+
+    .scrim{
+      display:block;position:fixed;inset:0;z-index:65;
+      background:rgba(21,23,28,.34);opacity:0;pointer-events:none;transition:opacity .26s;
+    }
+    .scrim.show{opacity:1;pointer-events:auto;}
+
+    .m-fab{
+      display:inline-flex;align-items:center;gap:7px;
+      position:fixed;right:14px;bottom:16px;z-index:60;
+      font-family:var(--sans);font-size:13px;color:#fff;
+      background:var(--ink);border:1px solid var(--ink);border-radius:999px;
+      padding:11px 16px;cursor:pointer;
+      box-shadow:0 10px 26px -6px rgba(0,0,0,.45);
+      opacity:0;transform:translateY(14px) scale(.9);pointer-events:none;
+      transition:opacity .24s,transform .24s,background .16s;
+    }
+    .m-fab.show{opacity:1;transform:none;pointer-events:auto;}
+    .m-fab:hover{background:#2b2f38;}
+    .m-fab svg{width:15px;height:15px;}
+
+    .main{padding:26px 22px 96px;}
+    .cols{grid-template-columns:1fr;}
+  }
+
+  /* 手机小屏：表格转卡片 */
+  @media (max-width:820px){
+    table,tbody,tr,td{display:block;width:100%;}
+    thead{display:none;}
+    table{font-size:12.5px;}
+    tr{
+      background:var(--surface);border:1px solid var(--line);border-radius:12px;
+      padding:11px 14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.03);
+    }
+    td{border:0;padding:3px 0;}
+    td:first-child{font-weight:600;font-size:13.5px;padding-bottom:6px;white-space:normal;}
+    td:not(:first-child){
+      position:relative;padding:3px 0 3px 76px;font-size:12.5px;color:var(--ink-2);
+    }
+    td:not(:first-child)::before{
+      content:attr(data-label);position:absolute;left:0;top:3px;width:68px;
+      font-size:11px;color:var(--muted);
+    }
+  }
+
+  @media (max-width:680px){
+    body{font-size:14px;line-height:1.72;overflow-wrap:anywhere;}
+    h2.title{font-size:23px;letter-spacing:-.015em;}
+    .sub{font-size:14px;}
+    .kicker{font-size:10px;padding:4px 9px;}
+    .facts{gap:7px;}
+    .fact{flex:1 1 calc(50% - 4px);min-width:0;padding:9px 11px;}
+    .fact b{font-size:14px;}
+    .fact span{font-size:10.5px;}
+    .grid4{grid-template-columns:1fr 1fr;gap:9px;}
+    .dcard{padding:12px 13px;}
+    .dcard .v{font-size:16px;}
+    .main{padding:22px 15px 92px;}
+    section{margin-top:38px;}
+    .sec-head{flex-wrap:wrap;gap:8px;}
+    .sec-head h3{font-size:18px;}
+    .sec-head .tag{margin-left:0;width:100%;}
+    .core-body h4{font-size:14px;}
+    .core-body p{font-size:13px;}
+    .panel{padding:14px 15px;}
+    .panel li{font-size:13px;}
+    .panel h4{font-size:13px;}
+    .callout{padding:14px 15px;}
+    .callout p{font-size:13px;}
+    .foot{gap:6px 14px;font-size:11.5px;}
+    .note{font-size:12px;}
+  }
+
+  :root{--accent:#fa8c16;--accent-ink:#a05000;--accent-soft:rgba(250,140,22,.10);--accent-line:rgba(250,140,22,.28);}
+  .tbl-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .tbl-wrap table{margin-top:0;}
+  @media (max-width:820px){ .tbl-wrap{overflow-x:visible;} }
+</style>
+</head>
+<body id="top">
+<div class="scrim" id="scrim"></div>
+
+<div class="m-topbar">
+  <button class="t-btn" id="menuBtn" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+    目录
+  </button>
+  <span class="m-title" id="mTitle">jeecg-study</span>
+  <button class="t-btn" id="topBtn" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/></svg>
+    顶部
+  </button>
+</div>
+
+<div class="shell">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg></span>
+      <h1>jeecg-study</h1>
+      <button class="m-close" id="closeBtn" type="button" aria-label="关闭导航">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="meta-line">20261030 · V1.1 · 页面清单</div>
+
+    <div class="nav-title">快速跳转</div>
+    <a class="nav-link" href="#top"><span>↑ 页面顶部</span></a>
+    <a class="nav-link" href="#bottom"><span>↓ 页面底部</span></a>
+
+    <div class="nav-title">章节</div>
+    <a class="nav-link" href="#tree">目录与路由规划</a>
+    <a class="nav-link" href="#list">页面清单总表<span class="lv">40 个</span></a>
+    <a class="nav-link" href="#admin">管理端页面详规<span class="lv">12</span></a>
+    <a class="nav-link" href="#kid">学习端页面详规<span class="lv">19</span></a>
+    <a class="nav-link" href="#parent">家长端页面详规<span class="lv">7</span></a>
+    <a class="nav-link" href="#multi">多用户与登录流程<span class="lv">5 页</span></a>
+    <a class="nav-link" href="#comp">前端组件清单<span class="lv">25</span></a>
+    <a class="nav-link" href="#shared">公共组件与钩子</a>
+    <a class="nav-link" href="#guard">护眼前端实现<span class="lv">R-03</span></a>
+    <a class="nav-link" href="#spec">设计规范落点对照</a>
+
+    <div class="nav-title">模块分布</div><div class="mini-rate"><div class="mini-row"><span>底座 / 配置</span><span class="bar"><i style="width:100%;background:#fa8c16"></i></span><span class="n">V0</span></div><div class="mini-row"><span>错题复盘</span><span class="bar"><i style="width:100%;background:#fa8c16"></i></span><span class="n">V0</span></div><div class="mini-row"><span>背单词</span><span class="bar"><i style="width:85%;background:#fa8c16"></i></span><span class="n">V1</span></div><div class="mini-row"><span>数学母题</span><span class="bar"><i style="width:95%;background:#fa8c16"></i></span><span class="n">V2</span></div><div class="mini-row"><span>英语语法</span><span class="bar"><i style="width:70%;background:#b07d12"></i></span><span class="n">V3</span></div><div class="mini-row"><span>语文写作</span><span class="bar"><i style="width:60%;background:#b07d12"></i></span><span class="n">V4</span></div><div class="mini-row"><span>家长端</span><span class="bar"><i style="width:60%;background:#8b8f98"></i></span><span class="n">含家庭管理</span></div></div>
+  </aside>
+
+  <main class="main">
+    <div class="kicker"><i></i>代码开发 · 页面与路由</div>
+    <h2 class="title">前端页面清单</h2>
+    <p class="sub">jeecg-study 前端页面清单 V1.1。列出去上下文配置、坐标树、错题复盘、背单词、数学母题、英语语法、语文写作、家长端、护眼共 40 个页面的路由、组件、接口与设计规范落点，并补齐多家庭 · 多孩子 · 多家长的登录流程、孩子上下文与数据隔离规则，作为前端实施的施工单。</p>
+    <div class="facts"><div class="fact"><b>40</b><span>页面总数</span></div><div class="fact"><b>12</b><span>管理端页面</span></div><div class="fact"><b>20</b><span>学习端页面</span></div><div class="fact"><b>7</b><span>家长端页面</span></div><div class="fact"><b>1</b><span>孩子端页面</span></div><div class="fact"><b>25</b><span>前端组件</span></div><div class="fact"><b>3</b><span>路由前缀</span></div></div>
+
+<section id="tree">
+  <div class="sec-head"><span class="sec-num">01</span><h3>目录与路由规划</h3><span class="tag">怎么组织</span></div>
+  <p>目录与路由规划</p>
+<h3>1.1 目录结构</h3>
+<pre class="cmd"><code>jeecgboot-vue3/src/views/study/
+├── kid/                         学习端（孩子，独立全屏布局）
+│   ├── login/                   孩子登录页（两步：家庭码 → 选孩子 + PIN）
+│   ├── home/                    今日首页
+│   ├── practice/                通用练习页
+│   ├── review/                  复习队列
+│   ├── error/                   错题录入与错题本
+│   ├── word/                    背单词
+│   ├── math/                    数学母题闯关
+│   ├── grammar/                 英语语法
+│   ├── writing/                 语文写作
+│   └── components/              学习端专用组件（含 ChildSwitcher）
+├── parent/                      家长端（独立全屏布局）
+│   ├── dashboard/               总览
+│   ├── weekly/                  周报
+│   ├── errors/                  错因分布
+│   ├── weakpoints/              薄弱考点
+│   ├── family/                  家庭与成员管理
+│   └── child/                   孩子档案编辑 / 孩子关联管理
+├── manage/                      管理端（配置与维护）
+│   ├── context/                 全局上下文配置
+│   ├── coordinate/              坐标树
+│   ├── question/                题目维护
+│   ├── mother/                  母题维护
+│   ├── word/                    词表维护
+│   ├── grammar/                 语法点维护
+│   ├── writing/                 拆解库维护
+│   └── components/              管理端组件（平移 mtv2）
+├── shared/                      跨端共用
+│   ├── components/              护眼护罩、判对错反馈、题目渲染器
+│   ├── composables/             useEyeGuard / useAnswerGate / useJudgeResult
+│   └── styles/                  study.less / theme vars
+└── router/                      路由定义
+</code></pre>
+<h3>1.2 路由前缀</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>前缀</th>
+<th>用途</th>
+<th>角色</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/study/kid/**</code></td>
+<td>学习端</td>
+<td>kid</td>
+</tr>
+<tr>
+<td><code>/study/parent/**</code></td>
+<td>家长端</td>
+<td>parent</td>
+</tr>
+<tr>
+<td><code>/study/manage/**</code></td>
+<td>管理端</td>
+<td>admin</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>孩子端登录页挂在 <code>/study/kid/**</code> 下（<code>/study/kid/login</code>）；《多用户改造契约》§7 记的 <code>/kid/login</code>、<code>/parent/family</code> 等是<strong>去掉 <code>/study</code> 前缀的相对写法</strong>，两者一一对应。
+<code>POST /kid/lookup</code>、<code>POST /kid/login</code> 是<strong>免认证</strong>路径，其余业务接口一律需要 token。</p>
+</blockquote>
+<h3>1.3 布局差异</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>端</th>
+<th>布局</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>管理端</td>
+<td>JeecgBoot 默认布局（顶栏 + 侧栏 + 内容区）</td>
+<td>直接复用底座 <code>layouts/default</code></td>
+</tr>
+<tr>
+<td>家长端</td>
+<td><strong>独立全屏布局</strong> <code>layouts/parent</code></td>
+<td><strong>不吃管理端顶栏与侧栏</strong>；顶部只有孩子切换条与家庭入口。只读数据页隐藏「新增/编辑」类操作列</td>
+</tr>
+<tr>
+<td>学习端 / 孩子端</td>
+<td><strong>独立全屏布局</strong> <code>layouts/study</code></td>
+<td>孩子端需要沉浸与聚焦；孩子登录页 <code>/study/kid/login</code> 同样走这套布局</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>学习端与家长端都是独立全屏布局</strong>——这是本项目与既有系统最大的结构差异。实现方式：新增 <code>layouts/study/index.vue</code>（学习端 / 孩子端）与 <code>layouts/parent/index.vue</code>（家长端），在路由 meta 上标记 <code>layout: 'study'</code> / <code>layout: 'parent'</code>；管理端继续用底座 <code>layouts/default</code>。详见 §6.4。</p>
+</blockquote>
+</section>
+<section id="list">
+  <div class="sec-head"><span class="sec-num">02</span><h3>页面清单总表</h3><span class="tag">施工单</span></div>
+  <p>页面清单总表</p>
+<h3>2.1 实现状态与路由真源（2026-10-31 更新）</h3>
+<blockquote>
+<p>⚠ <strong>本表是 V1.1 的规划态清单</strong>（40 个页面）。截至 2026-10-31：
+<strong>已实现并上线 10 个页面</strong>，其余 30 个页面<strong>接口已就绪、界面待开发</strong>。
+<strong>已上线页面的路由以菜单种子为准</strong>（<code>02-代码开发/02-数据库/03-脚本/07/16/17-*.sql</code> 的 <code>sys_permission</code> 行），
+<strong>不在</strong>前端路由文件中 —— 上游 <code>transformObjToRoute</code>（<code>src/router/helper/routeHelper.ts:139-162</code>）对 DB 菜单一律挂管理端 <code>LAYOUT</code>。</p>
+</blockquote>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>页面</th>
+<th><strong>实际路由</strong></th>
+<th>菜单组件</th>
+<th>端</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>12</td>
+<td>通用练习页</td>
+<td><strong><code>/study/practice</code></strong></td>
+<td><code>study/practice/index</code></td>
+<td>学习</td>
+<td>✅ 已上线</td>
+</tr>
+<tr>
+<td>17</td>
+<td>背单词首页</td>
+<td><strong><code>/study/word</code></strong></td>
+<td><code>study/word/index</code></td>
+<td>学习</td>
+<td>✅ 已上线</td>
+</tr>
+<tr>
+<td>27</td>
+<td>语法点列表</td>
+<td><strong><code>/study/grammar</code></strong></td>
+<td><code>study/grammar/index</code></td>
+<td>学习</td>
+<td>✅ 已上线</td>
+</tr>
+<tr>
+<td>40</td>
+<td>语法玩法</td>
+<td><strong><code>/study/grammar/game</code></strong></td>
+<td><code>study/grammar/game/index</code></td>
+<td>学习</td>
+<td>✅ 已上线</td>
+</tr>
+<tr>
+<td>30</td>
+<td>写作训练</td>
+<td><strong><code>/study/writing</code></strong></td>
+<td><code>study/writing/index</code></td>
+<td>学习</td>
+<td>✅ 已上线</td>
+</tr>
+<tr>
+<td>新增</td>
+<td>写作情境</td>
+<td><strong><code>/study/writing/scenario</code></strong></td>
+<td><code>study/writing/scenario/index</code></td>
+<td>学习</td>
+<td>✅ 已上线（F-WRT-03）</td>
+</tr>
+<tr>
+<td>新增</td>
+<td>护眼设置</td>
+<td><strong><code>/study/eye</code></strong></td>
+<td><code>study/eye/index</code></td>
+<td>学习</td>
+<td>✅ 已上线（F-EYE-01…04）</td>
+</tr>
+<tr>
+<td>32</td>
+<td>家长端总览（学习报告）</td>
+<td><strong><code>/study-parent/report</code></strong></td>
+<td><code>study/parent/report/index</code></td>
+<td>家长</td>
+<td>✅ 已上线</td>
+</tr>
+<tr>
+<td>新增</td>
+<td>错题分析</td>
+<td><strong><code>/study-parent/error</code></strong></td>
+<td><code>study/parent/error/index</code></td>
+<td>家长</td>
+<td>✅ 已上线</td>
+</tr>
+<tr>
+<td>新增</td>
+<td>作文反馈</td>
+<td><strong><code>/study-parent/feedback</code></strong></td>
+<td><code>study/parent/feedback/index</code></td>
+<td>家长</td>
+<td>✅ 已上线</td>
+</tr>
+<tr>
+<td>38</td>
+<td>孩子登录页（两步）</td>
+<td>—</td>
+<td>—</td>
+<td>孩子</td>
+<td>⬜ 接口已就绪，界面待开发</td>
+</tr>
+<tr>
+<td>35/36/37</td>
+<td>家庭与成员 / 孩子档案 / 关联管理</td>
+<td>—</td>
+<td>—</td>
+<td>家长</td>
+<td>⬜ 接口已就绪，界面待开发</td>
+</tr>
+<tr>
+<td>1…9</td>
+<td>管理端维护页（9 个）</td>
+<td>—</td>
+<td>—</td>
+<td>管理</td>
+<td>⬜ 接口已就绪，界面待开发</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>家长端为什么不用 <code>layouts/parent</code></strong>：上游动态菜单<strong>永远无法用自定义布局</strong>（见 <code>routeHelper.ts:139-162</code>），
+因此家长端改用 <code>StudyParentShell</code> <strong>全屏固定层</strong>（<code>position: fixed; inset: 0; z-index: 1100</code>）压住管理端外壳，
+并自带 3 项页面导航与登出（ADR-033）。上文 §6.4 关于 <code>layouts/parent/index.vue</code> 的规划<strong>已被此决策取代</strong>。
+用户操作说明见《用户手册 · 系统功能使用说明》，开发规范见《技术手册 · 系统开发使用说明》。</p>
+</blockquote>
+<h3>2.2 规划态清单（40 个页面）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>页面</th>
+<th>路由</th>
+<th>端</th>
+<th>阶段</th>
+<th>核心组件</th>
+<th>主要接口</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>全局上下文配置</td>
+<td><code>/study/manage/context</code></td>
+<td>管理</td>
+<td>V0</td>
+<td><code>StudyContextForm</code></td>
+<td><code>GET/POST /context</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>坐标树浏览器</td>
+<td><code>/study/manage/coordinate</code></td>
+<td>管理</td>
+<td>V0</td>
+<td><code>StudyCategoryTree</code></td>
+<td><code>GET /knowledge-points/tree</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>考点维护</td>
+<td><code>/study/manage/coordinate/:code</code></td>
+<td>管理</td>
+<td>V0</td>
+<td><code>StudyDataList</code> + 表单</td>
+<td><code>PUT /knowledge-points/{code}</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>考点版本历史</td>
+<td><code>/study/manage/coordinate/:code/history</code></td>
+<td>管理</td>
+<td>V1</td>
+<td><code>StudyDataList</code></td>
+<td><code>GET /knowledge-points/{code}/history</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>题目维护</td>
+<td><code>/study/manage/question</code></td>
+<td>管理</td>
+<td>V0</td>
+<td><code>StudyDataList</code></td>
+<td><code>GET /error-pool</code> 等复用</td>
+</tr>
+<tr>
+<td>6</td>
+<td>母题维护</td>
+<td><code>/study/manage/mother</code></td>
+<td>管理</td>
+<td>V2</td>
+<td><code>StudyDataList</code> + <code>MotherEditor</code></td>
+<td><code>/math/mother/*</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td>词表维护</td>
+<td><code>/study/manage/word</code></td>
+<td>管理</td>
+<td>V1</td>
+<td><code>StudyDataList</code></td>
+<td><code>/word/line/{t}/list</code></td>
+</tr>
+<tr>
+<td>8</td>
+<td>语法点维护</td>
+<td><code>/study/manage/grammar</code></td>
+<td>管理</td>
+<td>V3</td>
+<td><code>StudyDataList</code></td>
+<td><code>/grammar/points</code></td>
+</tr>
+<tr>
+<td>9</td>
+<td>拆解库维护</td>
+<td><code>/study/manage/writing</code></td>
+<td>管理</td>
+<td>V4</td>
+<td><code>StudyDataList</code></td>
+<td><code>/writing/dissections</code></td>
+</tr>
+<tr>
+<td>10</td>
+<td>今日首页</td>
+<td><code>/study/kid/home</code></td>
+<td>学习</td>
+<td>V0</td>
+<td><code>KidHome</code></td>
+<td><code>/practice/stats/*</code></td>
+</tr>
+<tr>
+<td>11</td>
+<td>今日复习</td>
+<td><code>/study/kid/review</code></td>
+<td>学习</td>
+<td>V0</td>
+<td><code>ReviewQueue</code></td>
+<td><code>/review/queue</code></td>
+</tr>
+<tr>
+<td>12</td>
+<td>通用练习页</td>
+<td><code>/study/kid/practice/:type</code></td>
+<td>学习</td>
+<td>V0</td>
+<td><code>PracticePage</code> + <code>JudgeFeedback</code></td>
+<td><code>/practice/{type}/next</code>、<code>/practice/answer</code></td>
+</tr>
+<tr>
+<td>13</td>
+<td>错题录入</td>
+<td><code>/study/kid/error/import</code></td>
+<td>学习</td>
+<td>V0</td>
+<td><code>ErrorImport</code></td>
+<td><code>POST /error-pool</code></td>
+</tr>
+<tr>
+<td>14</td>
+<td>我的错题本</td>
+<td><code>/study/kid/error</code></td>
+<td>学习</td>
+<td>V0</td>
+<td><code>StudyDataList</code>（移动卡片）</td>
+<td><code>GET /error-pool</code></td>
+</tr>
+<tr>
+<td>15</td>
+<td>错题详情</td>
+<td><code>/study/kid/error/:code</code></td>
+<td>学习</td>
+<td>V0</td>
+<td><code>ErrorDetail</code></td>
+<td><code>GET /error-pool/{code}</code></td>
+</tr>
+<tr>
+<td>16</td>
+<td>错题统计</td>
+<td><code>/study/kid/error/statistics</code></td>
+<td>学习</td>
+<td>P2</td>
+<td><code>StudyStatCards</code></td>
+<td><code>/error-pool/statistics</code></td>
+</tr>
+<tr>
+<td>17</td>
+<td>背单词首页</td>
+<td><code>/study/kid/word</code></td>
+<td>学习</td>
+<td>V1</td>
+<td><code>WordHome</code></td>
+<td><code>/word/line/{t}/units</code></td>
+</tr>
+<tr>
+<td>18</td>
+<td>课内单元闯关</td>
+<td><code>/study/kid/word/unit/:unitCode</code></td>
+<td>学习</td>
+<td>V1</td>
+<td><code>WordUnit</code></td>
+<td><code>/word/practice</code></td>
+</tr>
+<tr>
+<td>19</td>
+<td>课外词线</td>
+<td><code>/study/kid/word/out</code></td>
+<td>学习</td>
+<td>V3</td>
+<td><code>WordOutdoor</code></td>
+<td><code>/word/due</code></td>
+</tr>
+<tr>
+<td>20</td>
+<td>熟词测试</td>
+<td><code>/study/kid/word/known-test</code></td>
+<td>学习</td>
+<td>V3</td>
+<td><code>KnownTest</code></td>
+<td><code>POST /word/known-test</code></td>
+</tr>
+<tr>
+<td>21</td>
+<td>背诵统计</td>
+<td><code>/study/kid/word/stats</code></td>
+<td>学习</td>
+<td>V1</td>
+<td><code>StudyStatCards</code></td>
+<td><code>/word/stats</code></td>
+</tr>
+<tr>
+<td>22</td>
+<td>数学闯关首页</td>
+<td><code>/study/kid/math</code></td>
+<td>学习</td>
+<td>V2</td>
+<td><code>MathHome</code></td>
+<td><code>/math/mother/list</code></td>
+</tr>
+<tr>
+<td>23</td>
+<td>母题关卡</td>
+<td><code>/study/kid/math/mother/:code</code></td>
+<td>学习</td>
+<td>V2</td>
+<td><code>MotherLevel</code></td>
+<td><code>/math/mother/{code}</code></td>
+</tr>
+<tr>
+<td>24</td>
+<td>母题讲解</td>
+<td><code>/study/kid/math/mother/:code/teach</code></td>
+<td>学习</td>
+<td>V2</td>
+<td><code>MotherTeach</code></td>
+<td><code>/math/mother/{code}</code></td>
+</tr>
+<tr>
+<td>25</td>
+<td>母题变式练习</td>
+<td><code>/study/kid/math/variant/:code</code></td>
+<td>学习</td>
+<td>V2</td>
+<td><code>VariantPractice</code></td>
+<td><code>/math/mother/{code}/variants</code></td>
+</tr>
+<tr>
+<td>26</td>
+<td>口述确认</td>
+<td><code>/study/kid/math/oral/:code</code></td>
+<td>学习</td>
+<td>V2</td>
+<td><code>OralConfirm</code></td>
+<td><code>POST /practice/{id}/oral</code></td>
+</tr>
+<tr>
+<td>27</td>
+<td>语法点列表</td>
+<td><code>/study/kid/grammar</code></td>
+<td>学习</td>
+<td>V3</td>
+<td><code>StudyDataList</code>（移动卡片）</td>
+<td><code>/grammar/points</code></td>
+</tr>
+<tr>
+<td>28</td>
+<td>语法点详情</td>
+<td><code>/study/kid/grammar/:code</code></td>
+<td>学习</td>
+<td>V3</td>
+<td><code>GrammarDetail</code></td>
+<td><code>/grammar/points/{code}</code></td>
+</tr>
+<tr>
+<td>29</td>
+<td>句子变形器</td>
+<td><code>/study/kid/grammar/transform</code></td>
+<td>学习</td>
+<td>V3</td>
+<td><code>Transformer</code></td>
+<td><code>POST /grammar/transform</code></td>
+</tr>
+<tr>
+<td>30</td>
+<td>写作训练</td>
+<td><code>/study/kid/writing/train</code></td>
+<td>学习</td>
+<td>V4</td>
+<td><code>WritingTrain</code></td>
+<td><code>/writing/train/outline</code>、<code>/draft</code></td>
+</tr>
+<tr>
+<td>31</td>
+<td>错句收藏馆</td>
+<td><code>/study/kid/grammar/collection</code></td>
+<td>学习</td>
+<td>V3</td>
+<td><code>StudyDataList</code></td>
+<td><code>/grammar/collection</code></td>
+</tr>
+<tr>
+<td>32</td>
+<td>家长端总览</td>
+<td><code>/study/parent/dashboard</code></td>
+<td>家长</td>
+<td>V0</td>
+<td><code>StudyStatCards</code></td>
+<td><code>/parent/report/overview</code></td>
+</tr>
+<tr>
+<td>33</td>
+<td>家长端周报</td>
+<td><code>/study/parent/weekly</code></td>
+<td>家长</td>
+<td>V1</td>
+<td><code>StudyDataList</code></td>
+<td><code>/parent/report/weekly</code></td>
+</tr>
+<tr>
+<td>34</td>
+<td>薄弱考点</td>
+<td><code>/study/parent/weakpoints</code></td>
+<td>家长</td>
+<td>V1</td>
+<td><code>StudyDataList</code></td>
+<td><code>/mastery/weak-points</code></td>
+</tr>
+<tr>
+<td>35</td>
+<td>家庭与成员管理</td>
+<td><code>/study/parent/family</code></td>
+<td>家长</td>
+<td>V0</td>
+<td><code>FamilyMemberList</code> + 表单</td>
+<td><code>GET/PUT /family</code>、<code>/family/members</code>、<code>/family/code/reset</code></td>
+</tr>
+<tr>
+<td>36</td>
+<td>孩子档案编辑</td>
+<td><code>/study/parent/child/:code</code></td>
+<td>家长</td>
+<td>V0</td>
+<td><code>ChildProfileForm</code></td>
+<td><code>GET/PUT /children/{code}</code>、<code>/children/{code}/pin/reset</code></td>
+</tr>
+<tr>
+<td>37</td>
+<td>孩子关联管理</td>
+<td><code>/study/parent/child/:code/relations</code></td>
+<td>家长</td>
+<td>V0</td>
+<td><code>StudyDataList</code></td>
+<td><code>GET/POST /children/{code}/relations</code></td>
+</tr>
+<tr>
+<td>38</td>
+<td>孩子登录页（两步）</td>
+<td><code>/study/kid/login</code></td>
+<td>孩子</td>
+<td>V0</td>
+<td><code>KidLoginForm</code></td>
+<td><code>POST /kid/lookup</code>、<code>/kid/login</code></td>
+</tr>
+<tr>
+<td>39</td>
+<td>孩子选择器</td>
+<td>组件 <code>ChildSwitcher</code></td>
+<td>学习</td>
+<td>V0</td>
+<td><code>ChildSwitcher</code>（家长端顶栏复用）</td>
+<td><code>GET /children</code></td>
+</tr>
+<tr>
+<td>40</td>
+<td>语法玩法</td>
+<td><code>/study/grammar/game</code></td>
+<td>学习</td>
+<td>V3</td>
+<td><code>StudyGrammarGamePage</code>（卡片流）</td>
+<td><code>GET /grammar/context</code>、<code>/grammar/game/detective/*</code>、<code>/grammar/game/transform/*</code>、<code>/grammar/game/collection</code>、<code>/grammar/game/progress</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>家长端 4 个页面</strong>（总览、周报、错因分布、薄弱考点）中，错因分布并入总览与周报，实际独立页面 3 个 + 反馈列表内嵌。清单按 4 项列示，与统计口径一致。</p>
+<p><strong>本次新增 5 个页面（#35–#39）</strong>来自《多用户改造契约》§7：3 个家长端管理页、1 个孩子端登录页、1 个学习端组件（孩子选择器）。页面总数 <strong>34 → 39</strong>。
+路由按本清单统一前缀书写（<code>/study/parent/**</code>、<code>/study/kid/**</code>）；契约 §7 的 <code>/parent/family</code>、<code>/parent/child/:code</code>、<code>/kid/login</code> 为去掉 <code>/study</code> 前缀的相对写法。详规见 §5.4–§5.6（家长端 3 页）、§6.3（孩子登录页）、§6.5（孩子选择器）、§7.3（组件）。</p>
+<p><strong>#40 语法玩法</strong>为 F-GRM-04 / F-GRM-05 的学习端页面，页面总数 <strong>39 → 40</strong>。</p>
+</blockquote>
+<!--update-begin---author:mavis ---date:2026-10-31  for：【F-GRM-04 / F-GRM-05】登记「语法玩法」页面（F-GRM-04）+ 语境例句（F-GRM-05）----------- -->
+
+<blockquote>
+<p><strong>#40 语法玩法</strong>（F-GRM-04 / F-GRM-05）：学习端页面，<strong>菜单 <code>st_menu_grammar_game</code></strong>（父节点 <code>st_menu_study</code>，<code>sort_no</code> 3.50），
+路由 <code>/study/grammar/game</code>，组件 <code>study/grammar/game/index</code>，组件名 <code>StudyGrammarGame</code>，
+增量脚本 <code>02-代码开发/02-数据库/03-脚本/17-seed-grammar-game-menu.sql</code>。</p>
+<p><strong>路由前缀说明</strong>：本表其余学习端页面写的是 <code>/study/kid/**</code>，<strong>这一页按实际实现写 <code>/study/grammar/game</code></strong>——
+学习端菜单挂在 <code>st_menu_study</code>（<code>/study</code>）之下，页面路由由 <code>sys_permission.url</code> 决定，
+页面清单的 <code>/study/kid/**</code> 是规划口径（契约 §7 的相对写法），<strong>实现以菜单种子脚本为准</strong>。</p>
+<p><strong>权限码</strong>：不新建。该页用到的 <code>study:kid:grammar:view</code> / <code>study:kid:grammar:practice</code>
+已在 <code>07-seed-role-menu.sql</code> 里授给 <code>study_kid</code>，页面菜单只补一条路由授权。</p>
+<p><strong>详规见 §4.8 的「语法玩法」行</strong>（五个玩法同页分段切换，一屏一任务）。</p>
+</blockquote>
+<!--update-end---author:mavis ---date:2026-10-31  for：【F-GRM-04 / F-GRM-05】登记「语法玩法」页面（F-GRM-04）+ 语境例句（F-GRM-05）----------- -->
+</section>
+<section id="admin">
+  <div class="sec-head"><span class="sec-num">03</span><h3>管理端页面详规</h3><span class="tag">V0 起</span></div>
+  <p>管理端页面详规</p>
+<blockquote>
+<p>全部遵循《产品设计规范》第 9.1 节列表页骨架：<strong><code>PageWrapper</code>（内容区 margin:16px）→ <code>useListPage</code> + <code>BasicTable</code></strong>（查询区 / 工具栏 / 分页 / 表格设置均由组件内置）→（可选）统计区 → 操作列插槽 <code>StudyActionColumn</code> → 弹窗。
+<strong>禁止</strong>手写 <code>a-table</code>、<strong>禁止</strong>另做分页组件、<strong>禁止</strong>把查询表单与表格混排（规范 9.1 / 8.2 / 8.9）。</p>
+</blockquote>
+<h3>3.1 全局上下文配置</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>布局</td>
+<td>独立表单页（非列表页）：<code>PageWrapper</code> 内 <code>a-form</code>（管理端沿用基座默认 <code>layout="horizontal"</code>，规范 8.4①），<code>a-row :gutter="16"</code>（规范 6.2）</td>
+</tr>
+<tr>
+<td>字段</td>
+<td>省级行政区（下拉）、学段（分段控件）、年级（下拉，随学段联动）、教材版本（下拉，随学段联动）</td>
+</tr>
+<tr>
+<td>联动</td>
+<td>选学段 → 过滤年级与教材版本；选教材版本 → 提示「切换后课内词表与母题顺序会同步改变」</td>
+</tr>
+<tr>
+<td>护眼间隔</td>
+<td>数字输入（10/15/20/25 分钟），默认 15</td>
+</tr>
+<tr>
+<td>提交</td>
+<td>底部固定操作条，主按钮「保存并生效」</td>
+</tr>
+<tr>
+<td>状态</td>
+<td>未配置时全站跳转到此页；已配置时展示当前生效卡片 + 「修改」按钮</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>对应接口</strong>：<code>GET /context/current</code>、<code>POST /context</code>。</p>
+<h3>3.2 坐标树浏览器</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>布局</td>
+<td>左侧 <code>StudyCategoryTree</code>（<code>a-card size="small" :bordered="false"</code>，sticky <code>top:12px</code>），右侧 <code>StudyDataList</code></td>
+</tr>
+<tr>
+<td>表格列</td>
+<td>考点名称（首列，短标签）、题型、分值权重、常见错因、母题 ID、状态</td>
+</tr>
+<tr>
+<td>操作列</td>
+<td>编辑、查看内容数、版本历史</td>
+</tr>
+<tr>
+<td>树交互</td>
+<td><code>childrenColumnName="children"</code>、<code>default-expand-all-rows</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>对应接口</strong>：<code>GET /knowledge-points/tree</code>、<code>GET /knowledge-points/{code}/children</code>。</p>
+<h3>3.3 考点维护（弹窗表单）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>宽度</td>
+<td><code>STUDY_MODAL_WIDTH</code>（720，落在 antd 默认档位 520/600/720/920 内）；内容留白由 <code>:body-style="STUDY_MODAL_BODY_STYLE"</code> 提供（规范 8.5）</td>
+</tr>
+<tr>
+<td>字段</td>
+<td>题型（输入）、分值权重（数字）、常见错因（多选，来源 <code>study_error_cause_stat</code>）、对应母题（下拉，选母题时校验存在性）</td>
+</tr>
+<tr>
+<td>提示</td>
+<td>常见错因选项<strong>从真实错题反推</strong>（读取错因频次表），不硬编码</td>
+</tr>
+</tbody>
+</table></div>
+<h3>3.4 母题维护</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>列表列</td>
+<td>题型名（首列）、学科、所属考点、变式数、过关数、闯关顺序、状态</td>
+</tr>
+<tr>
+<td>编辑</td>
+<td><strong>独立页面</strong>而非弹窗——五段结构表单过长。<strong>不用</strong>自定义宽度档位（规范 8.5 只允许 antd 的 520/600/720/920），直接用全屏表单页</td>
+</tr>
+<tr>
+<td>五段编辑器</td>
+<td>五个折叠面板，任一段为空时提交按钮禁用并提示缺哪一段（4007）</td>
+</tr>
+<tr>
+<td>变式生成</td>
+<td>列表操作列「生成变式」→ 弹窗展示三层生成结果</td>
+</tr>
+</tbody>
+</table></div>
+<h3>3.5 题目维护</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>列表列</td>
+<td>题干（首列，<strong>短标签</strong>如「行程问题·相遇 #0088」）、题型、考点、难度、来源、版权类型</td>
+</tr>
+<tr>
+<td>题干长文本</td>
+<td>放第二列并用 <code>ellipsis</code> + tooltip（规范 8.3）</td>
+</tr>
+<tr>
+<td>导入</td>
+<td><code>StudyExcelButtons</code> 三钮（导出 / 下载模板 / 导入），导入校验 <code>sourceType</code> + <code>sourceRef</code>（4006）</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="kid">
+  <div class="sec-head"><span class="sec-num">04</span><h3>学习端页面详规</h3><span class="tag">孩子用</span></div>
+  <p>学习端页面详规</p>
+<blockquote>
+<p>遵循《产品设计规范》第 10 章「学习端专项规范」：一屏一任务、底部主动作 ≥44px、正文 ≥16px。</p>
+</blockquote>
+<h3>4.1 今日首页（V0）</h3>
+<pre class="cmd"><code>┌─────────────────────────────────────┐
+│ 顶栏 48px：模块入口 / 连续天数 / 护眼状态 │
+├─────────────────────────────────────┤
+│  今日任务卡（大卡，圆角 12px）          │
+│   ├ 主任务：待复习 N 条                │
+│   ├ 次任务：待学单词 N 个              │
+│   └ 底部主按钮「开始今天的复习」         │
+├─────────────────────────────────────┤
+│  六个模块入口（2×3 网格，图标 + 名称）    │
+└─────────────────────────────────────┘
+</code></pre>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>规范</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>主任务选择</td>
+<td>优先「今日复习队列」（非空时），否则退化为「今日单词」，都为空则显示鼓励卡</td>
+</tr>
+<tr>
+<td>模块入口</td>
+<td>未解锁的模块置灰 + 锁图标，不隐藏（孩子要知道后面有什么）</td>
+</tr>
+<tr>
+<td>连续天数</td>
+<td>用 <code>#55D187</code> 的连续条；<strong>不显示数字排行</strong></td>
+</tr>
+<tr>
+<td>护眼状态</td>
+<td>只显示图标（开/关），<strong>不显示时长数字</strong>（规范 10.5）</td>
+</tr>
+</tbody>
+</table></div>
+<h3>4.2 通用练习页（V0）</h3>
+<pre class="cmd"><code>┌─────────────────────────────────────┐
+│ 顶栏：退出 / 进度 N/M / 护眼状态         │
+├─────────────────────────────────────┤
+│  知识点标签（弱化底色胶囊）              │
+│  题干（18px）                          │
+│  选项 / 输入框（高 ≥48px）              │
+│  ─────────────────────────────       │
+│  判定反馈区（答后出现）                  │
+├─────────────────────────────────────┤
+│ 底部主动作条（高 64px，安全区适配）        │
+│  [提交答案] → [看解析] → [下一题]        │
+└─────────────────────────────────────┘
+</code></pre>
+<p><strong>关键交互规则</strong>：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>规则</th>
+<th>实现</th>
+<th>红线</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>未作答时答案区不在 DOM</td>
+<td><code>useAnswerGate</code> 状态机控制组件<strong>不挂载</strong>（不是 <code>v-show</code>）</td>
+<td>R-01</td>
+</tr>
+<tr>
+<td>答错先显示错在哪一步</td>
+<td><code>JudgeFeedback</code> 先渲染 <code>basis</code> + <code>detail</code>，解析在用户点「看完整解析」后才渲染</td>
+<td>—</td>
+</tr>
+<tr>
+<td>判定来源可见</td>
+<td><code>source === "rule+model"</code> 时显示「AI 辅助讲解，判定以规则为准」</td>
+<td>R-02</td>
+</tr>
+<tr>
+<td>错因必答</td>
+<td>答错时底部条切换为「选择错因」5 个大按钮，未选不可继续</td>
+<td>F-WRG-01</td>
+</tr>
+<tr>
+<td>申诉入口</td>
+<td>每个判定结果右下角「我不同意」小字链接</td>
+<td>R-02</td>
+</tr>
+<tr>
+<td>单手可完成</td>
+<td>全部主动作在底部条内</td>
+<td>N-08</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>错因选择器</strong>：5 个大按钮（概念不清 / 审题偏差 / 计算失误 / 方法不会 / 时间不够），每个 ≥44×44px，两行排布。</p>
+<h3>4.3 今日复习（V0）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>列表</td>
+<td>卡片流（不是表格），每张卡：模块标签 + 考点名 + 错因 + 是否需要变式</td>
+</tr>
+<tr>
+<td>排序</td>
+<td>服务端 <code>sortScore</code> 降序；<strong>前端不重排</strong></td>
+</tr>
+<tr>
+<td>交互</td>
+<td>点击卡片 → 进入通用练习页（<code>type=wrong</code>）</td>
+</tr>
+<tr>
+<td>完成反馈</td>
+<td>完成后显示「今日还剩 N 条」，不显示鼓励性的夸张文案</td>
+</tr>
+</tbody>
+</table></div>
+<h3>4.4 错题录入（V0）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>界面</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 拍照</td>
+<td>调用相机/相册；显示「把题目拍清楚」提示</td>
+</tr>
+<tr>
+<td>2 框选</td>
+<td>框选题目区域，可多选</td>
+</tr>
+<tr>
+<td>3 擦笔迹</td>
+<td>自动擦除后展示结果，孩子/家长可手动修正</td>
+</tr>
+<tr>
+<td>4 归类</td>
+<td>学科 + 考点（下拉）+ 错因（五选一）</td>
+</tr>
+<tr>
+<td>5 出处</td>
+<td>来源类型（自编/公开/授权）+ 出处（公开/授权时必填）</td>
+</tr>
+<tr>
+<td>6 完成</td>
+<td>显示「已加入复习队列，下次复习：今天」</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>版权步骤不可跳过</strong>（F-WRG-06）。自编选项旁注明「自编题目不需要填出处」。</p>
+</blockquote>
+<h3>4.5 我的错题本（V0）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>视图</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>列表</td>
+<td>移动端卡片；桌面端表格（管理端表格组件，学习端不共用表格）</td>
+</tr>
+<tr>
+<td>筛选</td>
+<td>顶部胶囊筛选：全部 / 待复习 / 已掌握 / 按模块 / 按错因</td>
+</tr>
+<tr>
+<td>列</td>
+<td>考点、错因、下次复习时间、掌握度状态</td>
+</tr>
+</tbody>
+</table></div>
+<h3>4.6 背单词（V1）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>页面</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>首页</td>
+<td>课内单元列表（闯关卡样式，未解锁置灰）+ 课外词线入口 + 连续天数</td>
+</tr>
+<tr>
+<td>单元闯关</td>
+<td>一屏一个词；四档反馈按钮（认识/模糊/忘记/熟知）<strong>在词条下方</strong>，不是底部条</td>
+</tr>
+<tr>
+<td>词条</td>
+<td>拼写（20px）+ 释义（16px）+ 音标（14px）+ 例句（16px）；<strong>无图回忆环节</strong>必须存在（PRD §8.3 坑一）</td>
+</tr>
+<tr>
+<td>课外词线</td>
+<td>队列式（类似复习），效率视图</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>新词发放约束</strong>：当日复习欠账 &gt; 20 条时，不发放新词，直接提示「先把昨天的复习做完」。</p>
+<h3>4.7 数学母题闯关（V2）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>页面</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>闯关首页</td>
+<td>关卡卡列表（圆角 12px），按考纲优先级排列；每张卡显示题型名 + 状态（未解锁/进行中/已过关）+ 掌握度</td>
+</tr>
+<tr>
+<td>关卡页</td>
+<td>母题结构五段折叠展示 → 讲解 → 变式练习</td>
+</tr>
+<tr>
+<td>讲解</td>
+<td>五段分段呈现：题型名 / 已知条件类型 / <strong>关键关系（高亮）</strong> / 步骤链 / 易错点</td>
+</tr>
+<tr>
+<td>变式练习</td>
+<td>一题一变式；三层标识（换数字/换情境/逆向）</td>
+</tr>
+<tr>
+<td>口述确认</td>
+<td>语音输入或文字输入关键关系；显示命中关键词与缺失关键词；未过给一条追问</td>
+</tr>
+<tr>
+<td>过关</td>
+<td>变式全对 + 口述通过 → 过关卡；<strong>不显示分数，只显示「这类题你会了」</strong></td>
+</tr>
+</tbody>
+</table></div>
+<h3>4.8 英语语法（V3）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>页面</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>语法点列表</td>
+<td>卡片流，按中考题型分组（单选/完形/语法填空/书面表达）</td>
+</tr>
+<tr>
+<td>语法点详情</td>
+<td>规则（高亮）+ 例句 + <strong>反例（标红）</strong></td>
+</tr>
+<tr>
+<td>句子变形器</td>
+<td>输入中文意思 → 5 种英文表达卡片（直译/口语/书面/考试安全/错误示范），错误示范版明确标「✗ 不要这样写」</td>
+</tr>
+<tr>
+<td>错句收藏馆</td>
+<td>从统一错题池筛选 <code>contentType=SENTENCE</code> 的条目</td>
+</tr>
+</tbody>
+</table></div>
+<!--update-begin---author:mavis ---date:2026-10-31  for：【F-GRM-04 / F-GRM-05】补「语法玩法」页详规----------- -->
+
+<h4>语法玩法（#40，F-GRM-04 / F-GRM-05）</h4>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>路由</td>
+<td><code>/study/grammar/game</code>（菜单 <code>st_menu_grammar_game</code>，父节点 <code>st_menu_study</code>，<code>sort_no</code> 3.50）</td>
+</tr>
+<tr>
+<td>组件</td>
+<td><code>study/grammar/game/index</code>（组件名 <code>StudyGrammarGame</code>）</td>
+</tr>
+<tr>
+<td>端</td>
+<td>学习端（<code>layouts/study</code> 独立全屏布局，主题锁定浅色）</td>
+</tr>
+<tr>
+<td>结构</td>
+<td><strong>一个页面 + 五个玩法分段切换</strong>：语境例句 / 句子侦探 / 变形闯关 / 我的错句收藏馆 / 闯关进度。分段用胶囊按钮，不铺多列栅格（§10.2 一屏一任务、§9.7 不用表格）</td>
+</tr>
+<tr>
+<td>语境例句</td>
+<td>按 <code>wordCode</code> 或 <code>grammarCode</code> 查，列出例句 + 中文意思 + 语境类型（课文 / 真题 / 原声素材）+ 用法说明 + 出处；语境类型用 antd 预设色标签（§8.6）</td>
+</tr>
+<tr>
+<td>句子侦探</td>
+<td>取题给 4 句话，孩子点选第几句；<strong>讲解（规则 / 正例 / 反例 / 改法）在提交判定之后才渲染</strong>（R-01）</td>
+</tr>
+<tr>
+<td>变形闯关</td>
+<td>取题<strong>只给中文意思</strong>，孩子自己写英文；过关给参考表达，没过关给提示与讲解（R-01）</td>
+</tr>
+<tr>
+<td>我的错句收藏馆</td>
+<td>读统一错题池（按 <code>child_id</code> 隔离），可按错因五维过滤；卡片流展示错句与改好的写法</td>
+</tr>
+<tr>
+<td>闯关进度</td>
+<td>只显示「答过几关 / 过了几关 / 上次玩是什么时候」——<strong>只跟自己比</strong>（R-04）</td>
+</tr>
+<tr>
+<td>底部主操作</td>
+<td>底部条只有<strong>一个</strong>主按钮，文案随当前玩法变化（查例句 / 提交这一关 / 提交作答 / 刷新收藏馆 / 刷新进度）；点击目标 ≥44px（§10.1）</td>
+</tr>
+<tr>
+<td>判定来源</td>
+<td>判定结果区固定标注「按规则判定」（<code>judgeSource</code> 恒为 <code>rule</code>），页面不自己判断对错、不发任何外部请求（R-02）</td>
+</tr>
+<tr>
+<td>对应接口</td>
+<td><code>GET /grammar/context</code>、<code>GET /grammar/game/detective/next</code>、<code>POST /grammar/game/detective/judge</code>、<code>GET /grammar/game/transform/next</code>、<code>POST /grammar/game/transform/judge</code>、<code>GET /grammar/game/collection</code>、<code>GET /grammar/game/progress</code>（权限码 <code>study:kid:grammar:view</code> / <code>study:kid:grammar:practice</code>，不新建）</td>
+</tr>
+</tbody>
+</table></div>
+<!--update-end---author:mavis ---date:2026-10-31  for：【F-GRM-04 / F-GRM-05】补「语法玩法」页详规----------- -->
+
+<h3>4.9 语文写作（V4）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>界面</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 选题</td>
+<td>情境卡（不是金句），强制填自己的经历</td>
+</tr>
+<tr>
+<td>2 审题</td>
+<td>审题要点 + 分步提示</td>
+</tr>
+<tr>
+<td>3 列提纲</td>
+<td>提纲表单；<strong>未通过不能进入下一步</strong>（4002）</td>
+</tr>
+<tr>
+<td>4 写初稿</td>
+<td>纯文本编辑区</td>
+</tr>
+<tr>
+<td>5 看批改</td>
+<td>差异清单<strong>只显示 3 条</strong>，每条含维度、说明、建议</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>不显示分数、不显示等级、不显示排名。</strong> 文案避免「扣了几分」。</p>
+</blockquote>
+</section>
+<section id="parent">
+  <div class="sec-head"><span class="sec-num">05</span><h3>家长端页面详规</h3><span class="tag">家长用</span></div>
+  <p>家长端页面详规</p>
+<h3>5.1 通用约束</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>约束</th>
+<th>实现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>隐藏新增/编辑</td>
+<td>家长端<strong>只读数据页</strong>（总览、周报、错因分布、薄弱考点）的表格操作列<strong>只保留「查看」</strong>；不渲染编辑/删除按钮。家庭 / 孩子管理页（§5.4–§5.6）是<strong>有写入的操作页</strong>，按权限码开放对应动作</td>
+</tr>
+<tr>
+<td>隐藏批量操作</td>
+<td>工具栏只有筛选与导出（若提供）</td>
+</tr>
+<tr>
+<td>无答案入口</td>
+<td>错题详情只显示「孩子当时写的」与「正确做法是什么」的判断结果，<strong>不显示完整解析原文</strong></td>
+</tr>
+<tr>
+<td>无排名文案</td>
+<td>响应文案经关键词过滤（禁用「排名」「排行」「超过」「百分位」）；多家长场景<strong>额外禁用家庭内比较措辞</strong>（「更」「比」「超过」类），家长之间互不可见（R-04 强化，见 §6.2）</td>
+</tr>
+</tbody>
+</table></div>
+<h3>5.2 页面内容</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>页面</th>
+<th>卡片</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>总览</td>
+<td>6 个统计卡</td>
+<td>用眼时长（今日/本周）、连续天数、掌握度分布（4 个数字）、错因 Top3、薄弱考点 Top3、写作趋势</td>
+</tr>
+<tr>
+<td>周报</td>
+<td>表格</td>
+<td>近 7 天的每日用眼分钟、练习量、错题新增/消除数、掌握度变化</td>
+</tr>
+<tr>
+<td>错因分布</td>
+<td>图表</td>
+<td>5 个错因的占比（水平条），<strong>不与他人比较</strong></td>
+</tr>
+<tr>
+<td>薄弱考点</td>
+<td>表格</td>
+<td>考点名、掌握度状态、错误次数、最近错误时间</td>
+</tr>
+</tbody>
+</table></div>
+<h3>5.3 一句话反馈</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>规范</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>入口</td>
+<td>家长端总览的「最近一次练习/作文」条目旁</td>
+</tr>
+<tr>
+<td>控件</td>
+<td>单行输入 + 「发送」</td>
+</tr>
+<tr>
+<td>长度</td>
+<td>≤100 字，超出输入框计数提示，不允许提交</td>
+</tr>
+<tr>
+<td>反馈去向</td>
+<td>只在家长端可见；<strong>不进入孩子的练习数据流</strong>，不在学习端任何位置出现</td>
+</tr>
+</tbody>
+</table></div>
+<h3>5.4 家庭与成员管理（新增）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>路由</td>
+<td><code>/study/parent/family</code>（契约 §7 记作 <code>/parent/family</code>）</td>
+</tr>
+<tr>
+<td>端</td>
+<td>家长端（<code>layouts/parent</code> 独立全屏布局）</td>
+</tr>
+<tr>
+<td>布局</td>
+<td>家长端独立布局（<code>layouts/parent</code>，规范 9.6）；列表部分复用 <code>BasicTable</code> 但<strong>不套</strong>管理端 <code>PageWrapper</code>/<code>a-card</code> 壳；<code>showTableSetting: false</code>；本页属写操作页，操作列保留「移除」「重置家庭码」（只读数据页才只留「查看」）</td>
+</tr>
+<tr>
+<td>区块</td>
+<td>① 家庭信息卡（家庭名称、成员数、家庭码状态）② 家长成员表格 ③ 重置家庭码弹窗</td>
+</tr>
+<tr>
+<td>表格列</td>
+<td>昵称（首列短标签 ≤12 字）、账号名、角色（OWNER / PARENT）、与孩子的关系标签、状态</td>
+</tr>
+<tr>
+<td>邀请家长</td>
+<td>弹窗表单：用户名（必填）+ 关系标签（妈妈 / 爸爸 / 爷爷 / 奶奶 / 其他）；提交后成员列表刷新</td>
+</tr>
+<tr>
+<td>移除成员</td>
+<td>操作列「移除」走 <code>a-popconfirm</code> 二次确认（危险操作）</td>
+</tr>
+<tr>
+<td>重置家庭码</td>
+<td>生成 6 位大写字母数字；<strong>明文只在弹窗里显示一次</strong>，确认后不可再查看，库里只存哈希</td>
+</tr>
+<tr>
+<td>设计规范落点</td>
+<td>9.6 家长端布局（无顶栏无侧栏）；9.1 表格用 <code>BasicTable</code>（<code>showTableSetting: false</code>）；8.7 操作列用 <code>StudyActionColumn</code>（危险操作二次确认）；8.5 弹窗 <code>:body-style="STUDY_MODAL_BODY_STYLE"</code>；8.6 角色标签用 antd 预设名；6.1 间距 <code>4/8/12/16</code>；12.2 ≤992px 表格转卡片</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>对应接口</strong>：<code>GET /family</code>、<code>PUT /family</code>、<code>GET /family/members</code>、<code>POST /family/members</code>、<code>DELETE /family/members/{id}</code>、<code>POST /family/code/reset</code>（权限码 <code>study:parent:family:*</code>）。</p>
+<h3>5.5 孩子档案编辑（新增）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>路由</td>
+<td><code>/study/parent/child/:code</code>（契约 §7 记作 <code>/parent/child/:code</code>）</td>
+</tr>
+<tr>
+<td>端</td>
+<td>家长端</td>
+</tr>
+<tr>
+<td>布局</td>
+<td>独立表单页（非列表页）：家长端布局内 <code>a-form :layout="vertical"</code>（窄表单用 <code>vertical</code>，规范 8.4②），<code>a-row :gutter="16"</code>（规范 6.2）</td>
+</tr>
+<tr>
+<td>字段</td>
+<td>头像（<code>StudyAttachmentPanel</code> mode="images"）、昵称（≤32 字）、性别（0 未知 / 1 男 / 2 女）、生日（日期选择，<strong>可选</strong>，不参与对外比较）、年级（G1..G12 下拉）</td>
+</tr>
+<tr>
+<td>重置 PIN</td>
+<td>弹窗输入 4–6 位数字；<strong>明文仅本次显示</strong>，弹窗关闭即不可再查（库里只存哈希）</td>
+</tr>
+<tr>
+<td>停用孩子</td>
+<td>「停用该孩子」二次确认；停用后该孩子不可再登录</td>
+</tr>
+<tr>
+<td>提交</td>
+<td>底部固定操作条，主按钮「保存」</td>
+</tr>
+<tr>
+<td>设计规范落点</td>
+<td>8.4 窄表单 <code>layout="vertical"</code>（管理端默认 <code>horizontal</code>，此处属窄表单）、短字段 <code>:span="12"</code> / 长文本 <code>:span="24"</code>；6.2 <code>a-row :gutter="16"</code>；8.5 弹窗 <code>:body-style</code>；8.4 输入字号 14px、数字输入最小宽 110px；3.4 次要文字 <code>rgba(0,0,0,0.45)</code>；12.2 ≤992px 移动端单列</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>对应接口</strong>：<code>GET /children/{code}</code>、<code>PUT /children/{code}</code>、<code>POST /children/{code}/pin/reset</code>、<code>DELETE /children/{code}</code>（权限码 <code>study:parent:child:*</code>）。</p>
+<h3>5.6 孩子关联管理（新增）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>路由</td>
+<td><code>/study/parent/child/:code/relations</code>（契约 §7 记作 <code>/parent/child/:code/relations</code>）</td>
+</tr>
+<tr>
+<td>端</td>
+<td>家长端</td>
+</tr>
+<tr>
+<td>布局</td>
+<td>家长端独立布局（规范 9.6）；列表部分复用 <code>BasicTable</code>（<code>showTableSetting: false</code>）；顶部为孩子信息条（昵称 + 头像 + 业务 id <code>CHD-xxx</code>）</td>
+</tr>
+<tr>
+<td>表格列</td>
+<td>家长昵称（首列短标签 ≤12 字）、账号名、关系标签、是否主家长、状态</td>
+</tr>
+<tr>
+<td>添加关联</td>
+<td>弹窗：选家长（仅本家庭成员）+ 关系标签；重复关联由服务端拒绝</td>
+</tr>
+<tr>
+<td>解除关联</td>
+<td>操作列「解除」二次确认；解除后该家长立即失去该孩子的数据可见性</td>
+</tr>
+<tr>
+<td>约束</td>
+<td>一个家长可关联多个孩子；一个孩子可被多个家长关联（多对多）</td>
+</tr>
+<tr>
+<td>设计规范落点</td>
+<td>8.6 关系标签走 antd 预设名 / 同名同色 hash 映射；8.7 操作列；8.3 首列短标签 ≤12 字；9.6 家长端布局；12.2 ≤992px 转卡片</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>对应接口</strong>：<code>GET /children/{code}/relations</code>、<code>POST /children/{code}/relations</code>、<code>DELETE /children/{code}/relations/{parentUserId}</code>（权限码 <code>study:parent:child:relation</code>）。</p>
+</section>
+<section id="multi">
+  <div class="sec-head"><span class="sec-num">06</span><h3>多用户与登录流程</h3><span class="tag">新契约</span></div>
+  <p>多用户与登录流程</p>
+<blockquote>
+<p>本节依据《多用户改造契约》（<code>06-AI协作/01-任务台账/2026103019-多用户改造契约.md</code>）§1.2 孩子登录两步流程、§3 数据范围、§7 页面新增。
+系统已由「单用户（一个孩子 + 一个家长）」改为「多家庭 · 多孩子 · 多家长」，<strong>孩子上下文</strong>成为全部学习端与家长端页面的隐含前提。</p>
+</blockquote>
+<h3>6.1 身份与登录入口</h3>
+<blockquote>
+<p>接口根路径 <code>/api/v1/study</code>，下表与后文的接口路径均为<strong>相对路径</strong>。</p>
+</blockquote>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>身份</th>
+<th>登录方式</th>
+<th>接口</th>
+<th>登录后落地</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>家长</td>
+<td>底座原生账号 + 密码</td>
+<td><code>POST /sys/login</code>（页面 <code>/login</code>，底座自带，<strong>不新增</strong>）</td>
+<td>家长端（<code>layouts/parent</code>，独立全屏布局）</td>
+</tr>
+<tr>
+<td>孩子</td>
+<td><strong>家庭码 + PIN 两步</strong></td>
+<td><code>POST /kid/lookup</code> → <code>POST /kid/login</code>（两步均免认证）</td>
+<td>学习端（<code>layouts/study</code>，独立全屏布局）</td>
+</tr>
+<tr>
+<td>管理员</td>
+<td>底座原生账号 + 密码</td>
+<td><code>POST /sys/login</code></td>
+<td>管理端（<code>layouts/default</code>）</td>
+</tr>
+</tbody>
+</table></div>
+<p>家长账号走 JeecgBoot 原生登录页，<strong>不新增家长登录接口</strong>；孩子端是<strong>独立的两步登录</strong>，<strong>不暴露</strong>底座登录页与管理端任何入口——孩子端首屏固定为 <code>/study/kid/login</code>，未登录时管理端与家长端路由一律不可达。</p>
+<h3>6.2 界面 → 可见数据</h3>
+<blockquote>
+<p>隔离由服务端强制：家长请求用 <code>ChildScopeHelper.childIdsOf(currentUserId)</code> 取 child_id 集合拼 where 条件；孩子请求用 JWT 携带的 <code>childId</code>。<strong>前端传入的 <code>childId</code> 不作为唯一依据</strong>，越权一律返回 <strong>4010</strong>（不返回 404，避免探测）。</p>
+</blockquote>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>界面</th>
+<th>可见数据</th>
+<th>判定来源</th>
+<th>越权表现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>家长端全部页面</td>
+<td>仅 <code>study_parent_child_rel</code> 中与当前家长关联的孩子及其数据</td>
+<td>关系表实时查询</td>
+<td>4010</td>
+</tr>
+<tr>
+<td>学习端全部页面</td>
+<td>仅当前孩子自己的数据</td>
+<td>JWT claim <code>childId</code></td>
+<td>4010</td>
+</tr>
+<tr>
+<td>孩子端登录页步骤①</td>
+<td>仅输入家庭码所属家庭的候选孩子（<strong>只有 id / 昵称 / 头像</strong>）</td>
+<td><code>POST /kid/lookup</code> 返回体</td>
+<td>4009 家庭码不正确</td>
+</tr>
+<tr>
+<td>跨家庭</td>
+<td><strong>不可见</strong>；孩子归属唯一家庭，家长需先退出原家庭才能加入新家庭</td>
+<td><code>study_child.family_id</code></td>
+<td>4010</td>
+</tr>
+<tr>
+<td>家长 A ↔ 家长 B</td>
+<td><strong>互不可见</strong>（反馈、评价、申诉一律隔离），且不做任何家庭内比较</td>
+<td><code>study_parent_child_rel</code></td>
+<td>4010</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>R-04 强化</strong>：多家长场景下家长之间互不可见对方数据，也<strong>不得</strong>出现「谁的孩子更…」「家长评分对比」一类文案（契约 §3.3）。</p>
+</blockquote>
+<h3>6.3 孩子端两步登录（登录页规格）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>界面</th>
+<th>接口</th>
+<th>正常结果</th>
+<th>异常处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>步骤① 家庭码</td>
+<td>输入 6 位大写字母数字家庭码；底部主按钮「下一步」</td>
+<td><code>POST /kid/lookup</code></td>
+<td>返回候选孩子列表（仅 id / 昵称 / 头像）</td>
+<td>家庭码错误 → 提示「家庭码不正确」（4009），<strong>留在步骤①</strong>，不进候选列表</td>
+</tr>
+<tr>
+<td>步骤② 选孩子 + PIN</td>
+<td>候选头像列表 + PIN 输入（4–6 位数字）；底部主按钮「进入」</td>
+<td><code>POST /kid/login</code></td>
+<td>签发 token（携带 <code>childId</code> / <code>childCode</code> / <code>role=study_kid</code>），进入学习端</td>
+<td>PIN 错误 → 提示后<strong>留在步骤②</strong>可重试；<strong>连续 5 次失败锁 10 分钟</strong>，锁定期拒绝登录</td>
+</tr>
+<tr>
+<td>退出</td>
+<td>学习端顶栏「退出」</td>
+<td><code>POST /kid/logout</code></td>
+<td>清会话回到步骤①</td>
+<td>—</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>明文与锁定规则</strong>：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>规则</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>家庭码</td>
+<td>由家长在家长端生成 / 重置，<strong>明文只在生成时返回一次</strong>，之后任何界面都不能再查看（库里只存哈希）</td>
+</tr>
+<tr>
+<td>PIN</td>
+<td>家长重置 PIN 时<strong>明文仅本次显示</strong>，必须当场抄下；孩子端登录框不提供「忘记 PIN」自助入口</td>
+</tr>
+<tr>
+<td>候选列表</td>
+<td>只返回 <code>id</code> / <code>nickname</code> / <code>avatar</code>，不返回账号、年级、生日等任何其他信息</td>
+</tr>
+<tr>
+<td>锁定</td>
+<td>失败 5 次锁 10 分钟（<code>pin_fail_count</code> / <code>pin_lock_until</code>）；锁定提示只说「请稍后再试」，<strong>不暴露失败次数</strong>（规范 10.3④：中性表述，不做负向文案）</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>设计规范落点</strong>（孩子登录页 <code>/study/kid/login</code>）：规范 9.8 孩子端布局（复用 <code>layouts/study</code>）；10.2 学习端页面骨架（顶栏 48px、主任务区 padding 16px、底部主操作条 64px 安全区适配）；10.1 字号（正文 16px、主按钮文字 18px、辅助说明 14px）；10.2 学习端圆角 12px；8.1 按钮高度学习端 ≥44px；4.2③ 根节点锁定 <code>data-theme="light"</code>；3.1 / 3.2 颜色走主题令牌、4.2① 不硬编码 hex；9.8 两步登录顺序与错误态不泄露他人信息。</p>
+<h3>6.4 布局：家长端也是独立全屏</h3>
+<p>家长端<strong>不吃管理端的顶栏与侧栏</strong>，与学习端一样是独立全屏布局（契约 §1.3）。家长端只有「我的孩子」与「我的家庭」两类信息，没有全局配置入口。</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>端</th>
+<th>布局</th>
+<th>说明</th>
+<th>可复用组件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>管理端</td>
+<td><code>layouts/default</code>（底座）</td>
+<td>顶栏 + 侧栏 + 内容区</td>
+<td><code>Study*</code> 全系列（规范 9.3）</td>
+</tr>
+<tr>
+<td>家长端</td>
+<td><strong><code>layouts/parent</code>（新增，独立全屏）</strong></td>
+<td>不加载管理端顶栏与侧栏；顶部为孩子切换条 + 家庭入口</td>
+<td><code>StudyStatCards</code>、<code>StudyDataList</code>、<code>StudyListToolbar</code>、<code>StudyActionColumn</code>、<code>StudyEnumTag</code>、<code>StudyHelpDrawer</code>、<code>StudyExcelButtons</code></td>
+</tr>
+<tr>
+<td>学习端 / 孩子端</td>
+<td><code>layouts/study</code>（独立全屏）</td>
+<td>顶栏 48px + 内容区 + 底部主动作条 64px + 护眼遮罩</td>
+<td><code>KidTopBar</code>、<code>KidBottomBar</code>、<code>KidEmptyState</code>、<code>EyeGuardOverlay</code>、<code>BlueLightFilter</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>家长端跟随全局暗色切换（只有学习端按规范 4.2 锁定浅色），颜色一律走变量（规范 4.2）。</p>
+</blockquote>
+<h3>6.5 既有页面的孩子上下文</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>端</th>
+<th>上下文</th>
+<th>来源</th>
+<th>是否需要「切换孩子」入口</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>学习端（全部页面）</td>
+<td><strong>当前孩子上下文</strong></td>
+<td>登录态决定：孩子取 JWT 的 <code>childId</code>；家长视角取当前选中的 <code>viewChildId</code></td>
+<td>孩子本人登录 → <strong>不渲染</strong>；家长视角 → 顶栏渲染 <code>ChildSwitcher</code></td>
+</tr>
+<tr>
+<td>家长端（总览 / 周报 / 错因分布 / 薄弱考点）</td>
+<td><strong>当前查看的孩子</strong></td>
+<td>家长可切换视角，默认选中第一个关联孩子</td>
+<td><strong>需要</strong>：顶栏渲染 <code>ChildSwitcher</code>；总览页另有孩子卡片列表</td>
+</tr>
+<tr>
+<td>管理端（全部页面）</td>
+<td>无孩子维度</td>
+<td>全局配置与全局题库，与具体孩子无关</td>
+<td><strong>不需要</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>需要新增「切换孩子」入口的既有页面</strong>：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>页面</th>
+<th>路由</th>
+<th>入口位置</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>家长端总览</td>
+<td><code>/study/parent/dashboard</code></td>
+<td>页面顶部 + 孩子卡片列表</td>
+<td>统计卡、错因、薄弱考点全部跟随当前选中的孩子</td>
+</tr>
+<tr>
+<td>家长端周报</td>
+<td><code>/study/parent/weekly</code></td>
+<td>页面顶部</td>
+<td>表格按当前孩子过滤</td>
+</tr>
+<tr>
+<td>薄弱考点</td>
+<td><code>/study/parent/weakpoints</code></td>
+<td>页面顶部</td>
+<td>表格按当前孩子过滤</td>
+</tr>
+<tr>
+<td>错因分布（内嵌）</td>
+<td>随总览 / 周报</td>
+<td>—</td>
+<td>不独立成页，无独立入口</td>
+</tr>
+<tr>
+<td>学习端全部页面</td>
+<td><code>/study/kid/**</code></td>
+<td>学习端顶栏 <code>KidTopBar</code> 右侧</td>
+<td>仅家长视角渲染；孩子本人登录时顶栏不出现切换器</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>取数侧约束</strong>：既有学习端接口<strong>不新增路径</strong>，统一在 Service 层按 <code>childId</code> 拼条件；家长侧只读接口接受 <code>childCode</code> 参数，但<strong>必须</strong>与 <code>study_parent_child_rel</code> 求交集，否则返回 4010。</p>
+</blockquote>
+</section>
+<section id="comp">
+  <div class="sec-head"><span class="sec-num">07</span><h3>前端组件清单</h3><span class="tag">复用</span></div>
+  <p>前端组件清单</p>
+<h3>7.1 管理端组件（自研 <code>Study*</code> 系列）</h3>
+<blockquote>
+<p><strong>来源与落点</strong>：这批 <code>Study*</code> 组件是 jeecg-study 在<strong>上游 JeecgBoot 3.9.2 基座</strong>（<code>02-代码开发/05-源码/01-JeecgBoot基座/jeecgboot-vue3/</code>）之上自研的，<strong>不是在 monitorV2 的 <code>Mtv2*</code> 组件上直接改名</strong>——monitorV2 只作为<strong>业务语义与交互的来源参考</strong>。
+上游已有的能力一律<strong>优先复用</strong>：<code>BasicTable</code> / <code>BasicForm</code> / <code>BasicModal</code> / <code>BasicDrawer</code> / <code>Description</code> / <code>Icon</code> / <code>BasicButton</code> / <code>useListPage</code>（规范 9.3）。下表只列<strong>上游没有、jeecg-study 需要自研</strong>的部分。
+自研组件的职责与关键 props 见《产品设计规范》§9.3；两处保持同构，不各写一份。</p>
+</blockquote>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>组件</th>
+<th>来源</th>
+<th>改动</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>StudyListToolbar</code></td>
+<td><code>Mtv2ListToolbar</code>（语义参考）</td>
+<td>自研；换主题色变量；不含分页（分页归 <code>BasicTable</code>）</td>
+</tr>
+<tr>
+<td><code>StudyListSummary</code></td>
+<td><code>Mtv2ListSummary</code></td>
+<td>改名 + <code>mtv2-*</code> CSS 变量改 <code>study-*</code></td>
+</tr>
+<tr>
+<td><code>StudyStatCards</code></td>
+<td><code>Mtv2StatCards</code></td>
+<td>改名</td>
+</tr>
+<tr>
+<td><code>StudyDataList</code></td>
+<td><code>Mtv2DataList</code></td>
+<td>改名</td>
+</tr>
+<tr>
+<td><code>StudyEnumTag</code></td>
+<td><code>Mtv2EnumTag</code></td>
+<td>改名；<code>EnumTagKind</code> 增补 study 枚举</td>
+</tr>
+<tr>
+<td><code>StudyActionColumn</code></td>
+<td><code>Mtv2ActionColumn</code></td>
+<td>改名</td>
+</tr>
+<tr>
+<td><code>StudyCategoryTree</code></td>
+<td><code>Mtv2CategoryTree</code></td>
+<td>改名</td>
+</tr>
+<tr>
+<td><code>StudyHelpDrawer</code></td>
+<td><code>Mtv2HelpDrawer</code></td>
+<td>改名；<code>helpRegistry</code> 独立</td>
+</tr>
+<tr>
+<td><code>StudyExcelButtons</code></td>
+<td><code>Mtv2ExcelButtons</code>（语义参考）</td>
+<td>自研；<strong>按规范 4.2① 修正颜色</strong>（弃用硬编码 <code>#52c41a</code>/<code>#faad14</code>）；学习端禁用</td>
+</tr>
+<tr>
+<td><code>StudyTypeFilterPanel</code></td>
+<td><code>Mtv2TypeFilterPanel</code></td>
+<td>改名</td>
+</tr>
+<tr>
+<td><code>StudyAttachmentPanel</code></td>
+<td><code>Mtv2AttachmentPanel</code></td>
+<td>改名</td>
+</tr>
+<tr>
+<td><code>StudyPlaceholder</code></td>
+<td><code>Mtv2Placeholder</code></td>
+<td>改名</td>
+</tr>
+<tr>
+<td><code>StudyLevelTag</code></td>
+<td><code>Mtv2EnumTag</code> 变体</td>
+<td>新增：掌握度四态标签</td>
+</tr>
+<tr>
+<td><code>StudyCauseTag</code></td>
+<td>新增</td>
+<td>错因五维标签</td>
+</tr>
+<tr>
+<td><code>StudyModuleTag</code></td>
+<td>新增</td>
+<td>六模块标签</td>
+</tr>
+<tr>
+<td><code>StudyMasteryBar</code></td>
+<td>新增</td>
+<td>掌握度进度条</td>
+</tr>
+</tbody>
+</table></div>
+<h3>7.2 学习端组件（新增）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>组件</th>
+<th>职责</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>KidTopBar</code></td>
+<td>学习端顶栏：模块名、进度、护眼状态图标</td>
+</tr>
+<tr>
+<td><code>KidBottomBar</code></td>
+<td>底部主动作条（高 64px，安全区适配）</td>
+</tr>
+<tr>
+<td><code>PracticePage</code></td>
+<td>通用练习页骨架（题干区 + 输入区 + 反馈区）</td>
+</tr>
+<tr>
+<td><code>QuestionRenderer</code></td>
+<td>按 <code>contentType</code> 渲染题干（选择题 / 填空 / 数值 / 表达式 / 单词 / 句子）</td>
+</tr>
+<tr>
+<td><code>JudgeFeedback</code></td>
+<td>判定反馈区：先错在哪一步 → 再看解析入口 → 来源角标 → 申诉链接</td>
+</tr>
+<tr>
+<td><code>ErrorCausePicker</code></td>
+<td>五维错因选择器（大按钮 ≥44px）</td>
+</tr>
+<tr>
+<td><code>VariantTag</code></td>
+<td>变式层级标识（换数字/换情境/逆向）</td>
+</tr>
+<tr>
+<td><code>OralConfirm</code></td>
+<td>口述关键关系确认（录音/输入 + 关键词命中反馈）</td>
+</tr>
+<tr>
+<td><code>MotherTeachPanel</code></td>
+<td>母题五段折叠讲解面板</td>
+</tr>
+<tr>
+<td><code>WordCard</code></td>
+<td>单词卡（含无图回忆环节）</td>
+</tr>
+<tr>
+<td><code>WordFeedbackButtons</code></td>
+<td>四档反馈按钮组</td>
+</tr>
+<tr>
+<td><code>TransformCard</code></td>
+<td>句子变形器结果卡（5 种表达）</td>
+</tr>
+<tr>
+<td><code>WritingDiffList</code></td>
+<td>写作差异清单（最多 3 条）</td>
+</tr>
+<tr>
+<td><code>KidEmptyState</code></td>
+<td>学习端空状态（图形化 + 一句引导）</td>
+</tr>
+<tr>
+<td><code>KidModuleGrid</code></td>
+<td>六模块入口网格</td>
+</tr>
+</tbody>
+</table></div>
+<h3>7.3 家长端与孩子端组件（新增）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>组件</th>
+<th>职责</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>KidLoginForm</code></td>
+<td>孩子端两步登录表单：家庭码输入 → 候选孩子选择 → PIN 输入与提交</td>
+</tr>
+<tr>
+<td><code>ChildSwitcher</code></td>
+<td>孩子选择器：家长视角切换「当前查看的孩子」；孩子本人登录时<strong>不渲染</strong></td>
+</tr>
+<tr>
+<td><code>FamilyMemberList</code></td>
+<td>家庭成员（家长）列表：昵称 / 角色 / 关系标签 / 状态 + 邀请与移除入口</td>
+</tr>
+<tr>
+<td><code>ChildProfileForm</code></td>
+<td>孩子档案表单：头像 / 昵称 / 性别 / 生日 / 年级 + PIN 重置入口</td>
+</tr>
+</tbody>
+</table></div>
+<h3>7.4 样式与主题</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>shared/styles/study-theme.less</code></td>
+<td>study 模块的 less 变量（覆盖主色与语义色的别名）</td>
+</tr>
+<tr>
+<td><code>shared/styles/study.less</code></td>
+<td>通用页面样式（容器、卡片、间距）</td>
+</tr>
+<tr>
+<td><code>shared/styles/kid.less</code></td>
+<td>学习端专用样式（大字号、44px 点击目标、12px 圆角、浅色主题锁定）</td>
+</tr>
+<tr>
+<td><code>shared/styles/parent.less</code></td>
+<td>家长端样式（只读数据页隐藏操作列；家庭 / 孩子管理页按权限渲染写操作）</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>全部颜色走变量</strong>（规范 4.2），暗色模式下管理端可正常切换；学习端根节点锁定 <code>data-theme="light"</code>。</p>
+</blockquote>
+</section>
+<section id="shared">
+  <div class="sec-head"><span class="sec-num">08</span><h3>公共组件与钩子</h3><span class="tag">跨端</span></div>
+  <p>公共组件与钩子</p>
+<h3>8.1 组件</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>组件</th>
+<th>职责</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>EyeGuardOverlay</code></td>
+<td>护眼阻断遮罩（全局唯一，挂在 <code>layouts/study</code> 根节点）</td>
+</tr>
+<tr>
+<td><code>BlueLightFilter</code></td>
+<td>蓝光过滤容器（CSS 滤镜 + 状态持久化）</td>
+</tr>
+<tr>
+<td><code>AnswerGate</code></td>
+<td>答案区挂载门（<code>UNANSWERED / ANSWERED / REVEALED</code>）</td>
+</tr>
+<tr>
+<td><code>SourceBadge</code></td>
+<td>判定来源角标（<code>rule+model</code> 时显示）</td>
+</tr>
+<tr>
+<td><code>BasisDisclosure</code></td>
+<td>判定依据展开区</td>
+</tr>
+</tbody>
+</table></div>
+<h3>8.2 钩子</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>钩子</th>
+<th>职责</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>useEyeGuard</code></td>
+<td>护眼状态机：计时 → 阈值 → 阻断 → 确认 → 恢复；心跳上报</td>
+</tr>
+<tr>
+<td><code>useAnswerGate</code></td>
+<td>答案区状态机（对应接口设计 9.3）</td>
+</tr>
+<tr>
+<td><code>useJudgeResult</code></td>
+<td>判定结果的统一消费与渲染分支</td>
+</tr>
+<tr>
+<td><code>usePracticeSession</code></td>
+<td>练习会话生命周期（开始/提交/结束）</td>
+</tr>
+<tr>
+<td><code>useReviewQueue</code></td>
+<td>复习队列加载与完成上报</td>
+</tr>
+<tr>
+<td><code>useBlueLight</code></td>
+<td>蓝光过滤开关与持久化</td>
+</tr>
+<tr>
+<td><code>useMobile</code></td>
+<td>移动端判定：<strong>直接复用上游</strong> <code>src/hooks/event/useBreakpoint.ts</code>，阈值 <code>&lt; 992px</code>（上游 <code>AppProvider.vue:28-31</code>），<strong>不另造</strong></td>
+</tr>
+</tbody>
+</table></div>
+<h3>8.3 布局</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>布局</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>layouts/study/index.vue</code></td>
+<td>学习端 / 孩子端全屏布局：顶栏 + 内容 + 底部条 + 护眼遮罩</td>
+</tr>
+<tr>
+<td><code>layouts/parent/index.vue</code></td>
+<td>家长端全屏布局：孩子切换条 + 内容区（不吃管理端顶栏与侧栏）</td>
+</tr>
+<tr>
+<td><code>layouts/default</code>（底座）</td>
+<td>管理端复用</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="guard">
+  <div class="sec-head"><span class="sec-num">09</span><h3>护眼前端实现</h3><span class="tag">硬指标</span></div>
+  <p>护眼前端实现</p>
+<h3>9.1 状态机</h3>
+<pre class="cmd"><code>IDLE ──(开始会话)──▶ COUNTING ──(达阈值)──▶ BLOCKED
+  ▲                    │                        │
+  └────(会话结束)──────┴────(用户确认)─────────┘
+</code></pre>
+<h3>9.2 实现要点</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>要点</th>
+<th>实现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>计时基准</td>
+<td><strong>服务端心跳</strong>。客户端每 30 秒上报一次 <code>active</code>；服务端按心跳累加（接口设计 8.2）</td>
+</tr>
+<tr>
+<td>阈值</td>
+<td><code>context.eyeIntervalMin</code>（默认 15 分钟；低年级 10、高年级 20）</td>
+</tr>
+<tr>
+<td>阻断</td>
+<td>遮罩 <code>z-index</code> 高于所有内容；<strong>不可自动消失</strong>，必须点击确认</td>
+</tr>
+<tr>
+<td>引导文案</td>
+<td>「看向 6 米外的地方，保持 20 秒」——具体动作，不只写「休息一下」</td>
+</tr>
+<tr>
+<td>蓝光过滤</td>
+<td>容器 <code>filter: sepia(...)</code> 类滤镜；状态存 localStorage + 服务端</td>
+</tr>
+<tr>
+<td>切后台</td>
+<td><code>visibilitychange</code> 隐藏时暂停心跳，恢复时重置计时（离开屏幕不算用眼）</td>
+</tr>
+<tr>
+<td>页面卸载</td>
+<td><code>beforeunload</code> 上报会话结束，避免时长漏记</td>
+</tr>
+<tr>
+<td>孩子端不显示时长</td>
+<td>只显示状态图标（规范 10.5）</td>
+</tr>
+</tbody>
+</table></div>
+<h3>9.3 遮罩样式</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>背景</td>
+<td><code>#f4f7f9</code>（布局底色）</td>
+</tr>
+<tr>
+<td>卡片</td>
+<td>白底，圆角 12px（学习端），padding 24px</td>
+</tr>
+<tr>
+<td>主按钮</td>
+<td>高 48px（学习端 ≥44px），宽 ≥200px</td>
+</tr>
+<tr>
+<td>字体</td>
+<td>标题 20px / 600，说明 16px</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="spec">
+  <div class="sec-head"><span class="sec-num">10</span><h3>设计规范落点对照</h3><span class="tag">逐条对齐</span></div>
+  <p>设计规范落点对照</p>
+<blockquote>
+<p>逐条核对《产品设计规范》第 14 章自检清单（V1.1 共 <strong>42 条</strong>：通用 25 + 多端 7 + 学习端 10）在本清单中的落实位置。
+规范条目编号与《产品设计规范》§14.1 / §14.2 / §14.3 一一对应。</p>
+</blockquote>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>规范条目</th>
+<th>本清单落点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 颜色走变量</td>
+<td>7.4 样式文件全部用变量；学习端锁定浅色</td>
+</tr>
+<tr>
+<td>2 字号</td>
+<td>4.1–4.9 各页面的字号已在页内标注；管理端只用 12/13/14/15/16/20，学习端按 §10.1 放宽</td>
+</tr>
+<tr>
+<td>3 字重</td>
+<td>7.4 样式统一 400/500/600</td>
+</tr>
+<tr>
+<td>4 行高</td>
+<td>正文 1.5715 / 标题 1.4 / 大数字 1.2（7.4）</td>
+</tr>
+<tr>
+<td>5 间距</td>
+<td>3.x 沿用 4/8/10/12/16/24/32；学习端 12/16/24</td>
+</tr>
+<tr>
+<td>6 圆角</td>
+<td>管理端 2/3/4/6/8；学习端可到 12px（4.1、4.7）</td>
+</tr>
+<tr>
+<td>7 阴影</td>
+<td>只用规范 §7.2 三种之一（8.10 统计卡、9.3 遮罩）</td>
+</tr>
+<tr>
+<td>8 边框</td>
+<td>所有分隔线显式 <code>1px</code></td>
+</tr>
+<tr>
+<td>9 栅格</td>
+<td>3.x 表单 <code>a-row :gutter="16"</code>，列 12/24；响应式列自己写媒体查询</td>
+</tr>
+<tr>
+<td>10 表格</td>
+<td>3.2–3.5 用 <code>useListPage</code> + <code>BasicTable</code>；不手写 <code>a-table</code>；分页由组件内置；首列短标签（规范 8.3）</td>
+</tr>
+<tr>
+<td>11 表单</td>
+<td>管理端 <code>layout="horizontal"</code>；窄表单（家长端 / 登录 / 单项弹窗）与学习端 <code>vertical</code>（规范 8.4）</td>
+</tr>
+<tr>
+<td>12 弹窗</td>
+<td>3.3 宽度常量 + <code>:body-style</code></td>
+</tr>
+<tr>
+<td>13 按钮</td>
+<td>一律 <code>a-button</code>（<code>BasicButton</code>）；管理端 antd 默认，学习端 ≥44px（4.1、4.2）</td>
+</tr>
+<tr>
+<td>14 图标</td>
+<td>7.2 全部用 <code>&lt;Icon icon="ant-design:xxx" /&gt;</code></td>
+</tr>
+<tr>
+<td>15 操作列</td>
+<td>7.1 用 <code>StudyActionColumn</code></td>
+</tr>
+<tr>
+<td>16 标签</td>
+<td>7.1 颜色预设名；<code>StudyCauseTag</code>/<code>StudyModuleTag</code> 走 hash 映射</td>
+</tr>
+<tr>
+<td>17 空态</td>
+<td>7.2 <code>KidEmptyState</code> + 7.1 <code>a-empty</code></td>
+</tr>
+<tr>
+<td>18 加载</td>
+<td>所有列表用 <code>:loading</code>，区域用 <code>a-spin</code></td>
+</tr>
+<tr>
+<td>19 错误提示</td>
+<td>破坏性操作提示带业务 id；越权提示不伪装成「不存在」</td>
+</tr>
+<tr>
+<td>20 溢出</td>
+<td>3.5 明确要求<strong>桌面视口</strong>验证 <code>scrollWidth === clientWidth</code></td>
+</tr>
+<tr>
+<td>21 移动端</td>
+<td>学习端天然移动优先；管理端 <strong>≤992px</strong> 转卡片（规范 12.2）</td>
+</tr>
+<tr>
+<td>22 暗色</td>
+<td>7.4 管理端可切；学习端锁定</td>
+</tr>
+<tr>
+<td>23 z-index</td>
+<td>浮层取 <code>1000</code>–<code>3000</code>（9.3 护眼遮罩）</td>
+</tr>
+<tr>
+<td>24 焦点态</td>
+<td>学习端 / 孩子端可点击元素自补 <code>focus-visible</code>（基座全局抹除焦点环，规范 11.4）</td>
+</tr>
+<tr>
+<td>25 断点</td>
+<td>媒体查询只用 480/576/768/992/1200/1600（规范 12.1）</td>
+</tr>
+<tr>
+<td>26 布局归属</td>
+<td>管理端 <code>layouts/default</code>；家长端 <code>layouts/parent</code>；学习 / 孩子端 <code>layouts/study</code>（1.3、6.4、8.3）</td>
+</tr>
+<tr>
+<td>27 家长端无侧栏</td>
+<td>6.4 明确不吃管理端顶栏与侧栏</td>
+</tr>
+<tr>
+<td>28 家长端只读</td>
+<td>5.1 通用约束：只读数据页无新增 / 编辑 / 删除</td>
+</tr>
+<tr>
+<td>29 家长端切换</td>
+<td>6.5 孩子上下文 + 7.3 <code>ChildSwitcher</code>；只列已关联的孩子</td>
+</tr>
+<tr>
+<td>30 家长端无比较</td>
+<td>5.1 / 6.2：无排名 / 百分位 / 家长间对比 / 家庭内比较</td>
+</tr>
+<tr>
+<td>31 孩子端两步登录</td>
+<td>6.3 家庭码 → 选孩子 + PIN；错误态不泄露他人信息</td>
+</tr>
+<tr>
+<td>32 孩子端主题</td>
+<td>7.4 根节点锁定 <code>data-theme="light"</code></td>
+</tr>
+<tr>
+<td>33 一屏一任务</td>
+<td>4.x 全部遵循</td>
+</tr>
+<tr>
+<td>34 主动作</td>
+<td>4.1、4.2 明确 <code>KidBottomBar</code>（唯一、高 ≥44px）</td>
+</tr>
+<tr>
+<td>35 答案屏蔽</td>
+<td>4.2 + 8.1 <code>useAnswerGate</code>（未作答时解析区不在 DOM）</td>
+</tr>
+<tr>
+<td>36 反馈</td>
+<td>4.2 + 8.1 <code>SourceBadge</code> / <code>BasisDisclosure</code>（显示判定来源，依据可展开）</td>
+</tr>
+<tr>
+<td>37 文案</td>
+<td>4.2、4.7、4.9 明确无负向表述、无排名比较</td>
+</tr>
+<tr>
+<td>38 护眼</td>
+<td>9.3 遮罩不可自动消失；引导文案给具体动作</td>
+</tr>
+<tr>
+<td>39 动效</td>
+<td>4.7 过关动效 ≤600ms，无闪白 / 抖动</td>
+</tr>
+<tr>
+<td>40 触控目标</td>
+<td>≥44×44px（4.x 各页）</td>
+</tr>
+<tr>
+<td>41 主题</td>
+<td>7.4 学习端 <code>data-theme="light"</code></td>
+</tr>
+<tr>
+<td>42 无导入导出</td>
+<td>学习端 / 孩子端不提供 Excel 导入导出（7.1 <code>StudyExcelButtons</code> 禁用）</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>多用户改造新增页面的落点</strong>：家长端 3 个管理页见 §5.4–§5.6；孩子登录页见 §6.3；孩子选择器见 §6.5 与 §7.3；布局差异见 §1.3 与 §6.4。
+<strong>多用户相关约束</strong>：界面可见数据与越权表现见 §6.2；孩子上下文与「切换孩子」入口见 §6.5；家长端写操作的例外说明见 §5.1。</p>
+</blockquote>
+</section>
+
+    <div id="bottom"></div>
+    <footer class="foot"><span>jeecg-study · 前端页面清单 V1.1</span><span>2026-10-30</span><span>前端根：jeecgboot-vue3/src/views/study/</span><span>上游：产品设计规范 · 接口设计说明书</span></footer>
+  </main>
+
+</div>
+
+<button class="m-fab" id="fab" type="button">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/></svg>
+  目录
+</button>
+
+
+<script>
+(function(){
+  var BRAND = (document.getElementById('mTitle')||{}).textContent || '文档';
+  var links   = Array.prototype.slice.call(document.querySelectorAll('.nav-link'));
+  var pairs   = links.map(function(l){
+    var id = l.getAttribute('href').replace('#','');
+    var isJump = (id === 'top' || id === 'bottom');
+    return { link:l, sec: isJump ? null : document.getElementById(id) };
+  });
+  var sidebar = document.querySelector('.sidebar');
+  var scrim   = document.getElementById('scrim');
+  var fab     = document.getElementById('fab');
+  var mTitle  = document.getElementById('mTitle');
+  var panelOpen = false;
+
+  function isMobile(){ return window.matchMedia('(max-width:1000px)').matches; }
+  function openPanel(){
+    panelOpen = true;
+    if (sidebar) sidebar.classList.add('open');
+    if (scrim)   scrim.classList.add('show');
+  }
+  function closePanel(){
+    panelOpen = false;
+    if (sidebar) sidebar.classList.remove('open');
+    if (scrim)   scrim.classList.remove('show');
+  }
+  function togglePanel(){ panelOpen ? closePanel() : openPanel(); }
+
+  function onScroll(){
+    var y = window.scrollY + 140, idx = -1;
+    for (var i=0;i<pairs.length;i++){
+      if (pairs[i].sec && pairs[i].sec.offsetTop <= y) { idx = i; }
+    }
+    if (idx < 0) { idx = 0; for (var j=0;j<pairs.length;j++){ if (pairs[j].sec){ idx = j; break; } } }
+
+    pairs.forEach(function(p,i){ if (p.sec) p.link.classList.toggle('active', i === idx); });
+
+    if (mTitle) {
+      mTitle.textContent = window.scrollY < 40
+        ? BRAND
+        : pairs[idx].link.textContent.replace(/[↑↓]\s*/g,'').trim();
+    }
+    // 下滑后导航不可见 → 收起来为悬浮按钮
+    if (fab) fab.classList.toggle('show', window.scrollY > 80);
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', onScroll);
+  onScroll();
+
+  // 导航点击：顶/底跳转 或 锚点定位
+  pairs.forEach(function(p){
+    p.link.addEventListener('click', function(e){
+      e.preventDefault();
+      var href = p.link.getAttribute('href');
+      if (href === '#top') {
+        window.scrollTo({top:0, behavior:'smooth'});
+      } else if (href === '#bottom') {
+        window.scrollTo({top:document.documentElement.scrollHeight, behavior:'smooth'});
+      } else if (p.sec) {
+        window.scrollTo({top: p.sec.getBoundingClientRect().top + window.scrollY - 18, behavior:'smooth'});
+        history.replaceState(null,'',href);
+      }
+      closePanel();
+    });
+  });
+
+  var menuBtn  = document.getElementById('menuBtn');
+  var closeBtn = document.getElementById('closeBtn');
+  var topBtn   = document.getElementById('topBtn');
+  if (menuBtn)  menuBtn.addEventListener('click', togglePanel);
+  if (closeBtn) closeBtn.addEventListener('click', closePanel);
+  if (fab)      fab.addEventListener('click', togglePanel);
+  if (scrim)    scrim.addEventListener('click', closePanel);
+  if (topBtn)   topBtn.addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closePanel(); });
+
+  // 移动端表格卡片：为每个单元格补列名标签
+  Array.prototype.forEach.call(document.querySelectorAll('table'), function(t){
+    var heads = Array.prototype.map.call(t.querySelectorAll('thead th'), function(th){
+      return th.textContent.trim();
+    });
+    Array.prototype.forEach.call(t.querySelectorAll('tbody tr'), function(tr){
+      Array.prototype.forEach.call(tr.children, function(td,i){
+        if (heads[i]) td.setAttribute('data-label', heads[i]);
+      });
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

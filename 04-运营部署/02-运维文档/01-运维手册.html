@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jeecg-study · 运维手册</title>
+<style>
+
+  :root{
+    --bg:#fafaf9; --surface:#ffffff; --chrome:#f7f7f5; --line:#e6e6e1; --line-soft:#eeeeea;
+    --ink:#15171c; --ink-2:#454b58; --muted:#8b8f98;
+    --accent:#10b981; --accent-ink:#047857; --accent-soft:rgba(16,185,129,.10); --accent-line:rgba(16,185,129,.28);
+    --up:#d93a2b; --up-soft:rgba(217,58,43,.10); --up-line:rgba(217,58,43,.28);
+    --down:#0f8a6d; --down-soft:rgba(15,138,109,.10); --down-line:rgba(15,138,109,.28);
+    --amber:#b07d12; --amber-soft:rgba(176,125,18,.10); --amber-line:rgba(176,125,18,.28);
+    --sans:'Outfit','PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif;
+    --mono:'JetBrains Mono','SFMono-Regular',Consolas,monospace;
+    --nav-w:272px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:var(--sans);font-size:15px;line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(720px 300px at 10% -8%, rgba(16,185,129,.06), transparent 62%),
+      radial-gradient(620px 280px at 94% -6%, rgba(21,94,117,.05), transparent 60%);
+    background-repeat:no-repeat;
+  }
+  a{color:inherit;}
+  code{font-family:var(--mono);font-size:.88em;background:#f4f4f1;border:1px solid var(--line-soft);border-radius:4px;padding:1px 5px;overflow-wrap:anywhere;}
+
+  /* ============ 布局：侧边导航 + 章节正文 ============ */
+  .shell{display:flex;align-items:flex-start;max-width:1280px;margin:0 auto;gap:0;}
+  .sidebar{
+    width:var(--nav-w);flex:none;position:sticky;top:0;align-self:flex-start;
+    height:100vh;overflow-y:auto;padding:26px 20px 40px 24px;border-right:1px solid var(--line);
+  }
+  .sidebar::-webkit-scrollbar{width:8px;}
+  .sidebar::-webkit-scrollbar-thumb{background:#dcdcd6;border-radius:6px;}
+  .brand{display:flex;align-items:center;gap:9px;margin-bottom:6px;}
+  .brand-mark{width:26px;height:26px;flex:none;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--accent-line);}
+  .brand-mark svg{width:14px;height:14px;}
+  .brand h1{font-size:15px;font-weight:600;margin:0;letter-spacing:-.01em;}
+  .meta-line{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-bottom:18px;}
+  .nav-title{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;padding-left:11px;}
+  .nav-link{
+    display:flex;align-items:center;gap:8px;padding:7px 11px;border-radius:9px;
+    font-size:13.5px;color:var(--ink-2);text-decoration:none;border-left:2px solid transparent;
+    transition:background .15s,color .15s,border-color .15s;
+  }
+  .nav-link:hover{background:#f0f0ec;color:var(--ink);}
+  .nav-link.active{background:var(--accent-soft);color:var(--accent-ink);border-left-color:var(--accent);font-weight:500;}
+  .nav-link .lv{
+    margin-left:auto;font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:999px;
+    border:1px solid var(--line);background:var(--surface);color:var(--muted);white-space:nowrap;
+  }
+  .nav-link.active .lv{border-color:var(--accent-line);background:var(--surface);}
+  .mini-rate{margin-top:14px;border-top:1px solid var(--line);padding-top:14px;}
+  .mini-row{display:flex;align-items:center;gap:8px;margin-bottom:9px;font-size:12px;color:var(--ink-2);}
+  .mini-row .bar{flex:1;height:6px;background:#eeeeea;border-radius:4px;overflow:hidden;}
+  .mini-row .bar i{display:block;height:100%;border-radius:4px;}
+  .mini-row .n{font-family:var(--mono);font-size:10.5px;color:var(--muted);width:58px;text-align:right;}
+
+  .main{flex:1;min-width:0;padding:34px 40px 80px;}
+
+  /* ============ 标题区 ============ */
+  .kicker{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink);background:var(--accent-soft);border:1px solid var(--accent-line);padding:5px 11px;border-radius:999px;}
+  .kicker i{width:6px;height:6px;border-radius:50%;background:var(--accent);}
+  h2.title{font-size:32px;line-height:1.25;font-weight:600;letter-spacing:-.018em;margin:16px 0 0;}
+  .sub{color:var(--ink-2);font-size:15px;margin:10px 0 0;max-width:74ch;}
+  .facts{display:flex;flex-wrap:wrap;gap:9px;margin-top:20px;}
+  .fact{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:9px 13px;box-shadow:0 2px 8px rgba(0,0,0,.03);}
+  .fact b{display:block;font-family:var(--mono);font-size:15px;font-weight:600;letter-spacing:-.01em;}
+  .fact span{font-size:11.5px;color:var(--muted);}
+
+  /* 语义色工具类 */
+  .up{color:var(--up);} .down{color:var(--down);} .flat{color:var(--muted);} .amber{color:var(--amber);}
+
+  /* ============ 章节 ============ */
+  section{margin-top:52px;scroll-margin-top:24px;}
+  .sec-head{display:flex;align-items:baseline;gap:11px;padding-bottom:11px;border-bottom:1px solid var(--line);margin-bottom:20px;}
+  .sec-num{font-family:var(--mono);font-size:12px;color:var(--accent-ink);font-weight:600;}
+  .sec-head h3{font-size:21px;font-weight:600;letter-spacing:-.012em;margin:0;}
+  .sec-head .tag{margin-left:auto;font-size:11.5px;color:var(--muted);font-family:var(--mono);}
+  p{margin:0 0 11px;}
+  .lead-p{font-size:15.5px;color:var(--ink-2);max-width:78ch;margin-bottom:18px;}
+  h4.sub-h{font-size:15px;font-weight:600;margin:26px 0 10px;letter-spacing:-.008em;}
+  h5.sub-h5{font-size:13.5px;font-weight:600;margin:18px 0 7px;color:var(--ink-2);}
+  ul.plain{margin:6px 0 12px;padding-left:20px;}
+  ul.plain li{margin:5px 0;font-size:13.5px;color:var(--ink-2);}
+  ol.plain{margin:6px 0 12px;padding-left:20px;}
+  ol.plain li{margin:5px 0;font-size:13.5px;color:var(--ink-2);}
+  .cite-src{display:inline-block;margin-top:5px;font-family:var(--mono);font-size:10.5px;color:var(--muted);
+    border:1px solid var(--line);border-radius:5px;padding:1px 6px;background:var(--surface);}
+  .cite-src a{color:var(--accent-ink);text-decoration:none;}
+
+  /* ============ 核心信息 ============ */
+  .core-list{list-style:none;padding:0;margin:0;}
+  .core-item{display:flex;gap:13px;padding:13px 0;border-bottom:1px solid var(--line-soft);}
+  .core-item:last-child{border-bottom:0;}
+  .core-dot{width:9px;height:9px;border-radius:50%;flex:none;margin-top:7px;background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .core-dot.r{background:var(--up);box-shadow:0 0 0 3px var(--up-soft);}
+  .core-dot.a{background:var(--amber);box-shadow:0 0 0 3px var(--amber-soft);}
+  .core-body{min-width:0;}
+  .core-body h4{margin:0 0 3px;font-size:14.5px;font-weight:600;}
+  .core-body p{margin:0;font-size:13.5px;color:var(--ink-2);}
+
+  /* ============ 数据卡 ============ */
+  .grid4{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));margin:18px 0 4px;}
+  .dcard{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:14px 15px;box-shadow:0 2px 8px rgba(0,0,0,.03);}
+  .dcard .k{font-size:11.5px;color:var(--muted);margin-bottom:5px;}
+  .dcard .v{font-family:var(--mono);font-size:19px;font-weight:600;letter-spacing:-.02em;line-height:1.2;}
+  .dcard .d{font-family:var(--mono);font-size:11.5px;margin-top:3px;}
+
+  /* ============ 表格 ============ */
+  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13.5px;}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line-soft);vertical-align:top;}
+  th{font-size:11.5px;color:var(--muted);font-weight:500;letter-spacing:.04em;background:#f7f7f4;border-bottom:1px solid var(--line);}
+  td:first-child{font-weight:500;white-space:normal;min-width:72px;}
+  td.mono{font-family:var(--mono);font-size:12px;white-space:nowrap;}
+  .pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap;}
+  .p-ok{background:var(--down-soft);color:var(--down);border:1px solid var(--down-line);}
+  .p-warn{background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber-line);}
+  .p-bad{background:var(--up-soft);color:var(--up);border:1px solid var(--up-line);}
+  .p-info{background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--accent-line);}
+  .p-gray{background:#f2f2ef;color:var(--muted);border:1px solid var(--line);}
+
+  /* ============ 来源表：长名称不撑破表格 + 可点链接 ============ */
+  .tbl-src td:first-child{white-space:normal;min-width:150px;}
+  .tbl-src .u-cell{font-family:var(--mono);font-size:11.5px;line-height:1.5;word-break:break-all;overflow-wrap:anywhere;}
+  .src-link{color:var(--accent-ink);text-decoration:none;border-bottom:1px solid var(--accent-line);word-break:break-all;}
+  .src-link:hover{color:var(--accent);border-bottom-color:var(--accent);}
+
+  /* ============ 流程/命令块：宽内容内部滚动，不撑破页面 ============ */
+  pre.cmd{background:#15171c;color:#e6e8ec;border-radius:12px;padding:14px 16px;overflow-x:auto;
+    font-family:var(--mono);font-size:12px;line-height:1.7;margin:10px 0 14px;
+    -webkit-overflow-scrolling:touch;}
+  pre.cmd code{background:transparent;border:0;padding:0;color:inherit;font-size:inherit;overflow-wrap:normal;white-space:pre;}
+  pre.cmd .c{color:#8b8f98;}
+  pre.cmd .ok{color:#34d399;font-weight:600;}
+  pre.cmd .bad{color:#f87171;font-weight:600;}
+  pre.cmd .warn{color:#fbbf24;font-weight:600;}
+
+  /* ============ 双栏 ============ */
+  .cols{display:grid;gap:14px;grid-template-columns:1fr 1fr;margin-top:14px;}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 17px;box-shadow:0 2px 8px rgba(0,0,0,.03);}
+  .panel h4{margin:0 0 10px;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:7px;}
+  .panel h4 svg{width:15px;height:15px;}
+  .panel.bad h4{color:var(--up);}
+  .panel.good h4{color:var(--down);}
+  .panel.info h4{color:var(--accent-ink);}
+  .panel.warn h4{color:var(--amber);}
+  .panel ul{margin:0;padding-left:0;list-style:none;}
+  .panel li{position:relative;padding-left:15px;margin-bottom:9px;font-size:13.5px;color:var(--ink-2);line-height:1.6;}
+  .panel li:last-child{margin-bottom:0;}
+  .panel li::before{content:"";position:absolute;left:0;top:9px;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.45;}
+  .panel p{font-size:13.5px;color:var(--ink-2);}
+
+  /* ============ 结论条 ============ */
+  .callout{border:1px solid var(--accent-line);background:var(--accent-soft);border-radius:14px;padding:16px 18px;margin-top:18px;}
+  .callout h4{margin:0 0 7px;font-size:14px;font-weight:600;color:var(--accent-ink);display:flex;align-items:center;gap:8px;}
+  .callout h4 svg{width:15px;height:15px;}
+  .callout p{margin:0;font-size:13.5px;color:#2c4a3e;}
+  .callout p+p{margin-top:7px;}
+  .callout.warn{border-color:var(--amber-line);background:var(--amber-soft);}
+  .callout.warn h4{color:var(--amber);} .callout.warn p{color:#5c4413;}
+  .callout.bad{border-color:var(--up-line);background:var(--up-soft);}
+  .callout.bad h4{color:var(--up);} .callout.bad p{color:#6b2018;}
+  .note{border:1px solid var(--line);background:var(--surface);border-radius:13px;padding:14px 16px;margin-top:14px;font-size:12.5px;color:var(--muted);}
+  .note b{color:var(--ink-2);}
+
+  /* ============ 风险条 ============ */
+  .risk{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px dashed var(--line);}
+  .risk:last-child{border-bottom:0;}
+  .risk .lv-badge{flex:none;font-family:var(--mono);font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;}
+  .risk .rb{min-width:0;}
+  .risk .rb b{display:block;font-size:13.5px;margin-bottom:2px;}
+  .risk .rb span{font-size:13px;color:var(--ink-2);}
+
+  /* 正文 markdown 渲染补充 */
+  .main h4{font-size:15px;font-weight:600;margin:26px 0 10px;letter-spacing:-.008em;}
+  .main h5{font-size:13.5px;font-weight:600;margin:18px 0 7px;color:var(--ink-2);}
+  .main ul,.main ol{margin:6px 0 12px;padding-left:20px;}
+  .main li{margin:5px 0;font-size:13.5px;color:var(--ink-2);}
+  .main strong{color:var(--ink);font-weight:600;}
+  .main blockquote{border-left:3px solid var(--accent-line);background:var(--accent-soft);
+    border-radius:0 12px 12px 0;padding:11px 15px;margin:12px 0;font-size:13.5px;color:#2c4a3e;}
+  .main blockquote p{margin:0;}
+  .main hr{border:0;border-top:1px solid var(--line);margin:26px 0;}
+  .main img{max-width:100%;}
+
+  .foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px 20px;}
+  .foot code{background:transparent;border:0;padding:0;color:var(--muted);}
+
+  /* ============ 移动端：悬浮导航面板 ============ */
+  .m-topbar,.m-fab,.scrim,.m-close{display:none;}
+
+  @media (max-width:1000px){
+    .shell{display:block;}
+    body{padding-top:48px;}
+
+    .m-topbar{
+      display:flex;align-items:center;gap:9px;
+      position:fixed;top:0;left:0;right:0;height:48px;z-index:45;
+      padding:0 12px;background:rgba(250,250,249,.94);backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--line);
+    }
+    .m-topbar .t-btn{
+      display:inline-flex;align-items:center;gap:5px;flex:none;
+      font-family:var(--sans);font-size:12.5px;color:var(--ink-2);
+      background:var(--surface);border:1px solid var(--line);border-radius:8px;
+      padding:6px 10px;cursor:pointer;transition:all .16s;
+    }
+    .m-topbar .t-btn:hover{border-color:#d3d3cd;color:var(--ink);}
+    .m-topbar .t-btn svg{width:14px;height:14px;color:var(--muted);}
+    .m-topbar .t-title{
+      flex:1;min-width:0;font-size:13px;color:var(--ink-2);font-weight:500;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+
+    .sidebar{
+      position:fixed;left:auto;right:14px;top:auto;bottom:78px;
+      width:min(80vw,320px);height:auto;max-height:min(64vh,580px);
+      z-index:70;border:1px solid var(--line);border-radius:18px;
+      background:var(--chrome);padding:16px 16px 22px;
+      box-shadow:0 20px 56px -14px rgba(0,0,0,.32);
+      opacity:0;transform:translateY(18px) scale(.97);pointer-events:none;
+      transition:opacity .26s ease,transform .26s cubic-bezier(.2,.8,.3,1);
+    }
+    .sidebar.open{opacity:1;transform:none;pointer-events:auto;}
+    .m-close{
+      display:inline-flex;align-items:center;justify-content:center;margin-left:auto;flex:none;
+      width:30px;height:30px;border-radius:8px;border:1px solid var(--line);
+      background:var(--surface);color:var(--muted);cursor:pointer;padding:0;
+    }
+    .m-close svg{width:14px;height:14px;}
+    .m-close:hover{color:var(--ink);border-color:#d3d3cd;}
+
+    .scrim{
+      display:block;position:fixed;inset:0;z-index:65;
+      background:rgba(21,23,28,.34);opacity:0;pointer-events:none;transition:opacity .26s;
+    }
+    .scrim.show{opacity:1;pointer-events:auto;}
+
+    .m-fab{
+      display:inline-flex;align-items:center;gap:7px;
+      position:fixed;right:14px;bottom:16px;z-index:60;
+      font-family:var(--sans);font-size:13px;color:#fff;
+      background:var(--ink);border:1px solid var(--ink);border-radius:999px;
+      padding:11px 16px;cursor:pointer;
+      box-shadow:0 10px 26px -6px rgba(0,0,0,.45);
+      opacity:0;transform:translateY(14px) scale(.9);pointer-events:none;
+      transition:opacity .24s,transform .24s,background .16s;
+    }
+    .m-fab.show{opacity:1;transform:none;pointer-events:auto;}
+    .m-fab:hover{background:#2b2f38;}
+    .m-fab svg{width:15px;height:15px;}
+
+    .main{padding:26px 22px 96px;}
+    .cols{grid-template-columns:1fr;}
+  }
+
+  /* 手机小屏：表格转卡片 */
+  @media (max-width:820px){
+    table,tbody,tr,td{display:block;width:100%;}
+    thead{display:none;}
+    table{font-size:12.5px;}
+    tr{
+      background:var(--surface);border:1px solid var(--line);border-radius:12px;
+      padding:11px 14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.03);
+    }
+    td{border:0;padding:3px 0;}
+    td:first-child{font-weight:600;font-size:13.5px;padding-bottom:6px;white-space:normal;}
+    td:not(:first-child){
+      position:relative;padding:3px 0 3px 76px;font-size:12.5px;color:var(--ink-2);
+    }
+    td:not(:first-child)::before{
+      content:attr(data-label);position:absolute;left:0;top:3px;width:68px;
+      font-size:11px;color:var(--muted);
+    }
+  }
+
+  @media (max-width:680px){
+    body{font-size:14px;line-height:1.72;overflow-wrap:anywhere;}
+    h2.title{font-size:23px;letter-spacing:-.015em;}
+    .sub{font-size:14px;}
+    .kicker{font-size:10px;padding:4px 9px;}
+    .facts{gap:7px;}
+    .fact{flex:1 1 calc(50% - 4px);min-width:0;padding:9px 11px;}
+    .fact b{font-size:14px;}
+    .fact span{font-size:10.5px;}
+    .grid4{grid-template-columns:1fr 1fr;gap:9px;}
+    .dcard{padding:12px 13px;}
+    .dcard .v{font-size:16px;}
+    .main{padding:22px 15px 92px;}
+    section{margin-top:38px;}
+    .sec-head{flex-wrap:wrap;gap:8px;}
+    .sec-head h3{font-size:18px;}
+    .sec-head .tag{margin-left:0;width:100%;}
+    .core-body h4{font-size:14px;}
+    .core-body p{font-size:13px;}
+    .panel{padding:14px 15px;}
+    .panel li{font-size:13px;}
+    .panel h4{font-size:13px;}
+    .callout{padding:14px 15px;}
+    .callout p{font-size:13px;}
+    .foot{gap:6px 14px;font-size:11.5px;}
+    .note{font-size:12px;}
+  }
+
+  :root{--accent:#13c2c2;--accent-ink:#008690;--accent-soft:rgba(19,194,194,.10);--accent-line:rgba(19,194,194,.28);}
+  .tbl-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .tbl-wrap table{margin-top:0;}
+  @media (max-width:820px){ .tbl-wrap{overflow-x:visible;} }
+</style>
+</head>
+<body id="top">
+<div class="scrim" id="scrim"></div>
+
+<div class="m-topbar">
+  <button class="t-btn" id="menuBtn" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+    目录
+  </button>
+  <span class="m-title" id="mTitle">jeecg-study</span>
+  <button class="t-btn" id="topBtn" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/></svg>
+    顶部
+  </button>
+</div>
+
+<div class="shell">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg></span>
+      <h1>jeecg-study</h1>
+      <button class="m-close" id="closeBtn" type="button" aria-label="关闭导航">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="meta-line">20261030 · V1.1 · 运维手册</div>
+
+    <div class="nav-title">快速跳转</div>
+    <a class="nav-link" href="#top"><span>↑ 页面顶部</span></a>
+    <a class="nav-link" href="#bottom"><span>↓ 页面底部</span></a>
+
+    <div class="nav-title">章节</div>
+    <a class="nav-link" href="#duty">日常巡检<span class="lv">每日</span></a>
+    <a class="nav-link" href="#backup">备份与恢复</a>
+    <a class="nav-link" href="#monitor">监控与告警<span class="lv">5 指标</span></a>
+    <a class="nav-link" href="#trouble">常见故障处置<span class="lv">12 项</span></a>
+    <a class="nav-link" href="#command">常用命令速查</a>
+    <a class="nav-link" href="#data">数据维护</a>
+    <a class="nav-link" href="#sec">安全与合规</a>
+    <a class="nav-link" href="#inc">应急处置流程</a>
+
+    <div class="nav-title">运维重点</div><div class="mini-rate"><div class="mini-row"><span>备份恢复</span><span class="bar"><i style="width:100%;background:#13c2c2"></i></span><span class="n">最重要</span></div><div class="mini-row"><span>服务可用</span><span class="bar"><i style="width:95%;background:#13c2c2"></i></span><span class="n">日常</span></div><div class="mini-row"><span>数据完整性</span><span class="bar"><i style="width:90%;background:#13c2c2"></i></span><span class="n">每日</span></div><div class="mini-row"><span>容量监控</span><span class="bar"><i style="width:70%;background:#b07d12"></i></span><span class="n">低频</span></div><div class="mini-row"><span>安全巡检</span><span class="bar"><i style="width:60%;background:#b07d12"></i></span><span class="n">月度</span></div></div>
+  </aside>
+
+  <main class="main">
+    <div class="kicker"><i></i>运营部署 · 日常运维</div>
+    <h2 class="title">运维手册</h2>
+    <p class="sub">jeecg-study 运维手册 V1.1。覆盖日常巡检、备份恢复、监控告警、常见故障处置与应急操作，供本机私有部署后的日常使用与故障处理。</p>
+    <div class="facts"><div class="fact"><b>4</b><span>巡检项</span></div><div class="fact"><b>日/周/月</b><span>备份周期</span></div><div class="fact"><b>12</b><span>常见故障</span></div><div class="fact"><b>5</b><span>监控指标</span></div><div class="fact"><b>1</b><span>单实例部署</span></div></div>
+
+<section id="duty">
+  <div class="sec-head"><span class="sec-num">01</span><h3>日常巡检</h3><span class="tag">看一眼</span></div>
+  <p>日常巡检</p>
+<h3>1.1 每日巡检（约 2 分钟）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>检查项</th>
+<th>命令/方法</th>
+<th>正常</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>后端服务</td>
+<td><code>Get-Service study-backend</code></td>
+<td><code>Running</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>前端可访问</td>
+<td><code>Invoke-WebRequest http://127.0.0.1:3303 -UseBasicParsing</code></td>
+<td>HTTP 200</td>
+</tr>
+<tr>
+<td>3</td>
+<td>数据库连通</td>
+<td><code>mysql -e "USE jeecg-study; SELECT 1;"</code></td>
+<td>无报错</td>
+</tr>
+<tr>
+<td>4</td>
+<td>昨晚备份</td>
+<td>检查备份目录</td>
+<td>有当天的 <code>.sql.gz</code> 且大小 &gt; 0</td>
+</tr>
+</tbody>
+</table></div>
+<pre class="cmd"><code class="language-powershell"># 一键巡检
+$ErrorActionPreference = 'Continue'
+Write-Output '=== 服务 ==='
+Get-Service study-backend | Select-Object Name,Status | Format-Table -AutoSize
+Write-Output '=== 前端 ==='
+try { $r = Invoke-WebRequest 'http://127.0.0.1:3303' -UseBasicParsing -TimeoutSec 5
+      Write-Output &quot;HTTP $($r.StatusCode)&quot; } catch { Write-Output &quot;前端异常：$_&quot; }
+Write-Output '=== 备份 ==='
+$bk = Get-ChildItem 'D:\DevProject\2-JavaPrj\20261030-jeecg-study\04-运营部署\03-发布记录\backup' -Filter *.sql.gz -ErrorAction SilentlyContinue |
+      Sort-Object LastWriteTime -Descending | Select-Object -First 1
+if ($bk) { Write-Output (&quot;最近备份：{0}  {1:N1} MB  {2}&quot; -f $bk.Name, ($bk.Length/1MB), $bk.LastWriteTime) }
+else { Write-Output '⚠ 无备份' }
+</code></pre>
+<h3>1.2 每周巡检</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>检查项</th>
+<th>方法</th>
+<th>关注点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>磁盘占用</td>
+<td><code>Get-PSDrive D</code></td>
+<td>剩余 &gt; 20 GB</td>
+</tr>
+<tr>
+<td>2</td>
+<td>数据库大小</td>
+<td><code>information_schema.TABLES</code></td>
+<td>增长符合预期</td>
+</tr>
+<tr>
+<td>3</td>
+<td>备份可恢复性</td>
+<td><strong>随机抽一份做还原演练</strong></td>
+<td>备份不能只备份不验证</td>
+</tr>
+<tr>
+<td>4</td>
+<td>错题池健康度</td>
+<td>见 6.2</td>
+<td>无异常积压</td>
+</tr>
+<tr>
+<td>5</td>
+<td>复习队列积压</td>
+<td>见 6.3</td>
+<td>队列不超过上限</td>
+</tr>
+</tbody>
+</table></div>
+<h3>1.3 每月巡检</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>检查项</th>
+<th>方法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>依赖漏洞</td>
+<td><code>mvn dependency-check</code> / <code>npm audit</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>坐标树版本一致性</td>
+<td>是否有未失效的旧版本节点残留</td>
+</tr>
+<tr>
+<td>3</td>
+<td>迁移脚本校验和</td>
+<td><code>study_schema_migration.checksum</code> 与脚本实际 SHA256 比对</td>
+</tr>
+<tr>
+<td>4</td>
+<td>清理历史构建</td>
+<td><code>builds/</code> 保留最近 5 个，其余删除</td>
+</tr>
+<tr>
+<td>5</td>
+<td>口令轮换</td>
+<td>评估是否需要更换数据库口令</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="backup">
+  <div class="sec-head"><span class="sec-num">02</span><h3>备份与恢复</h3><span class="tag">最重要</span></div>
+  <p>备份与恢复</p>
+<h3>2.1 备份策略</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>对象</th>
+<th>周期</th>
+<th>保留</th>
+<th>方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>业务库</strong> <code>jeecg-study</code></td>
+<td>每日 23:00</td>
+<td>30 天</td>
+<td><code>mysqldump</code> + gzip</td>
+</tr>
+<tr>
+<td>平台库 <code>jeecg-boot</code></td>
+<td>每周一次</td>
+<td>8 份</td>
+<td><code>mysqldump</code> + gzip</td>
+</tr>
+<tr>
+<td>错题图片目录</td>
+<td>每日 23:00</td>
+<td>30 天</td>
+<td>增量复制（robocopy）</td>
+</tr>
+<tr>
+<td>前端 dist</td>
+<td>每次发布时</td>
+<td>5 个版本</td>
+<td>已在 <code>builds/</code> 保留</td>
+</tr>
+<tr>
+<td>数据库结构与迁移脚本</td>
+<td>每次变更时</td>
+<td>永久</td>
+<td>已在 git</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>错题图片是唯一不在数据库里的业务数据</strong>，必须单独备份。丢了图片不影响学情统计，但原始错题就没了。</p>
+</blockquote>
+<h3>2.2 备份脚本</h3>
+<pre class="cmd"><code class="language-powershell"># 02-代码开发/05-源码/04-建库迁移/backup.ps1
+param([string]$Env = 'prod')
+$ErrorActionPreference = 'Stop'
+
+$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+$backupDir = 'D:\DevProject\2-JavaPrj\20261030-jeecg-study\04-运营部署\03-发布记录\backup'
+New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
+
+$dbs = @{ prod = @('jeecg-study-prod','jeecg-boot'); dev = @('jeecg-study') }
+$env:MYSQL_PWD = $env:MYSQL_PWD
+
+foreach ($db in $dbs[$Env]) {
+  $out = Join-Path $backupDir &quot;$db-$stamp.sql.gz&quot;
+  # 注意：mysqldump 单行输出，经 gzip 压缩
+  &amp; mysqldump --single-transaction --routines --triggers --default-character-set=utf8mb4 `
+    -u root $db 2&gt;$null | &amp; gzip -9 &gt; $out
+  if ($LASTEXITCODE -ne 0) { throw &quot;备份失败：$db&quot; }
+  Write-Output (&quot;{0}  {1:N2} MB&quot; -f (Split-Path $out -Leaf), ((Get-Item $out).Length/1MB))
+}
+
+# 图片目录
+$imgSrc = 'D:\DevProject\2-JavaPrj\20261030-jeecg-study\02-代码开发\05-源码\data\upload\study'
+if (Test-Path $imgSrc) {
+  &amp; robocopy $imgSrc (Join-Path $backupDir &quot;upload-$stamp&quot;) /E /NFL /NDL /NJH /NJS /NP | Out-Null
+  Write-Output '图片备份完成'
+}
+
+# 保留策略：只留最近 30 天
+Get-ChildItem $backupDir -Filter *.sql.gz | Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-30) } | Remove-Item -Force
+</code></pre>
+<blockquote>
+<p><strong>Windows 上 <code>mysqldump</code> 不一定自带 gzip</strong>。若无 gzip，用 <code>mysqldump --result-file=</code> 生成 <code>.sql</code> 再用 .NET 的 <code>GZipStream</code> 压缩，或直接保留未压缩的 <code>.sql</code>（体积更大但零依赖）。</p>
+</blockquote>
+<h3>2.3 恢复</h3>
+<pre class="cmd"><code class="language-powershell"># 恢复业务库
+param()
+$ErrorActionPreference = 'Stop'
+$file = 'D:\...\backup\jeecg-study-prod-20261030-230000.sql.gz'
+
+# 1) 先备份当前状态（覆盖前的救命备份）
+# 2) 停服务
+Stop-Service study-backend
+
+# 3) 还原
+&amp; mysql -u root -e &quot;DROP DATABASE IF EXISTS jeecg-study-prod; CREATE DATABASE jeecg-study-prod DEFAULT CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci;&quot;
+&amp; gzip -dc $file | &amp; mysql -u root jeecg-study-prod
+if ($LASTEXITCODE -ne 0) { throw '恢复失败' }
+
+# 4) 起服务并验证
+Start-Service study-backend
+Invoke-WebRequest 'http://127.0.0.1:8093' -UseBasicParsing -TimeoutSec 10
+</code></pre>
+<h3>2.4 恢复演练（每月一次）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>动作</th>
+<th>通过标准</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>取最近一份备份</td>
+<td>文件存在且可解压</td>
+</tr>
+<tr>
+<td>2</td>
+<td>恢复到临时库 <code>jeecg-study-restore-test</code></td>
+<td>无报错</td>
+</tr>
+<tr>
+<td>3</td>
+<td>抽查数据</td>
+<td>错题池条数、单词条数、上下文条数与备份当天一致</td>
+</tr>
+<tr>
+<td>4</td>
+<td>抽查业务查询</td>
+<td>跑一次复习队列查询，返回正常</td>
+</tr>
+<tr>
+<td>5</td>
+<td>删除临时库</td>
+<td>清理干净</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>备份不做恢复演练等于没有备份</strong>。这是本手册唯一一条不允许例外的规则。</p>
+</blockquote>
+</section>
+<section id="monitor">
+  <div class="sec-head"><span class="sec-num">03</span><h3>监控与告警</h3><span class="tag">看什么</span></div>
+  <p>监控与告警</p>
+<h3>5.1 五个核心指标</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>正常</th>
+<th>告警阈值</th>
+<th>采集方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>后端进程存活</td>
+<td>Running</td>
+<td>非 Running</td>
+<td><code>Get-Service</code></td>
+</tr>
+<tr>
+<td>判对错接口 P95</td>
+<td>≤300ms</td>
+<td>&gt;500ms</td>
+<td>应用日志埋点</td>
+</tr>
+<tr>
+<td>AI 降级率</td>
+<td>&lt;5%</td>
+<td>&gt;20%</td>
+<td>应用日志埋点</td>
+</tr>
+<tr>
+<td>数据库磁盘占用</td>
+<td>&lt;50%</td>
+<td>&gt;80%</td>
+<td><code>information_schema</code> + 磁盘</td>
+</tr>
+<tr>
+<td>复习队列积压</td>
+<td>&lt;50</td>
+<td>&gt;50 持续 3 天</td>
+<td><code>study_review_schedule</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3>5.2 简易监控脚本</h3>
+<pre class="cmd"><code class="language-powershell"># 每 10 分钟执行一次（Windows 计划任务）
+$ErrorActionPreference = 'Continue'
+$svc = Get-Service study-backend -ErrorAction SilentlyContinue
+if (-not $svc -or $svc.Status -ne 'Running') {
+  Write-Output &quot;ALERT 服务异常：$($svc.Status)&quot;
+  # 尝试自愈
+  Start-Service study-backend -ErrorAction SilentlyContinue
+  Start-Sleep -Seconds 10
+  if ((Get-Service study-backend).Status -eq 'Running') { Write-Output 'RECOVERED 自动重启成功' }
+  else { Write-Output 'CRITICAL 自动重启失败，需人工介入' }
+  exit 1
+}
+</code></pre>
+<h3>5.3 日志位置</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>日志</th>
+<th>路径</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>后端 stdout</td>
+<td><code>02-代码开发/05-源码/builds/latest/backend/logs/stdout.log</code></td>
+</tr>
+<tr>
+<td>后端 stderr</td>
+<td>同上 <code>stderr.log</code></td>
+</tr>
+<tr>
+<td>应用日志</td>
+<td><code>.../logs/jeecg-boot.log</code></td>
+</tr>
+<tr>
+<td>前端访问日志</td>
+<td><code>nginx/logs/access.log</code></td>
+</tr>
+<tr>
+<td>构建日志</td>
+<td><code>02-代码开发/05-源码/builds/build-logs/</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>日志轮转</strong>：应用日志按天切割，保留 14 天；<code>stdout.log</code> 超过 50MB 时手动清理。</p>
+</section>
+<section id="trouble">
+  <div class="sec-head"><span class="sec-num">04</span><h3>常见故障处置</h3><span class="tag">照着做</span></div>
+  <p>常见故障处置</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>编号</th>
+<th>现象</th>
+<th>可能原因</th>
+<th>处置步骤</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T-01</td>
+<td>后端服务停止</td>
+<td>OOM / 端口占用 / 未捕获异常</td>
+<td>1. <code>Get-Service study-backend</code><br>2. 看 <code>stderr.log</code> 尾部<br>3. 内存不足→调 <code>-Xmx</code>；端口占用→<code>netstat -ano \| findstr :8093</code> 查杀<br>4. 手动 <code>Start-Service</code> 并观察是否再次退出</td>
+</tr>
+<tr>
+<td>T-02</td>
+<td>服务反复重启</td>
+<td>未捕获异常循环</td>
+<td>看 <code>stdout.log</code> 中最后一段异常栈；临时加 <code>--spring.profiles.active=prod</code> 复现；<strong>不要</strong>直接改代码上线</td>
+</tr>
+<tr>
+<td>T-03</td>
+<td>前端 404（刷新子页）</td>
+<td>nginx 缺 <code>try_files</code></td>
+<td>在 server 块加 <code>try_files $uri $uri/ /index.html;</code>；<code>nginx -s reload</code></td>
+</tr>
+<tr>
+<td>T-04</td>
+<td>前端白屏</td>
+<td>构建产物不完整 / JS 报错</td>
+<td>1. 浏览器 Console 看报错<br>2. 比对 <code>dist/assets</code> 与构建日志<br>3. 重新构建并同步</td>
+</tr>
+<tr>
+<td>T-05</td>
+<td>接口 500 且提示连接池耗尽</td>
+<td>MySQL 连接数被占满</td>
+<td><code>SHOW PROCESSLIST;</code> 查慢查询；确认 <code>jeecg-study</code> 单库连接配置是否正确；重启后端释放连接</td>
+</tr>
+<tr>
+<td>T-06</td>
+<td>数据库连不上</td>
+<td>口令变更 / 服务未启动</td>
+<td><code>mysql -u root -p -e "SELECT 1;"</code> 验证；核对 <code>application-*.yml</code> 与环境变量优先级</td>
+</tr>
+<tr>
+<td>T-07</td>
+<td>迁移脚本报「已存在」</td>
+<td>脚本非幂等</td>
+<td>检查 <code>study_schema_migration</code>；<strong>不要</strong>改已执行脚本，追加补偿脚本</td>
+</tr>
+<tr>
+<td>T-08</td>
+<td>复习队列为空但有错题</td>
+<td><code>next_review_at</code> 为空或排期未生成</td>
+<td>查 <code>study_error_pool.next_review_at</code> 是否为 NULL；重新触发队列物化</td>
+</tr>
+<tr>
+<td>T-09</td>
+<td>错题丢了</td>
+<td>事务未提交 / 手动删了数据</td>
+<td>1. 查 <code>study_error_pool</code> 是否真缺<br>2. 查 <code>study_practice_record_*</code> 是否有记录<br>3. 从备份恢复</td>
+</tr>
+<tr>
+<td>T-10</td>
+<td>护眼提醒不触发</td>
+<td>阈值配置 / 心跳中断</td>
+<td>1. 查 <code>study_context.eye_interval_min</code><br>2. 查 <code>study_eye_usage.heartbeat_count</code> 是否增长<br>3. 心跳断了→查前端 <code>useEyeGuard</code> 与网络</td>
+</tr>
+<tr>
+<td>T-11</td>
+<td>端口被占</td>
+<td>上次进程未退出</td>
+<td><code>netstat -ano \| findstr :8093</code> → <code>taskkill /PID &lt;pid&gt; /F</code>；<strong>先确认不是别的服务</strong></td>
+</tr>
+<tr>
+<td>T-12</td>
+<td>页面数据为空但库里有</td>
+<td>Redis 缓存脏数据</td>
+<td>1. 查 <code>study:kp:tree:*</code> 缓存键<br>2. 删除相关键<br>3. 重进页面重新加载</td>
+</tr>
+</tbody>
+</table></div>
+<h3>6.1 排障通用顺序</h3>
+<pre class="cmd"><code>1. 先确认范围：单个页面 / 单个模块 / 整体
+2. 查服务状态与日志尾部（stdout + stderr）
+3. 查接口：直接 curl 该接口，看响应体
+4. 查数据：连库看目标表与迁移记录
+5. 查缓存：Redis 相关键
+6. 定位后再动手，不要先重启再猜
+</code></pre>
+<blockquote>
+<p><strong>先看日志再动手</strong>。重启会丢现场。</p>
+</blockquote>
+</section>
+<section id="command">
+  <div class="sec-head"><span class="sec-num">05</span><h3>常用命令速查</h3><span class="tag">复制粘贴</span></div>
+  <p>常用命令速查</p>
+<pre class="cmd"><code class="language-powershell"># ---- 服务 ----
+Get-Service study-backend
+Start-Service study-backend
+Stop-Service study-backend
+Restart-Service study-backend
+
+# ---- 端口 ----
+netstat -ano | findstr :8093
+Get-NetTCPConnection -LocalPort 8093 -State Listen | Select-Object OwningProcess
+taskkill /PID &lt;pid&gt; /F
+
+# ---- 数据库 ----
+mysql -u root -p -e &quot;USE jeecg-study; SELECT COUNT(*) FROM study_error_pool;&quot;
+mysql -u root -p -e &quot;USE jeecg-study; SHOW TABLES;&quot;
+mysql -u root -p -e &quot;USE jeecg-study; SELECT script_name, applied_at FROM study_schema_migration ORDER BY applied_at;&quot;
+mysql -u root -p -e &quot;USE jeecg-study; SELECT error_cause, COUNT(*) FROM study_error_pool GROUP BY error_cause;&quot;
+
+# ---- 复习队列 ----
+mysql -u root -p -e &quot;USE jeecg-study; SELECT COUNT(*) FROM study_review_schedule WHERE status=1 AND schedule_date &lt;= CURDATE();&quot;
+
+# ---- 日志 ----
+Get-Content '...\builds\latest\backend\logs\stderr.log' -Tail 100
+Get-Content '...\builds\latest\backend\logs\stdout.log' -Tail 200 | Select-String 'ERROR|Exception'
+
+# ---- 构建 ----
+&amp; '.\02-代码开发\05-源码\04-建库迁移\build-and-sync.ps1'
+&amp; '.\02-代码开发\05-源码\04-建库迁移\migrate.ps1' -Env dev -DryRun
+
+# ---- 备份 ----
+&amp; '.\02-代码开发\05-源码\04-建库迁移\backup.ps1' -Env prod
+</code></pre>
+</section>
+<section id="data">
+  <div class="sec-head"><span class="sec-num">06</span><h3>数据维护</h3><span class="tag">动数据</span></div>
+  <p>数据维护</p>
+<h3>7.1 错题池健康度检查</h3>
+<pre class="cmd"><code class="language-sql">-- 1) 无排期的错题（异常）
+SELECT COUNT(*) FROM study_error_pool
+WHERE review_status = 1 AND next_review_at IS NULL;
+
+-- 2) 长期积压（超过 30 天未复习）
+SELECT COUNT(*) FROM study_error_pool
+WHERE review_status = 1 AND next_review_at &lt; DATE_SUB(CURDATE(), INTERVAL 30 DAY);
+
+-- 3) 错因分布（用于评估五维是否够用）
+SELECT error_cause, COUNT(*) AS cnt
+FROM study_error_pool GROUP BY error_cause ORDER BY cnt DESC;
+
+-- 4) 空知识点归属（应为 0）
+SELECT COUNT(*) FROM study_error_pool WHERE knowledge_point_code IS NULL;
+</code></pre>
+<blockquote>
+<p>第 3 条是「错因维度由真实错题反推」的证据来源。某维度长期为 0 或某维度占比 &gt; 60%，说明五维划分需要调整——这是 V1 复评的输入。</p>
+</blockquote>
+<h3>7.2 复习队列积压</h3>
+<pre class="cmd"><code class="language-sql">SELECT schedule_date, COUNT(*) AS cnt
+FROM study_review_schedule
+WHERE status = 1
+GROUP BY schedule_date
+ORDER BY schedule_date DESC
+LIMIT 14;
+</code></pre>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>现象</th>
+<th>处置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>单日 &gt; 50</td>
+<td>正常：超过单日上限的部分自动顺延</td>
+</tr>
+<tr>
+<td>连续 3 天 &gt; 50</td>
+<td><strong>异常</strong>：孩子可能已经放弃；检查是任务过重还是排期算法有问题</td>
+</tr>
+<tr>
+<td>队列为空但错题很多</td>
+<td>查 <code>next_review_at</code> 是否为 NULL</td>
+</tr>
+</tbody>
+</table></div>
+<h3>7.3 坐标树版本巡检</h3>
+<pre class="cmd"><code class="language-sql">-- 现行节点数 vs 历史节点数
+SELECT version, status, COUNT(*) FROM study_knowledge_point
+GROUP BY version, status ORDER BY version;
+
+-- 失效但仍在被错题引用的节点（正常，但要确认不重复）
+SELECT kp.point_code, COUNT(e.id) AS err_count
+FROM study_knowledge_point kp
+JOIN study_error_pool e ON e.knowledge_point_code = kp.point_code
+WHERE kp.status = 0
+GROUP BY kp.point_code LIMIT 20;
+</code></pre>
+<h3>7.4 分表维护</h3>
+<pre class="cmd"><code class="language-sql">-- 查看现有分表
+SHOW TABLES LIKE 'study_practice_record_%';
+
+-- 确认当月表已建
+SELECT COUNT(*) FROM information_schema.TABLES
+WHERE TABLE_SCHEMA = 'jeecg-study' AND TABLE_NAME = CONCAT('study_practice_record_', DATE_FORMAT(NOW(), '%Y%m'));
+</code></pre>
+<blockquote>
+<p>若为 0，说明月度建表任务未执行，手动执行 <code>05-init-month-table.sql</code>。</p>
+</blockquote>
+</section>
+<section id="sec">
+  <div class="sec-head"><span class="sec-num">07</span><h3>安全与合规</h3><span class="tag">别出事</span></div>
+  <p>安全与合规</p>
+<h3>8.1 数据边界（最重要的安全承诺）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>承诺</th>
+<th>检查方法</th>
+<th>频率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>零第三方请求</strong></td>
+<td>浏览器 DevTools Network 面板，勾选「全部」，走一遍完整学习流程</td>
+<td>每次发布 + 每月</td>
+</tr>
+<tr>
+<td>无外部模型调用</td>
+<td>同上；确认 <code>jeecg.study.ai.enabled=false</code></td>
+<td>每次发布</td>
+</tr>
+<tr>
+<td>无统计/广告 SDK</td>
+<td>扫描 <code>package.json</code> 依赖</td>
+<td>每月</td>
+</tr>
+<tr>
+<td>口令不入库</td>
+<td><code>git status</code> 确认 <code>application-*.yml</code> 未被追踪</td>
+<td>每次提交</td>
+</tr>
+<tr>
+<td>答案不外泄</td>
+<td>家长端响应体扫描 <code>answer</code>/<code>analysis</code> 字段</td>
+<td>每次发布</td>
+</tr>
+</tbody>
+</table></div>
+<pre class="cmd"><code class="language-powershell"># 第三方请求探针（基于测试大纲的断言脚本）
+&amp; '.\scripts\check-redline.ps1' -Case R02-4
+</code></pre>
+<h3>8.2 未成年人合规检查</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>要求</th>
+<th>检查</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>身份区分</td>
+<td>家长与孩子角色可区分</td>
+<td>家长端显示「家长视图」标识</td>
+</tr>
+<tr>
+<td>家长操作留痕</td>
+<td>家长写操作进 <code>study_parent_operation_log</code></td>
+<td>抽查</td>
+</tr>
+<tr>
+<td>无公开 UGC</td>
+<td>无公开发布、无评论公开展示</td>
+<td>遍历页面</td>
+</tr>
+<tr>
+<td>无行为画像</td>
+<td>不采集用于画像的行为数据</td>
+<td>查埋点清单</td>
+</tr>
+<tr>
+<td>反馈边界</td>
+<td>家长评论不进孩子练习流</td>
+<td>端到端验证</td>
+</tr>
+</tbody>
+</table></div>
+<h3>8.3 口令管理</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>环境</th>
+<th>存储方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DEV</td>
+<td><code>application-dev.yml</code>（gitignore）</td>
+</tr>
+<tr>
+<td>PROD</td>
+<td>环境变量 / Windows 服务配置，<strong>不入库</strong></td>
+</tr>
+<tr>
+<td>备份脚本</td>
+<td>口令走环境变量 <code>MYSQL_PWD</code>，<strong>不写进脚本文件</strong></td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="inc">
+  <div class="sec-head"><span class="sec-num">08</span><h3>应急处置流程</h3><span class="tag">出事了</span></div>
+  <p>应急处置流程</p>
+<h3>8.1 服务不可用</h3>
+<pre class="cmd"><code>1. 确认范围：前端 / 后端 / 数据库 / 全部
+2. 看日志定位（T-01 ~ T-12）
+3. 能自愈就自愈（重启服务、清缓存）
+4. 不能自愈 → 从 builds/ 回滚到上一版本
+5. 数据损坏 → 从备份恢复（先做覆盖前备份）
+6. 恢复后跑冒烟检查 + 红线冒烟
+7. 写事件记录：时间线、原因、处置、影响
+</code></pre>
+<h3>8.2 数据异常</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>情况</th>
+<th>处置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>错题大量丢失</td>
+<td>立即停止服务 → 备份当前状态 → 从最近备份恢复 → 比对条数</td>
+</tr>
+<tr>
+<td>排期错乱</td>
+<td>查 <code>study_review_schedule</code>；必要时重建队列（删除未完成排期后重新物化）</td>
+</tr>
+<tr>
+<td>坐标树损坏</td>
+<td>从备份恢复 <code>study_knowledge_point</code>；注意保留失效版本</td>
+</tr>
+<tr>
+<td>统计数字对不上</td>
+<td>先核对 <code>study_error_pool</code> 与 <code>study_practice_record_*</code> 的条数，再查聚合逻辑</td>
+</tr>
+</tbody>
+</table></div>
+<h3>8.3 红线被破（最严重）</h3>
+<pre class="cmd"><code>1. 立即停用对应功能（置 feature 开关为 false，或临时下线该路由）
+2. 评估影响范围：是否有孩子已经看到答案？数据是否需要追溯？
+3. 修复 + 补自动化断言（写进 check-redline.ps1）
+4. 回归全部 24 条红线断言
+5. 事件记录 + 复盘：这条例外为什么没被测试拦住？
+</code></pre>
+<blockquote>
+<p><strong>红线被破不追求「快速上线」，只追求「确认没被绕过」。</strong> 宁可停一天。</p>
+</blockquote>
+<h3>8.4 事件记录模板</h3>
+<pre class="cmd"><code class="language-markdown">### 事件记录：&lt;标题&gt;
+
+- **时间**：YYYY-MM-DD HH:mm ~ HH:mm
+- **影响**：&lt;哪个功能、影响多少数据&gt;
+- **发现方式**：&lt;巡检 / 用户反馈 / 告警&gt;
+- **根因**：
+- **处置步骤**：
+- **恢复验证**：&lt;冒烟结果 + 红线结果&gt;
+- **后续改进**：&lt;是否补充了自动化断言 / 监控项&gt;
+</code></pre>
+</section>
+
+    <div id="bottom"></div>
+    <footer class="foot"><span>jeecg-study · 运维手册 V1.1</span><span>2026-10-30</span><span>上游：部署方案</span><span>发布记录：04-运营部署/03-发布记录/</span></footer>
+  </main>
+
+</div>
+
+<button class="m-fab" id="fab" type="button">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/></svg>
+  目录
+</button>
+
+
+<script>
+(function(){
+  var BRAND = (document.getElementById('mTitle')||{}).textContent || '文档';
+  var links   = Array.prototype.slice.call(document.querySelectorAll('.nav-link'));
+  var pairs   = links.map(function(l){
+    var id = l.getAttribute('href').replace('#','');
+    var isJump = (id === 'top' || id === 'bottom');
+    return { link:l, sec: isJump ? null : document.getElementById(id) };
+  });
+  var sidebar = document.querySelector('.sidebar');
+  var scrim   = document.getElementById('scrim');
+  var fab     = document.getElementById('fab');
+  var mTitle  = document.getElementById('mTitle');
+  var panelOpen = false;
+
+  function isMobile(){ return window.matchMedia('(max-width:1000px)').matches; }
+  function openPanel(){
+    panelOpen = true;
+    if (sidebar) sidebar.classList.add('open');
+    if (scrim)   scrim.classList.add('show');
+  }
+  function closePanel(){
+    panelOpen = false;
+    if (sidebar) sidebar.classList.remove('open');
+    if (scrim)   scrim.classList.remove('show');
+  }
+  function togglePanel(){ panelOpen ? closePanel() : openPanel(); }
+
+  function onScroll(){
+    var y = window.scrollY + 140, idx = -1;
+    for (var i=0;i<pairs.length;i++){
+      if (pairs[i].sec && pairs[i].sec.offsetTop <= y) { idx = i; }
+    }
+    if (idx < 0) { idx = 0; for (var j=0;j<pairs.length;j++){ if (pairs[j].sec){ idx = j; break; } } }
+
+    pairs.forEach(function(p,i){ if (p.sec) p.link.classList.toggle('active', i === idx); });
+
+    if (mTitle) {
+      mTitle.textContent = window.scrollY < 40
+        ? BRAND
+        : pairs[idx].link.textContent.replace(/[↑↓]\s*/g,'').trim();
+    }
+    // 下滑后导航不可见 → 收起来为悬浮按钮
+    if (fab) fab.classList.toggle('show', window.scrollY > 80);
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', onScroll);
+  onScroll();
+
+  // 导航点击：顶/底跳转 或 锚点定位
+  pairs.forEach(function(p){
+    p.link.addEventListener('click', function(e){
+      e.preventDefault();
+      var href = p.link.getAttribute('href');
+      if (href === '#top') {
+        window.scrollTo({top:0, behavior:'smooth'});
+      } else if (href === '#bottom') {
+        window.scrollTo({top:document.documentElement.scrollHeight, behavior:'smooth'});
+      } else if (p.sec) {
+        window.scrollTo({top: p.sec.getBoundingClientRect().top + window.scrollY - 18, behavior:'smooth'});
+        history.replaceState(null,'',href);
+      }
+      closePanel();
+    });
+  });
+
+  var menuBtn  = document.getElementById('menuBtn');
+  var closeBtn = document.getElementById('closeBtn');
+  var topBtn   = document.getElementById('topBtn');
+  if (menuBtn)  menuBtn.addEventListener('click', togglePanel);
+  if (closeBtn) closeBtn.addEventListener('click', closePanel);
+  if (fab)      fab.addEventListener('click', togglePanel);
+  if (scrim)    scrim.addEventListener('click', closePanel);
+  if (topBtn)   topBtn.addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closePanel(); });
+
+  // 移动端表格卡片：为每个单元格补列名标签
+  Array.prototype.forEach.call(document.querySelectorAll('table'), function(t){
+    var heads = Array.prototype.map.call(t.querySelectorAll('thead th'), function(th){
+      return th.textContent.trim();
+    });
+    Array.prototype.forEach.call(t.querySelectorAll('tbody tr'), function(tr){
+      Array.prototype.forEach.call(tr.children, function(td,i){
+        if (heads[i]) td.setAttribute('data-label', heads[i]);
+      });
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

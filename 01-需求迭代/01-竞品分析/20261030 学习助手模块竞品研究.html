@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>常规事务研究 · 20261030 学习助手模块竞品研究</title>
+<style>
+
+  :root{
+    --bg:#fafaf9; --surface:#ffffff; --chrome:#f7f7f5; --line:#e6e6e1; --line-soft:#eeeeea;
+    --ink:#15171c; --ink-2:#454b58; --muted:#8b8f98;
+    --accent:#10b981; --accent-ink:#047857; --accent-soft:rgba(16,185,129,.10); --accent-line:rgba(16,185,129,.28);
+    --up:#d93a2b; --up-soft:rgba(217,58,43,.10); --up-line:rgba(217,58,43,.28);
+    --down:#0f8a6d; --down-soft:rgba(15,138,109,.10); --down-line:rgba(15,138,109,.28);
+    --amber:#b07d12; --amber-soft:rgba(176,125,18,.10); --amber-line:rgba(176,125,18,.28);
+    --sans:'Outfit','PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif;
+    --mono:'JetBrains Mono','SFMono-Regular',Consolas,monospace;
+    --nav-w:272px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:var(--sans);font-size:15px;line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(720px 300px at 10% -8%, rgba(16,185,129,.06), transparent 62%),
+      radial-gradient(620px 280px at 94% -6%, rgba(21,94,117,.05), transparent 60%);
+    background-repeat:no-repeat;
+  }
+  a{color:inherit;}
+  code{font-family:var(--mono);font-size:.88em;background:#f4f4f1;border:1px solid var(--line-soft);border-radius:4px;padding:1px 5px;}
+
+  /* ============ 布局：侧边导航 + 章节正文 ============ */
+  .shell{display:flex;align-items:flex-start;max-width:1280px;margin:0 auto;gap:0;}
+  .sidebar{
+    width:var(--nav-w);flex:none;position:sticky;top:0;align-self:flex-start;
+    height:100vh;overflow-y:auto;padding:26px 20px 40px 24px;border-right:1px solid var(--line);
+  }
+  .sidebar::-webkit-scrollbar{width:8px;}
+  .sidebar::-webkit-scrollbar-thumb{background:#dcdcd6;border-radius:6px;}
+  .brand{display:flex;align-items:center;gap:9px;margin-bottom:6px;}
+  .brand-mark{width:26px;height:26px;flex:none;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--accent-line);}
+  .brand-mark svg{width:14px;height:14px;}
+  .brand h1{font-size:15px;font-weight:600;margin:0;letter-spacing:-.01em;}
+  .meta-line{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-bottom:18px;}
+  .nav-title{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;padding-left:11px;}
+  .nav-link{
+    display:flex;align-items:center;gap:8px;padding:7px 11px;border-radius:9px;
+    font-size:13.5px;color:var(--ink-2);text-decoration:none;border-left:2px solid transparent;
+    transition:background .15s,color .15s,border-color .15s;
+  }
+  .nav-link:hover{background:#f0f0ec;color:var(--ink);}
+  .nav-link.active{background:var(--accent-soft);color:var(--accent-ink);border-left-color:var(--accent);font-weight:500;}
+  .nav-link .lv{
+    margin-left:auto;font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:999px;
+    border:1px solid var(--line);background:var(--surface);color:var(--muted);white-space:nowrap;
+  }
+  .nav-link.active .lv{border-color:var(--accent-line);background:var(--surface);}
+  .mini-rate{margin-top:14px;border-top:1px solid var(--line);padding-top:14px;}
+  .mini-row{display:flex;align-items:center;gap:8px;margin-bottom:9px;font-size:12px;color:var(--ink-2);}
+  .mini-row .bar{flex:1;height:6px;background:#eeeeea;border-radius:4px;overflow:hidden;}
+  .mini-row .bar i{display:block;height:100%;border-radius:4px;}
+  .mini-row .n{font-family:var(--mono);font-size:10.5px;color:var(--muted);width:58px;text-align:right;}
+
+  .main{flex:1;min-width:0;padding:34px 40px 80px;}
+
+  /* ============ 标题区 ============ */
+  .kicker{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink);background:var(--accent-soft);border:1px solid var(--accent-line);padding:5px 11px;border-radius:999px;}
+  .kicker i{width:6px;height:6px;border-radius:50%;background:var(--accent);}
+  h2.title{font-size:32px;line-height:1.25;font-weight:600;letter-spacing:-.018em;margin:16px 0 0;}
+  .sub{color:var(--ink-2);font-size:15px;margin:10px 0 0;max-width:74ch;}
+  .facts{display:flex;flex-wrap:wrap;gap:9px;margin-top:20px;}
+  .fact{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:9px 13px;box-shadow:0 2px 8px rgba(0,0,0,.03);}
+  .fact b{display:block;font-family:var(--mono);font-size:15px;font-weight:600;letter-spacing:-.01em;}
+  .fact span{font-size:11.5px;color:var(--muted);}
+
+  /* 语义色工具类 */
+  .up{color:var(--up);} .down{color:var(--down);} .flat{color:var(--muted);} .amber{color:var(--amber);}
+
+  /* ============ 章节 ============ */
+  section{margin-top:52px;scroll-margin-top:24px;}
+  .sec-head{display:flex;align-items:baseline;gap:11px;padding-bottom:11px;border-bottom:1px solid var(--line);margin-bottom:20px;}
+  .sec-num{font-family:var(--mono);font-size:12px;color:var(--accent-ink);font-weight:600;}
+  .sec-head h3{font-size:21px;font-weight:600;letter-spacing:-.012em;margin:0;}
+  .sec-head .tag{margin-left:auto;font-size:11.5px;color:var(--muted);font-family:var(--mono);}
+  p{margin:0 0 11px;}
+  .lead-p{font-size:15.5px;color:var(--ink-2);max-width:78ch;margin-bottom:18px;}
+  h4.sub-h{font-size:15px;font-weight:600;margin:26px 0 10px;letter-spacing:-.008em;}
+  h5.sub-h5{font-size:13.5px;font-weight:600;margin:18px 0 7px;color:var(--ink-2);}
+  ul.plain{margin:6px 0 12px;padding-left:20px;}
+  ul.plain li{margin:5px 0;font-size:13.5px;color:var(--ink-2);}
+  ol.plain{margin:6px 0 12px;padding-left:20px;}
+  ol.plain li{margin:5px 0;font-size:13.5px;color:var(--ink-2);}
+  .cite-src{display:inline-block;margin-top:5px;font-family:var(--mono);font-size:10.5px;color:var(--muted);
+    border:1px solid var(--line);border-radius:5px;padding:1px 6px;background:var(--surface);}
+  .cite-src a{color:var(--accent-ink);text-decoration:none;}
+
+  /* ============ 核心信息 ============ */
+  .core-list{list-style:none;padding:0;margin:0;}
+  .core-item{display:flex;gap:13px;padding:13px 0;border-bottom:1px solid var(--line-soft);}
+  .core-item:last-child{border-bottom:0;}
+  .core-dot{width:9px;height:9px;border-radius:50%;flex:none;margin-top:7px;background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .core-dot.r{background:var(--up);box-shadow:0 0 0 3px var(--up-soft);}
+  .core-dot.a{background:var(--amber);box-shadow:0 0 0 3px var(--amber-soft);}
+  .core-body{min-width:0;}
+  .core-body h4{margin:0 0 3px;font-size:14.5px;font-weight:600;}
+  .core-body p{margin:0;font-size:13.5px;color:var(--ink-2);}
+
+  /* ============ 数据卡 ============ */
+  .grid4{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));margin:18px 0 4px;}
+  .dcard{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:14px 15px;box-shadow:0 2px 8px rgba(0,0,0,.03);}
+  .dcard .k{font-size:11.5px;color:var(--muted);margin-bottom:5px;}
+  .dcard .v{font-family:var(--mono);font-size:19px;font-weight:600;letter-spacing:-.02em;line-height:1.2;}
+  .dcard .d{font-family:var(--mono);font-size:11.5px;margin-top:3px;}
+
+  /* ============ 表格 ============ */
+  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13.5px;}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line-soft);vertical-align:top;}
+  th{font-size:11.5px;color:var(--muted);font-weight:500;letter-spacing:.04em;background:#f7f7f4;border-bottom:1px solid var(--line);}
+  td:first-child{font-weight:500;white-space:nowrap;}
+  td.mono{font-family:var(--mono);font-size:12px;white-space:nowrap;}
+  .pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap;}
+  .p-ok{background:var(--down-soft);color:var(--down);border:1px solid var(--down-line);}
+  .p-warn{background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber-line);}
+  .p-bad{background:var(--up-soft);color:var(--up);border:1px solid var(--up-line);}
+  .p-info{background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--accent-line);}
+  .p-gray{background:#f2f2ef;color:var(--muted);border:1px solid var(--line);}
+
+  /* ============ 来源表：长名称不撑破表格 + 可点链接 ============ */
+  .tbl-src td:first-child{white-space:normal;min-width:150px;}
+  .tbl-src .u-cell{font-family:var(--mono);font-size:11.5px;line-height:1.5;word-break:break-all;overflow-wrap:anywhere;}
+  .src-link{color:var(--accent-ink);text-decoration:none;border-bottom:1px solid var(--accent-line);word-break:break-all;}
+  .src-link:hover{color:var(--accent);border-bottom-color:var(--accent);}
+
+  /* ============ 流程/命令块：宽内容内部滚动，不撑破页面 ============ */
+  pre.cmd{background:#15171c;color:#e6e8ec;border-radius:12px;padding:14px 16px;overflow-x:auto;
+    font-family:var(--mono);font-size:12px;line-height:1.7;margin:10px 0 14px;
+    -webkit-overflow-scrolling:touch;}
+  pre.cmd .c{color:#8b8f98;}
+  pre.cmd .ok{color:#34d399;font-weight:600;}
+  pre.cmd .bad{color:#f87171;font-weight:600;}
+  pre.cmd .warn{color:#fbbf24;font-weight:600;}
+
+  /* ============ 双栏 ============ */
+  .cols{display:grid;gap:14px;grid-template-columns:1fr 1fr;margin-top:14px;}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 17px;box-shadow:0 2px 8px rgba(0,0,0,.03);}
+  .panel h4{margin:0 0 10px;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:7px;}
+  .panel h4 svg{width:15px;height:15px;}
+  .panel.bad h4{color:var(--up);}
+  .panel.good h4{color:var(--down);}
+  .panel.info h4{color:var(--accent-ink);}
+  .panel.warn h4{color:var(--amber);}
+  .panel ul{margin:0;padding-left:0;list-style:none;}
+  .panel li{position:relative;padding-left:15px;margin-bottom:9px;font-size:13.5px;color:var(--ink-2);line-height:1.6;}
+  .panel li:last-child{margin-bottom:0;}
+  .panel li::before{content:"";position:absolute;left:0;top:9px;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.45;}
+  .panel p{font-size:13.5px;color:var(--ink-2);}
+
+  /* ============ 结论条 ============ */
+  .callout{border:1px solid var(--accent-line);background:var(--accent-soft);border-radius:14px;padding:16px 18px;margin-top:18px;}
+  .callout h4{margin:0 0 7px;font-size:14px;font-weight:600;color:var(--accent-ink);display:flex;align-items:center;gap:8px;}
+  .callout h4 svg{width:15px;height:15px;}
+  .callout p{margin:0;font-size:13.5px;color:#2c4a3e;}
+  .callout p+p{margin-top:7px;}
+  .callout.warn{border-color:var(--amber-line);background:var(--amber-soft);}
+  .callout.warn h4{color:var(--amber);} .callout.warn p{color:#5c4413;}
+  .callout.bad{border-color:var(--up-line);background:var(--up-soft);}
+  .callout.bad h4{color:var(--up);} .callout.bad p{color:#6b2018;}
+  .note{border:1px solid var(--line);background:var(--surface);border-radius:13px;padding:14px 16px;margin-top:14px;font-size:12.5px;color:var(--muted);}
+  .note b{color:var(--ink-2);}
+
+  /* ============ 风险条 ============ */
+  .risk{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px dashed var(--line);}
+  .risk:last-child{border-bottom:0;}
+  .risk .lv-badge{flex:none;font-family:var(--mono);font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;}
+  .risk .rb{min-width:0;}
+  .risk .rb b{display:block;font-size:13.5px;margin-bottom:2px;}
+  .risk .rb span{font-size:13px;color:var(--ink-2);}
+
+  .foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px 20px;}
+  .foot code{background:transparent;border:0;padding:0;color:var(--muted);}
+
+  /* ============ 移动端：悬浮导航面板 ============ */
+  .m-topbar,.m-fab,.scrim,.m-close{display:none;}
+
+  @media (max-width:1000px){
+    .shell{display:block;}
+    body{padding-top:48px;}
+
+    .m-topbar{
+      display:flex;align-items:center;gap:9px;
+      position:fixed;top:0;left:0;right:0;height:48px;z-index:45;
+      padding:0 12px;background:rgba(250,250,249,.94);backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--line);
+    }
+    .m-topbar .t-btn{
+      display:inline-flex;align-items:center;gap:5px;flex:none;
+      font-family:var(--sans);font-size:12.5px;color:var(--ink-2);
+      background:var(--surface);border:1px solid var(--line);border-radius:8px;
+      padding:6px 10px;cursor:pointer;transition:all .16s;
+    }
+    .m-topbar .t-btn:hover{border-color:#d3d3cd;color:var(--ink);}
+    .m-topbar .t-btn svg{width:14px;height:14px;color:var(--muted);}
+    .m-topbar .t-title{
+      flex:1;min-width:0;font-size:13px;color:var(--ink-2);font-weight:500;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+
+    .sidebar{
+      position:fixed;left:auto;right:14px;top:auto;bottom:78px;
+      width:min(80vw,320px);height:auto;max-height:min(64vh,580px);
+      z-index:70;border:1px solid var(--line);border-radius:18px;
+      background:var(--chrome);padding:16px 16px 22px;
+      box-shadow:0 20px 56px -14px rgba(0,0,0,.32);
+      opacity:0;transform:translateY(18px) scale(.97);pointer-events:none;
+      transition:opacity .26s ease,transform .26s cubic-bezier(.2,.8,.3,1);
+    }
+    .sidebar.open{opacity:1;transform:none;pointer-events:auto;}
+    .m-close{
+      display:inline-flex;align-items:center;justify-content:center;margin-left:auto;flex:none;
+      width:30px;height:30px;border-radius:8px;border:1px solid var(--line);
+      background:var(--surface);color:var(--muted);cursor:pointer;padding:0;
+    }
+    .m-close svg{width:14px;height:14px;}
+    .m-close:hover{color:var(--ink);border-color:#d3d3cd;}
+
+    .scrim{
+      display:block;position:fixed;inset:0;z-index:65;
+      background:rgba(21,23,28,.34);opacity:0;pointer-events:none;transition:opacity .26s;
+    }
+    .scrim.show{opacity:1;pointer-events:auto;}
+
+    .m-fab{
+      display:inline-flex;align-items:center;gap:7px;
+      position:fixed;right:14px;bottom:16px;z-index:60;
+      font-family:var(--sans);font-size:13px;color:#fff;
+      background:var(--ink);border:1px solid var(--ink);border-radius:999px;
+      padding:11px 16px;cursor:pointer;
+      box-shadow:0 10px 26px -6px rgba(0,0,0,.45);
+      opacity:0;transform:translateY(14px) scale(.9);pointer-events:none;
+      transition:opacity .24s,transform .24s,background .16s;
+    }
+    .m-fab.show{opacity:1;transform:none;pointer-events:auto;}
+    .m-fab:hover{background:#2b2f38;}
+    .m-fab svg{width:15px;height:15px;}
+
+    .main{padding:26px 22px 96px;}
+    .cols{grid-template-columns:1fr;}
+  }
+
+  /* 手机小屏：表格转卡片 */
+  @media (max-width:820px){
+    table,tbody,tr,td{display:block;width:100%;}
+    thead{display:none;}
+    table{font-size:12.5px;}
+    tr{
+      background:var(--surface);border:1px solid var(--line);border-radius:12px;
+      padding:11px 14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.03);
+    }
+    td{border:0;padding:3px 0;}
+    td:first-child{font-weight:600;font-size:13.5px;padding-bottom:6px;white-space:normal;}
+    td:not(:first-child){
+      position:relative;padding:3px 0 3px 76px;font-size:12.5px;color:var(--ink-2);
+    }
+    td:not(:first-child)::before{
+      content:attr(data-label);position:absolute;left:0;top:3px;width:68px;
+      font-size:11px;color:var(--muted);
+    }
+  }
+
+  @media (max-width:680px){
+    body{font-size:14px;line-height:1.72;overflow-wrap:anywhere;}
+    h2.title{font-size:23px;letter-spacing:-.015em;}
+    .sub{font-size:14px;}
+    .kicker{font-size:10px;padding:4px 9px;}
+    .facts{gap:7px;}
+    .fact{flex:1 1 calc(50% - 4px);min-width:0;padding:9px 11px;}
+    .fact b{font-size:14px;}
+    .fact span{font-size:10.5px;}
+    .grid4{grid-template-columns:1fr 1fr;gap:9px;}
+    .dcard{padding:12px 13px;}
+    .dcard .v{font-size:16px;}
+    .main{padding:22px 15px 92px;}
+    section{margin-top:38px;}
+    .sec-head{flex-wrap:wrap;gap:8px;}
+    .sec-head h3{font-size:18px;}
+    .sec-head .tag{margin-left:0;width:100%;}
+    .core-body h4{font-size:14px;}
+    .core-body p{font-size:13px;}
+    .panel{padding:14px 15px;}
+    .panel li{font-size:13px;}
+    .panel h4{font-size:13px;}
+    .callout{padding:14px 15px;}
+    .callout p{font-size:13px;}
+    .foot{gap:6px 14px;font-size:11.5px;}
+    .note{font-size:12px;}
+  }
+
+</style>
+</head>
+<body id="top">
+<div class="scrim" id="scrim"></div>
+
+<!-- 移动端顶部粘性条 -->
+<div class="m-topbar">
+  <button class="t-btn" id="menuBtn" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+    目录
+  </button>
+  <span class="t-title" id="mTitle">常规事务研究</span>
+  <button class="t-btn" id="topBtn" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/></svg>
+    顶部
+  </button>
+</div>
+
+<div class="shell">
+
+  <!-- ==================== 侧边导航 ==================== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+      </span>
+      <h1>常规事务研究</h1>
+      <button class="m-close" id="closeBtn" type="button" aria-label="关闭导航">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="meta-line">20261030 · 公开资料交叉论证</div>
+
+    <div class="nav-title">快速跳转</div>
+    <a class="nav-link" href="#top"><span>↑ 页面顶部</span></a>
+    <a class="nav-link" href="#bottom"><span>↓ 页面底部</span></a>
+
+    <div class="nav-title">章节</div>
+    <a class="nav-link" href="#core">核心信息速览<span class="lv">6 条</span></a>
+    <a class="nav-link" href="#brief">需求拆解与定位</a>
+    <a class="nav-link" href="#landscape">竞品全景格局<span class="lv">大盘</span></a>
+    <a class="nav-link" href="#region">① 地区与考纲<span class="lv">9 源</span></a>
+    <a class="nav-link" href="#wrong">② 错题集与复盘<span class="lv">6 源</span></a>
+    <a class="nav-link" href="#words">③ 趣味背单词<span class="lv">8 源</span></a>
+    <a class="nav-link" href="#math">④ 数学母题<span class="lv">8 源</span></a>
+    <a class="nav-link" href="#grammar">⑤ 英语语法<span class="lv">10 源</span></a>
+    <a class="nav-link" href="#writing">⑥ 语文写作<span class="lv">10 源</span></a>
+    <a class="nav-link" href="#integrate">整合建议与路线</a>
+    <a class="nav-link" href="#sources">信息来源与说明</a>
+
+    <div class="nav-title">结论速览</div>
+    <div class="mini-rate">
+      <div class="mini-row"><span>头部成熟度</span><span class="bar"><i style="width:88%;background:#d93a2b"></i></span><span class="n">卷</span></div>
+      <div class="mini-row"><span>错题复盘缺口</span><span class="bar"><i style="width:85%;background:#10b981"></i></span><span class="n">机会</span></div>
+      <div class="mini-row"><span>母题机制稀缺</span><span class="bar"><i style="width:80%;background:#10b981"></i></span><span class="n">机会</span></div>
+      <div class="mini-row"><span>语法中间地带</span><span class="bar"><i style="width:75%;background:#10b981"></i></span><span class="n">空白</span></div>
+      <div class="mini-row"><span>内容版权风险</span><span class="bar"><i style="width:55%;background:#b07d12"></i></span><span class="n">可控</span></div>
+      <div class="mini-row"><span>近视用眼风险</span><span class="bar"><i style="width:68%;background:#b07d12"></i></span><span class="n">需管</span></div>
+    </div>
+  </aside>
+
+  <!-- ==================== 正文 ==================== -->
+  <main class="main">
+
+    <span class="kicker"><i></i>常规事务研究 · 工具集竞品论证</span>
+    <h2 class="title">学习助手模块竞品研究</h2>
+    <p class="sub">
+      需求描述：<b>计划做一个学习助手小程序或 APP，自家小娃子使用，逐步增量追加各类小工具上线</b>——
+      学生地区与考纲、错题集与复盘练习、趣味高效背单词（课内＋课外）、数学母题过关斩将、英语语法趣味解读、语文写作技巧鉴赏。
+      本报告对六个模块分别采集多个竞品做功能对比分析，给出优缺点判断与整合建议，并落成可执行的增量上线顺序。
+    </p>
+    <div class="facts">
+      <div class="fact"><b>6</b><span>工具模块</span></div>
+      <div class="fact"><b>59</b><span>组公开资料</span></div>
+      <div class="fact"><b>5</b><span>大 K12 平台横评</span></div>
+      <div class="fact"><b>3,000</b><span>高中课标词表</span></div>
+      <div class="fact"><b>185</b><span>道小学应用题母题</span></div>
+      <div class="fact"><b class="amber">52.7%</b><span>青少年近视率</span></div>
+    </div>
+
+    <!-- ============ 01 核心信息 ============ -->
+    <section id="core">
+      <div class="sec-head">
+        <span class="sec-num">01</span>
+        <h3>核心信息速览</h3>
+        <span class="tag">结论先行</span>
+      </div>
+      <ul class="core-list">
+        <li class="core-item">
+          <span class="core-dot r"></span>
+          <div class="core-body">
+            <h4>头部市场已经很卷，但卷的全是「题库规模」，不是「一个娃的学情」</h4>
+            <p>作业帮、小猿搜题靠 30 亿级题库与 98% 搜题命中打天下，学而思靠教研厚度与分层教学，猿辅导靠「个人学习图谱」把知识点拆成微技能点并逐个点亮。<b>这些能力面向的是千万级陌生用户，对自家一个孩子是过剩的。</b>本项目真正的差异化不是内容更多，而是<b>六模块共享同一份学情数据</b>——这在现有竞品里几乎不存在，因为它们每个模块都是独立产品线。</p>
+            <span class="cite-src">品牌网 AI 学习系统横评 · 魔果云课 K12 平台测评 · 长安少年派学习软件实测</span>
+          </div>
+        </li>
+        <li class="core-item">
+          <span class="core-dot"></span>
+          <div class="core-body">
+            <h4>最大空位在错题模块：所有产品都把「录入」做到了极致，却没人做好「复盘」</h4>
+            <p>错题类工具的竞争全部集中在拍照擦除笔迹、自动归类、导出 PDF 打印——<b>收录能力已经过剩</b>。真实用户反馈却是「不如手写整理错题更能加深记忆」「举一反三的出题质量偶尔差强人意」。原因是错题本 90% 的价值在「什么时候复习」和「错的到底是什么原因」，而几乎所有工具只做到分类和导出，<b>整理完就积灰</b>。这也正好是本项目最该做深的地方。</p>
+            <span class="cite-src">菜鸟 AI 错题整理横评 · 一聚教程网 · 单词鸭英语错题集 · 长安少年派实测</span>
+          </div>
+        </li>
+        <li class="core-item">
+          <span class="core-dot"></span>
+          <div class="core-body">
+            <h4>「数学母题过关斩将」只有一家产品真正同构：洪恩思维的应用题母题模块</h4>
+            <p>洪恩思维（小学 1–6 年级）有 <b>185 道应用题母题</b>，每个母题配「剖析讲解 + 子题变式练习」，官方表述就是「告别盲目刷题，一通百通，学会举一反三」——<b>这正是需求描述里的「母题过关斩将」</b>。其余大厂给的是「题」不是「一类题的结构」：小猿 AI 有 30 亿题库与「诊—学—练—测—评」闭环，学而思有分层教学，但都没有把母题抽象成可复用的解题模板。</p>
+            <span class="cite-src">好软软件站 洪恩思维 v5.20.4 · 品牌网 2026 AI 学习系统实测 · 新绿资源网 学而思小猴思维</span>
+          </div>
+        </li>
+        <li class="core-item">
+          <span class="core-dot a"></span>
+          <div class="core-body">
+            <h4>英语语法存在一条没人走的中间地带：查错工具只报错不教规则，课程工具讲规则但不落地</h4>
+            <p>Grammarly 拿了几乎所有「Best Overall」（Pro 约 $12/月），但评测方同时提醒：<b>盲从接受所有建议，文章就开始「不像你」</b>；British Council LearnEnglish Grammar 被评为 A1–A2 初学者的首选，规则清晰、结构化，却完全不对应国内教材语法点顺序。中间那一段——<b>给国内学生、按考纲、用孩子自己的句子讲语法</b>——是空的。</p>
+            <span class="cite-src">Top Apps List 语法检查器横评 · Your English Guide 语法 App 指南 · Happy English UK ESL 横评</span>
+          </div>
+        </li>
+        <li class="core-item">
+          <span class="core-dot"></span>
+          <div class="core-body">
+            <h4>语文写作模块：竞品都在发「范文和素材」，而需求要的是「技巧鉴赏」，这是两件事</h4>
+            <p>笔神作文有 500 万篇范文＋动画微课＋AI 多维批改＋人工精批，稿好语文有初中 132 点 / 高中 138 点答题技巧与文言文专题，语文天天读有分学段分体裁指导——内容储备都很厚。但它们交付的是<b>可抄的句子</b>；笔神自己的 FAQ 也写明「范文不建议直接抄袭照搬」。<b>「看出一篇好作文为什么好」这件事，至今没有产品系统地做。</b>这恰恰是本项目该占的位置。</p>
+            <span class="cite-src">手心网 笔神作文 v7.13.28 · 优软安卓网 · 多多网 稿好语文 v2.10.7 · 河东软件园 语文天天读 3.0.0</span>
+          </div>
+        </li>
+        <li class="core-item">
+          <span class="core-dot r"></span>
+          <div class="core-body">
+            <h4>自有娃使用的真正约束不是「功能」，是「别把孩子养成伸手搜答案的人」</h4>
+            <p>行业观察反复指出搜题的风险是<b>用户过度依赖搜题、缺乏独立思考</b>；艾瑞也点名作业帮与学而思、猿辅导存在严重功能同质化。对一个自有工具，约束应该反过来设计：<b>每道题先展示母题思路、再放孩子作答入口、最后才允许看解析</b>；家长端只做「看报告 + 一句话反馈 + 推送」，不做辅导。国家卫健委监测显示我国儿童青少年总体近视率已突破 52.7%，超 75% 的家庭无法完全依靠自身完成孩子全流程学习辅导——<b>用眼时长与护眼必须是产品指标，不是加分项</b>。</p>
+            <span class="cite-src">魔果云课 2026 在线教育大盘点 · 艾瑞专栏 · 太平洋科技 2026 小学学习机选购研究</span>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ============ 02 需求拆解 ============ -->
+    <section id="brief">
+      <div class="sec-head">
+        <span class="sec-num">02</span>
+        <h3>需求拆解与产品定位</h3>
+        <span class="tag">先定边界</span>
+      </div>
+      <p class="lead-p">
+        这是一个<b>家庭私有工具</b>，不是面向市场的教育产品。这个前提一旦确定，很多取舍立刻变清晰：不需要增长、不需要付费墙、不需要做海量题库，
+        但需要<b>数据一致性、错题不积灰、用眼可控</b>。下表先把需求逐条拆成可验证的子问题，再给出竞品证据侧的结论。
+      </p>
+
+      <h4 class="sub-h">2.1 需求要素拆解</h4>
+      <table class="tbl-src">
+        <thead><tr><th>需求要素</th><th>字面要求</th><th>可验证的子问题</th><th>证据结论</th></tr></thead>
+        <tbody>
+          <tr><td>形态</td><td>小程序或 APP</td><td>微信生态还是独立 APP？家长端要不要？</td><td><span class="pill p-ok">倾向小程序</span> 低频使用、跨设备只求同步；APP 仅在需要离线答题/护眼大屏时再考虑</td></tr>
+          <tr><td>使用者</td><td>自家小娃子</td><td>单人使用还是未来扩到 sibling？</td><td><span class="pill p-info">单用户设计</span> 可放弃多租户、放弃权限体系、放弃数据埋点看板，把复杂度全省下来</td></tr>
+          <tr><td>增量策略</td><td>逐步增量追加各类小工具</td><td>模块之间要不要共享数据？</td><td><span class="pill p-bad">必须共享</span> 六模块若各自独立，就退化成六个小 App 的拼盘，失去自有工具的意义</td></tr>
+          <tr><td>模块 ①</td><td>学生地区与考纲</td><td>是「资源库」还是「坐标系」？</td><td><span class="pill p-warn">做成坐标系</span> 学科网、猿题库这类资源库对单娃是负担；应只做地区→考纲→考点的定位表</td></tr>
+          <tr><td>模块 ②</td><td>错题集与复盘练习</td><td>错题怎么进来？什么时候复习？</td><td><span class="pill p-ok">最大机会</span> 竞品普遍只做收录不做复盘，是全场最明显的缺口</td></tr>
+          <tr><td>模块 ③</td><td>趣味高效背单词（课内+课外）</td><td>课内课外要不要分成两条线？</td><td><span class="pill p-info">分两条线</span> 课内求完成度与习惯，课外求抗遗忘与应试，算法诉求相反</td></tr>
+          <tr><td>模块 ④</td><td>数学母题过关斩将</td><td>「母题」怎么定义？过关标准是什么？</td><td><span class="pill p-bad">机制稀缺</span> 全场只有洪恩思维做到「母题+变式」，其余给的是题不是结构</td></tr>
+          <tr><td>模块 ⑤</td><td>英语语法趣味解读</td><td>语法是查错工具还是课程？</td><td><span class="pill p-info">两者之间</span> 查错不教规则、课程不落地，中间地带无人占据</td></tr>
+          <tr><td>模块 ⑥</td><td>语文写作技巧鉴赏</td><td>「鉴赏」还是「积累素材」？</td><td><span class="pill p-ok">做鉴赏</span> 竞品全在做素材金句库，和需求错位；鉴赏需要拆解层</td></tr>
+          <tr><td>隐含约束</td><td>（需求未明说）</td><td>近视、依赖搜题、内容版权</td><td><span class="pill p-bad">高危</span> 近视率 52.7%；搜题依赖已成公认风险；题库与范文均有版权边界</td></tr>
+        </tbody>
+      </table>
+
+      <h4 class="sub-h">2.2 定位结论：这不是一个「App」，是一个人的学习操作系统</h4>
+      <div class="cols">
+        <div class="panel good">
+          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>应该做成什么样</h4>
+          <ul>
+            <li><b>共享学情底座</b>：一个统一的知识点 ID 体系，六个模块的题目、单词、语法点、作文段都挂到同一棵树上</li>
+            <li><b>统一错题池</b>：所有模块的「做错」进同一个池子，带模块、学科、知识点、错因、复习排期</li>
+            <li><b>统一复习调度</b>：一条间隔重复队列管全部模块（这正是竞品错题本最大的缺口）</li>
+            <li><b>家长端只读</b>：看报告、看趋势、留一句话，不做辅导、不做排名</li>
+            <li><b>护眼优先</b>：用眼时长统计、蓝光过滤、休息提醒作为硬指标</li>
+          </ul>
+        </div>
+        <div class="panel bad">
+          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4m0 4h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>不应该做成什么样</h4>
+          <ul>
+            <li><b>不要做搜题机</b>：一拍照给答案的工具，会直接毁掉前五个模块的价值</li>
+            <li><b>不要做资源仓库</b>：把学科网那套「1200 万套资料」搬进来只会让孩子逛而不做</li>
+            <li><b>不要做素材金句库</b>：会导致所有作文雷同，且违背「鉴赏」的初衷</li>
+            <li><b>不要堆通用大模型</b>：竞品评测明确指出「通用大模型只是把矛盾的训练数据重新生成心理学话术」</li>
+            <li><b>不要做公开社区/排行榜</b>：单娃工具不需要社交压力，反而需要降低焦虑</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 03 竞品全景 ============ -->
+    <section id="landscape">
+      <div class="sec-head">
+        <span class="sec-num">03</span>
+        <h3>竞品全景格局</h3>
+        <span class="tag">大盘定位</span>
+      </div>
+      <p class="lead-p">
+        先看整体盘子，再进模块。2026 年的行业盘点给出三个趋势：<b>AI 助教从「噱头」变成「标配」</b>（分水岭在于是真「因材施教」还是「电子课本问答」）、
+        <b>「教—学—练—测—评」全链路闭环成为刚需</b>、以及 SaaS 工具把建 App 的成本降到中小机构都能承受。这三条正好定义了本项目的竞争坐标。
+      </p>
+
+      <h4 class="sub-h">3.1 AI 搜题横评：识别准确率已经卷到边际收益递减</h4>
+      <table class="tbl-src">
+        <thead><tr><th>工具</th><th>识别准确率</th><th>解题准确率</th><th>响应速度</th><th>免费程度</th><th>评述</th></tr></thead>
+        <tbody>
+          <tr><td>作业帮 AI</td><td>95%</td><td>92%</td><td>2.1 秒</td><td>基础免费</td><td>题库覆盖 K12 全学段，解析步骤标准化，配视频精讲；部分功能需付费</td></tr>
+          <tr><td>小猿搜题 AI 版</td><td>93%</td><td>90%</td><td>1.8 秒</td><td>完全免费</td><td>手写公式识别优秀，实时在线答疑；广告较多</td></tr>
+          <tr><td>学而思 AI 学习机</td><td>97%</td><td>95%</td><td>2.5 秒</td><td>需购买设备</td><td>个性化路径 + 一对一辅导，内容质量最高但成本最高</td></tr>
+          <tr><td>腾讯企鹅辅导 AI</td><td>91%</td><td>87%</td><td>2.3 秒</td><td>基础免费</td><td>游戏化互动强，适合低龄；高中内容相对薄弱</td></tr>
+          <tr><td>百度文库 AI</td><td>88%</td><td>85%</td><td>3.2 秒</td><td>每日限次</td><td>文档处理强，专业学科覆盖有限</td></tr>
+        </tbody>
+      </table>
+      <p class="note">
+        <b>判读</b>：五家识别准确率集中在 88%–97%，差距已经小于孩子做错的真实错误率。<b>识别的边际收益远低于「题目讲不讲得对、错题是否被复盘」。</b>
+        这条横评来自第三方测评站，其评分与数据为该站自行测试，方向性可参考、绝对值需谨慎。
+      </p>
+
+      <h4 class="sub-h">3.2 五大 K12 平台横评：他们的强项与我们要避开的战场</h4>
+      <table class="tbl-src">
+        <thead><tr><th>平台</th><th>核心资产</th><th>价格</th><th>对单娃场景的适配</th></tr></thead>
+        <tbody>
+          <tr><td>学而思网校</td><td>教研体系最全、分层教学（A/S/S+ 班）、AI 诊断式学习与「知识漏洞热力图」</td><td>单课时约 80–150 元</td><td><span class="pill p-bad">不适配</span> 需拼班、需抢名师、互动性偏弱，自用成本与门槛都不合理</td></tr>
+          <tr><td>猿辅导</td><td>猿题库千万级做题数据；「个人学习图谱」把知识点拆成数百个微技能点，逐个点亮可视化进步轨迹</td><td>单课时约 50–100 元，不满意随时退</td><td><span class="pill p-info">部分借鉴</span> 「微技能点 + 可视化点亮」正是本项目模块 ④ 该抄的交互</td></tr>
+          <tr><td>作业帮直播课</td><td>拍照搜题与直播联动：搜题时自动推送该题所属知识点的直播片段</td><td>—</td><td><span class="pill p-bad">不适配</span> 核心是「拍照搜题」，与本项目反搜题的设计方向直接冲突</td></tr>
+          <tr><td>学而思 AI 学习机 / 小猴思维</td><td>硬件 + AI 辅导；小猴思维 3–8 岁、九大数学思维、100 余万道题、每道培优难题配视频解析</td><td>硬件一次性投入</td><td><span class="pill p-info">机制借鉴</span> 名师 AI 互动引导「举一反三」的机制值得移植</td></tr>
+          <tr><td>斑马 AI 学 / 通用 AI 学习助手</td><td>低龄游戏化 + 护眼 + 家长伴学模式（实时看专注度曲线与情绪状态）</td><td>—</td><td><span class="pill p-info">家长端借鉴</span> 「只给家长看客观状态、不给排名」的家长端设计很适合单娃</td></tr>
+        </tbody>
+      </table>
+
+      <h4 class="sub-h">3.3 四大 AI 教育 App 实测：同一个问题，四种不同的失败方式</h4>
+      <table class="tbl-src">
+        <thead><tr><th>产品</th><th>解题呈现</th><th>作业批改</th><th>作文写作</th><th>可借鉴 / 要避开</th></tr></thead>
+        <tbody>
+          <tr><td>作业帮</td><td>文字 + 视频精讲，可继续追问智能体，分步板书式</td><td>先判对错再给正确答案，逐题含精讲视频与考点视频</td><td>可生成</td><td>借鉴「精讲视频 + 考点视频」双层；避开广告与课程推销入口</td></tr>
+          <tr><td>小猿搜题</td><td>题目 / 视频 / 解答 / 知识点四板块，公式带入式更简洁</td><td>以文字为主，未给精讲视频</td><td>可生成</td><td>借鉴板块化结构</td></tr>
+          <tr><td>豆包爱学</td><td>「深度解题」会先给一条错误思路，再反思错在哪才给正解</td><td>文字逐题解析</td><td>可生成</td><td><span class="pill p-ok">强烈借鉴</span> 暴露错误思路的过程，比单纯板书更能让孩子看到自己错在哪</td></tr>
+          <tr><td>千问</td><td>只有文字，无视频辅助</td><td>只给对错不给答案；追问后还出现把正确判为错的误判</td><td>可生成多文体并自动排版</td><td><span class="pill p-bad">警示</span> 批改出现误判，说明 AI 批改不能当权威结论，必须有兜底</td></tr>
+        </tbody>
+      </table>
+      <div class="callout warn">
+        <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4m0 4h.01"/><circle cx="12" cy="12" r="9"/></svg>对本项目最重要的一条实测结论</h4>
+        <p>千问在批改时把一道正确题判成了错。这说明：<b>AI 批改结果不能直接呈现给孩子当结论</b>。本项目所有 AI 环节（讲题、批改、语法纠错、作文点评）都必须遵循同一规则——<b>先展示依据、再给结论、允许申诉</b>；涉及分数与对错的关键判定，必须有确定性逻辑兜底（题干比对、规则引擎、题型规则），AI 只做解释层。</p>
+      </div>
+    </section>
+
+    <!-- ============ 04 地区与考纲 ============ -->
+    <section id="region">
+      <div class="sec-head">
+        <span class="sec-num">04</span>
+        <h3>模块 ① 地区与考纲</h3>
+        <span class="tag">竞品横评</span>
+      </div>
+      <p class="lead-p">
+        这个模块最容易被做成「资源库」，也最不该。对自家一个孩子来说，几百万套试卷是负担而不是资产。真正有用的只有一件事：
+        <b>把这一个孩子所在地区、年级、教材版本的考纲拆成结构化坐标，让后面五个模块的所有内容都能挂上去。</b>
+      </p>
+
+      <h4 class="sub-h">4.1 竞品功能对比</h4>
+      <table class="tbl-src">
+        <thead><tr><th>产品</th><th>地区 / 考纲能力</th><th>明显短板</th><th>可借鉴</th></tr></thead>
+        <tbody>
+          <tr><td>学科网（含学生版橙子学）</td><td>覆盖 32 个省市地方版本教材与练习册；资料总数超 1,294 万套、48.87TB，日更新数千套；名师精编题库配套举一反三；「试卷学伴」逐题标记对错并生成学情分析</td><td>本质是资源检索平台：找资源是负担，学生容易逛而不做；部分智能组卷、名师讲视频需开通会员</td><td>「教材设置」一次配置全局生效的交互；「试卷学伴」逐题对错 + 学情分析</td></tr>
+          <tr><td>猿题库中考版</td><td>贴合各地中考考纲，<b>分省份按考点做题</b>；试卷专区按学科 / 年级 / 地区三层筛选，可下载离线查看并打印；随身错题本与草稿纸；闪电估分</td><td>「自己规划」门槛高：筛选维度多但没告诉孩子该按什么顺序做；部分试卷需完成练习解锁</td><td>地区作为一级筛选维度；试卷可离线打印</td></tr>
+          <tr><td>菁优中考</td><td>每道试题设「考点描述 / 分析 / 解答 / 点评」四段结构；按真题 / 好题 / 常考题 / 压轴题 / 易错题分类；按年份与地区筛试卷；内置计算器与单位换算</td><td>单科单 App（地理版、数学版…），六科要装六个；体量小、生态弱</td><td><span class="pill p-ok">重点借鉴</span> 每题固定四段结构（考点描述 → 分析 → 解答 → 点评），是「考点坐标系」的最小可用模型</td></tr>
+          <tr><td>中考地理通（单科垂直型）</td><td>首页中考倒计时；知识点按大模块树状展开；专题练习逐题详解；同步练习支持多教材版本；错题自动分析；知识 / 题目 / 文章三态收藏</td><td>垂直单科，无法承载跨学科学情；内容量有限</td><td>知识点树状结构；倒计时制造紧迫感</td></tr>
+          <tr><td>科大讯飞 AI 学习系统</td><td>覆盖全国全版本教材，本地考情适配度高；变式题采用情境重构设计；能精准区分错误类型（公式记错还是步骤跳步）；苏格拉底式启发提问</td><td>成本高、与硬件绑定；变式题生成依赖大模型，需人工审核兜底</td><td><span class="pill p-ok">重点借鉴</span> 「错误类型二分」与「情境重构变式」两条机制，可直接移植到模块 ④</td></tr>
+          <tr><td>步步高学习机</td><td>2025 年推出 AI 实景互动课本；护眼显示累计 77 项专利（发明专利 40 件），联合发布 2 项国际标准、2 项行业标准；明确 AI 为辅助学习工具、不涉及学科培训的合规定位</td><td>硬件成本高；内容与服务体系依赖封闭生态</td><td>护眼做成可量化的硬件标准；「AI 是辅助工具不是提分外挂」的合规话术</td></tr>
+        </tbody>
+      </table>
+
+      <h4 class="sub-h">4.2 交叉论证：这个模块真正的缺口</h4>
+      <div class="cols">
+        <div class="panel info">
+          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>竞品共同做到了什么</h4>
+          <ul>
+            <li><b>地区是硬需求且已被验证</b>：三款独立产品（学科网、猿题库、菁优）都把「按地区筛」做成一级能力，说明家长确实在为「本省考什么」付费</li>
+            <li><b>教材版本覆盖广</b>：32 省地方版本、人教 / 苏教 / 北师大 / 浙教 / 沪教 / 京教 / 鲁教是事实上的最小集</li>
+            <li><b>知识点树 + 题目挂载</b>：菁优的「考点描述 / 分析 / 解答 / 点评」与地理通的知识树证明「考纲结构化」是共识做法</li>
+          </ul>
+        </div>
+        <div class="panel bad">
+          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4m0 4h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>但对单娃场景全部失效</h4>
+          <ul>
+            <li><b>规模是负担</b>：1,294 万套资料对单个孩子等于「选择困难」，与「错题越积越多」是同一类失败</li>
+            <li><b>没有跨模块统一坐标</b>：猿题库的「地区 + 考点」只服务于做题，<b>无法让背单词的考纲词、数学的母题、写作的评分点挂在同一棵树上</b></li>
+            <li><b>没人把它当「地基」</b>：所有产品都把地区当筛选项，没人把地区当<b>全局上下文变量</b>——这正是本项目的结构性优势</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout">
+        <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>整合建议：把「资源库」改造成「坐标系」</h4>
+        <p>不要收录资源，只建结构。<b>一次配置（省 + 学段 + 年级 + 教材版本）→ 生成一棵四层坐标树：地区考纲 → 学科 → 单元/章节 → 考点</b>，
+        每个考点带「题型 + 分值权重 + 常见错误类型 + 对应母题 ID」。此后：背单词的考纲词表按这棵树取子集；数学母题挂在对应考点下；英语语法点映射到中考题型（单选 / 完形 / 语法填空 / 书面表达）；语文评分点映射到中考作文分项。
+        <b>这个模块的产出不是内容，而是一张「这个孩子要学什么」的地图</b>——它必须第一个做，因为后面五个模块全靠它定位。</p>
+      </div>
+    </section>
+
+    <!-- ============ 05 错题集 ============ -->
+    <section id="wrong">
+      <div class="sec-head">
+        <span class="sec-num">05</span>
+        <h3>模块 ② 错题集与复盘练习</h3>
+        <span class="tag">最大空位</span>
+      </div>
+      <p class="lead-p">
+        这是全场竞品最多、也最容易做出差异化的一块。轻量工具、大厂平台、海外卡片三股力量都在这里，但它们的共同短板出奇一致。
+      </p>
+
+      <h4 class="sub-h">5.1 竞品功能对比</h4>
+      <table class="tbl-src">
+        <thead><tr><th>产品</th><th>核心能力</th><th>明显短板</th><th>可借鉴</th></tr></thead>
+        <tbody>
+          <tr><td>错题整理神器</td><td>拍照自动擦除手写笔迹保留印刷题干；多题框选；按学科 + 知识点双维标签；统计看板呈现高频易错题型；全部导出标准 PDF 离线打印；每题附解题步骤与同类题推荐；云端同步</td><td>仍以「收纳 + 导出」为终点，复盘闭环弱</td><td>「统计看板 + 同类题推荐」是复盘的雏形</td></tr>
+          <tr><td>错题星</td><td>专为小学优化：图像增强提升手写笔迹辨识度与对比度；20GB 云存储多端同步；按需生成模拟练习卷；阶段性学习诊断报告；内置作业批改</td><td>小学导向明显；标签体系固定，错因维度不够细</td><td>图像增强提升手写识别率（低成本高收益）</td></tr>
+          <tr><td>A+ 错题本</td><td>安装包小巧运行流畅；拍照框选 + 相册批量导入；支持自定义科目名称与<b>错因标签（如「计算失误」「概念混淆」）</b>；自由拼题组卷；一键导出 PDF</td><td>没有算法、没有排期，做完就归档</td><td><span class="pill p-ok">重点借鉴</span> 用户自定义错因标签 —— 错因维度必须由真实错题反推，不能预设</td></tr>
+          <tr><td>考霸错题本</td><td>OCR 一键擦除笔迹；按年级 / 学科 / 知识点<b>三级结构</b>归档；可标记高频易错类型（如「函数图像判断」「化学方程式配平」）；每题分步解析定位逻辑断点与卡壳环节</td><td>应试导向，题型分类与国内教材耦合</td><td>三级归档结构；「定位逻辑断点」的分步解析</td></tr>
+          <tr><td>试卷错题宝</td><td>整页扫描与局部裁切双模式；归档时设定学科、年级规则并添加错因备注；<b>定向复习引擎</b>筛选指定标签错题生成专属训练卷；PDF 兼容 A4 直接打印</td><td>内容体量小；解析质量依赖题库覆盖</td><td><span class="pill p-ok">重点借鉴</span> 「定向复习引擎」是全场唯一被明确写出的复盘引擎机制</td></tr>
+          <tr><td>橙果错题本 / 拾光喵 / 叮当同学 / 汉印错题</td><td>橙果：拍照录入 + 按时间/科目/年级分类 + Word 导出打印；拾光喵：仅 10.3MB，拍照清除手写痕迹 + AI 解题步骤 + 生成学习报告；叮当同学：AI 处理 + 一键打印；汉印错题：连接打印机直接印</td><td>各家功能高度重叠、同质化严重；AI 解题质量参差</td><td>轻量、可导出打印是刚需</td></tr>
+          <tr><td>蜜蜂试卷</td><td>试卷擦除与错题组卷最强项；图像识别与擦除算法非常干净，几乎完美还原空白试卷；组卷可汇总成新试卷供周末复习</td><td><span class="pill p-bad">关键短板</span> 部分功能需开会员；用户反馈「调不好」、之前录入的错题会变成空白；<b>「举一反三」的出题质量偶尔被诟病差强人意</b>；已有用户认为不如手写整理更能加深记忆</td><td>擦除算法与组卷；反面照见「收录≠掌握」</td></tr>
+          <tr><td>作业帮 / 小猿 AI</td><td>作业帮：AI 错题本自动归集错因 + 推送同类题 + 本题精讲视频 + 同类考点题练习；小猿 AI：「诊—学—练—测—评」闭环，题库超 30 亿、搜题命中 98%+、真人 + AI 双师视频讲题 + 追问式引导、AI 错题本自动归集错因推送同类题</td><td>免费版功能受限；广告与课程推销入口明显；深度培优体系弱于学而思；生态绑定强</td><td><span class="pill p-ok">重点借鉴</span> 「归集错因 → 推送同类题」的自动链路，是本项目复盘引擎的骨架</td></tr>
+          <tr><td>学而思「AI 智慧眼」/ 科大讯飞 T90 Pro</td><td>学而思：扫描纸质作业自动批改并生成错题本；讯飞：精准区分错误类型（公式记错还是步骤跳步），苏格拉底式启发提问，情境重构变式题</td><td>均为硬件绑定，成本高</td><td><span class="pill p-ok">重点借鉴</span> 错因分类（概念 / 审题 / 计算 / 步骤）+ 追问式引导</td></tr>
+          <tr><td>Anki / Quizlet / Notion（海外）</td><td>Anki：间隔重复算法 + 自定义卡片模板 + Excel/CSV 导入导出；Quizlet：学习集、AI 生成解析、闪卡/测试/游戏多模式；Notion：数据库 + 标签分类 + 优先级 + 多媒体嵌入</td><td>上手门槛高、界面简陋；与国内教材不同步；需自己造牌组，没有现成社区；纯工具无学习闭环</td><td><span class="pill p-ok">重点借鉴</span> Anki 的间隔重复调度、Notion 的标签 + 优先级模型</td></tr>
+        </tbody>
+      </table>
+
+      <h4 class="sub-h">5.2 交叉论证：为什么「复盘」是全场最大的空位</h4>
+      <div class="cols">
+        <div class="panel info">
+          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M2 12h20"/></svg>供给端已经过剩</h4>
+          <ul>
+            <li><b>录入能力已经免费化</b>：拍照擦笔迹、框选、自动归类在五款免费工具里全部具备，且都宣称「基础录入、分类、导出打印全免费」</li>
+            <li><b>大厂也免费提供</b>：作业帮、小猿 AI 的错题本归集 + 同类题推送已内置在主 App 里，不构成付费点</li>
+            <li><b>结论</b>：错题录入是<b>入场券</b>，不是差异点</li>
+          </ul>
+        </div>
+        <div class="panel warn">
+          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4m0 4h.01"/><circle cx="12" cy="12" r="10"/></svg>但需求端已经证伪</h4>
+          <ul>
+            <li>已有用户明确反馈<b>「整理错题不如手写更能加深记忆」</b>——这句话直接否定了「收录即掌握」</li>
+            <li>另一款头部错题工具的<b>「举一反三」出题质量被诟病</b>——说明复盘环节的出题质量是硬门槛</li>
+            <li>行业通用建议是<b>「错题需在 24 小时内整理」</b>、<b>「按知识点与错误类型（粗心 / 知识盲区）分类」</b>——但工具只做了前半句（分类），没做后半句（排期与重做）</li>
+            <li>海外工具的共识做法是<b>间隔重复 + 定期复习</b>，但在国内工具里几乎看不到</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout">
+        <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>整合建议：把错题本做成「复盘引擎」，而不是「收纳工具」</h4>
+        <p>四件事必须同时具备，缺一件就退化成积灰本：<br/>
+        <b>① 错因强制标签</b>——借用 A+ 错题本的用户自定义思路与讯飞的类型划分，固定五个维度：概念不清 / 审题偏差 / 计算失误 / 方法不会 / 时间不够。错因不是选菜单，是<b>答完题后必须答的一个问题</b>。<br/>
+        <b>② 重做队列而非文件夹</b>——借鉴 Anki 间隔重复 + 试卷错题宝的定向复习引擎：错题默认进入待重做队列，按掌握程度自动排期（当天 / +1 天 / +3 天 / +7 天），连续两次做对才移出。<br/>
+        <b>③ 一题多变</b>——借鉴讯飞的「情境重构变式」与洪恩的「母题剖析 + 子题变式」：一道错题至少配一道换数字、一道换情境的变式，做对变式才算真的掌握。<br/>
+        <b>④ 统一入口</b>——数学母题、背单词、语法、写作的每一次「做错」都进这一个池子。这是自有工具相对所有竞品唯一的结构性优势。</p>
+      </div>
+    </section>
+
+    <!-- ============ 06 背单词 ============ -->
+    <section id="words">
+      <div class="sec-head">
+        <span class="sec-num">06</span>
+        <h3>模块 ③ 趣味高效背单词（课内 + 课外）</h3>
+        <span class="tag">竞品最卷</span>
+      </div>
+      <p class="lead-p">
+        这是六个模块里竞品最成熟、用户要求最高的一个。「高效」有两条技术路线（算法抗遗忘 vs 趣味激励），
+        「课内 + 课外」则是两条完全不同的需求线。多数竞品只押了一条。
+      </p>
+
+      <h4 class="sub-h">6.1 竞品功能对比</h4>
+      <table class="tbl-src">
+        <thead><tr><th>产品</th><th>记忆机制</th><th>课内 / 课外覆盖</th><th>明显短板</th><th>可借鉴</th></tr></thead>
+        <tbody>
+          <tr><td>百词斩</td><td>图像锚定记忆 + 基础 SM-2 固定周期；百万级单词—定制插画一一映射；6 套答题渲染模板（看图选词 / 听音选义 / 英文选义 / 拼写 / 默写）</td><td>词库覆盖小学、初中、高中、四六级、考研、雅思、托福、SAT、GRE 等，200 余个词书；释义参考柯林斯、朗文，含真人发音与场景例句；截至 2024 累计用户超 2 亿</td><td>算法<b>无手段区分「记住图片」和「记住词义」</b>，脱离插画后词义回忆率大幅下滑；个性化程度低，千人一套节奏；广告较多</td><td>零门槛入口；一词多练的题型组合</td></tr>
+          <tr><td>墨墨背单词</td><td>自研 SSP-MMC 随机最短路径调度算法，成果发表于 ACM SIGKDD、IEEE TKDE；基于 1200 亿+ 记忆反馈样本为每个词独立拟合遗忘衰减函数，引入记忆强度 S 与衰减系数 λ 双动态变量；认识 / 模糊 / 忘记 / 熟知四档反馈；复习间隔最长 365 天</td><td>深度应试词库；支持 Excel/TXT 自定义词书批量导入解析；词根词缀、真题例句结构化入库</td><td><b>无游戏化渲染引擎，缺少低龄友好的可视化激励模块</b>；语境与考试题型对接不是重点；免费背诵额度上限，超出需付费</td><td><span class="pill p-ok">重点借鉴</span> 四档反馈（不是对/错）+ 单词级独立遗忘建模，是算法内核</td></tr>
+          <tr><td>扇贝单词</td><td>专利「精简单词智能系统」ZL 2024 1 1008490.X：词汇量测试 + 初次答题行为建模，批量预判已掌握熟词并从队列剔除（官方称 440 万用户过滤熟词 24.37 亿个）；接入 DeepSeek，按备考周期（起步 / 稳定 / 冲刺）生成阶段性专属曲线</td><td>词文串学匹配外刊同源短文；短文填词自动生成首字母填空、选词填空并支持导出 PDF；平板手写默写、手表抬腕速记、水墨屏、PC 端皮肤；唯一打通单词—阅读—听力—口语多 App 数据中台</td><td>架构重、服务端集群复杂，低端安卓偶现卡顿；功能繁杂新手需时间适应；完整大模型能力需会员解锁</td><td><span class="pill p-ok">重点借鉴</span> ① 熟词过滤（省时间）② 词文串学（把词放回语境）③ 短文填词（直接对接题型）</td></tr>
+          <tr><td>不背单词</td><td>改良艾宾浩斯 + 四维记忆矩阵（视觉 / 听觉 / 拼写 / 影视语境）加权；150 万+ 影视剧、纪录片、外刊原声例句库，OSS 存储 + Elasticsearch 检索，单例句 AAC 音频平均 &lt; 200KB；字幕逐词高亮对齐音频波形</td><td>覆盖中考到考研各阶段；正版柯林斯词典、词根词缀；音频跟读与场景化填空</td><td>纯刷题应试场景下语境加载会拉长单词学习耗时，<b>冲刺背诵效率弱</b>；例句切换偶尔耗时</td><td>「同一个词的多维呈现」；音频与字幕的时间轴同步</td></tr>
+          <tr><td>多邻国</td><td>游戏化闯关、积分、排行、连胜机制</td><td>多语种覆盖；<b>没有针对国内考试的专项功能</b></td><td>应试深度训练相对基础</td><td>习惯养成机制：连胜、每日目标</td></tr>
+          <tr><td>背单词花园（K12 向）</td><td>改良艾宾浩斯（1/2/4/7/15 天分层推送）+ 错题权重放大；音节拆分引擎 + 48 组英美音标规则匹配；花园 2D 养成渲染引擎（种子→发芽→开花），可一键切「纯净无游戏冲刺模式」</td><td><b>结构化解析全国 30+ 中小学教材版本，单元单词 1:1 映射，自动过滤超纲词汇</b>；AI 声纹跟读打分；Flutter + 原生语音插件，一套代码支撑 App + 小程序双端</td><td>记忆调度学术深度弱于墨墨，高难度海量词汇个性化上限受限</td><td><span class="pill p-ok">重点借鉴</span> ① 教材单元 1:1 映射 ② 养成式激励 + 可关闭的纯净模式 ③ App/小程序同码双端</td></tr>
+          <tr><td>Anki</td><td>间隔重复 + 自定义牌组</td><td>可导入真题阅读生词，但需自己造牌组</td><td>上手麻烦、界面简陋、纯工具无社区</td><td>自定义牌组 + 可导入导出</td></tr>
+        </tbody>
+      </table>
+
+      <h4 class="sub-h">6.2 交叉论证：课内与课外是两条相反的算法诉求</h4>
+      <table class="tbl-src">
+        <thead><tr><th>维度</th><th>课内（教材同步词）</th><th>课外（考纲扩展与真题）</th></tr></thead>
+        <tbody>
+          <tr><td>目标</td><td>跟得上进度、形成习惯、完成不掉队</td><td>提分、突破、应试得分</td></tr>
+          <tr><td>学习者状态</td><td>低年级、畏难、需要正反馈</td><td>高段、自律、要效率</td></tr>
+          <tr><td>算法诉求</td><td><b>完成度优先</b>：进度条、连续天数、养成激励</td><td><b>抗遗忘优先</b>：遗忘曲线、单次时长最大化</td></tr>
+          <tr><td>最佳对标</td><td>背单词花园（教材映射 + 花园养成）、百词斩（零门槛）、洪恩/斑马（护眼 + 游戏化）</td><td>墨墨（SSP-MMC 四档反馈）、扇贝（熟词过滤 + 阶段曲线）、不背单词（真实语境）</td></tr>
+          <tr><td>词汇来源</td><td>教材单元词表；高中课标表 3,000 词（义务教育 1,500 + 必修增 500 + 选择性必修增 1,000，各地可再增约 200）</td><td>各地真题高频词、熟词生义、一词多义（address / spring / yield）、高频词组搭配（account for / subscribe to）</td></tr>
+        </tbody>
+      </table>
+      <div class="cols">
+        <div class="panel bad">
+          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4m0 4h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>两个已被验证的坑</h4>
+          <ul>
+            <li><b>只记图不记词</b>：图片降低入门难度，但会形成「看图认词」的伪记忆，离开图片就懵</li>
+            <li><b>只打卡不复习</b>：每天贪新词数量，旧词遗忘不断堆积，<b>复习完成度比新学量更重要</b></li>
+            <li><b>工具切换过频</b>：同时用四款不如踏踏实实跑完一本词书</li>
+            <li><b>课内超纲污染</b>：不按教材版本过滤，孩子会背一堆本学期不考的词，挫伤信心</li>
+          </ul>
+        </div>
+        <div class="panel good">
+          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>三条可直接落地的机制</h4>
+          <ul>
+            <li><b>课内词走「教材单元 1:1 映射 + 自动过滤超纲」</b>（背单词花园做法），每单元一关，过关有可见奖励</li>
+            <li><b>课外词走「熟词过滤 + 四档反馈 + 阶段曲线」</b>（扇贝 + 墨墨做法），先测词汇量跳过已会的，省下的时间全给高频词</li>
+            <li><b>词→句→篇三层</b>（扇贝做法）：一词一义 → 造句 → 短文填词，把词放回可考试的真实语境里</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout">
+        <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>整合建议：一个入口，两套算法</h4>
+        <p>不要做两个 App，做一个 App 里的两条词书线。<b>课内线</b>：教材单元词表 1:1 映射（自动剔除超纲）→ 游戏化闯关 + 每日目标 + 连续天数，目标是<b>不掉队</b>；
+        <b>课外线</b>：本地区考纲高频词 + 真题熟词生义 → 熟词过滤 + 四档反馈（认识/模糊/忘记/熟知）+ 间隔重复排期，目标是<b>提分</b>。
+        两条线共用同一套复习队列与错题池：<b>课内背错的词自动升级为课外线的优先复习项</b>——这正是竞品做不到的，因为它们的课内课外是两条不相干的产品线。</p>
+      </div>
+    </section>
+
+    <!-- ============ 07 数学母题 ============ -->
+    <section id="math">
+      <div class="sec-head">
+        <span class="sec-num">07</span>
+        <h3>模块 ④ 数学母题过关斩将</h3>
+        <span class="tag">机制稀缺</span>
+      </div>
+      <p class="lead-p">
+        需求里的「母题」和「过关斩将」两个词，在竞品里几乎是空白的。大厂给的是<b>题</b>（海量、随机、按知识点推送），
+        只有极少数产品给的是<b>一类题的结构</b>。这是本模块最值得押注的地方。
+      </p>
+
+      <h4 class="sub-h">7.1 竞品功能对比</h4>
+      <table class="tbl-src">
+        <thead><tr><th>产品</th><th>核心机制</th><th>明显短板</th><th>可借鉴</th></tr></thead>
+        <tbody>
+          <tr><td>洪恩思维（原洪恩数学）</td><td><b>应用题母题模块：小学 1–6 年级 185 道应用题母题，提供母题剖析讲解 + 子题变式练习</b>，官方表述「告别盲目刷题，精炼解题技巧，一通百通，学会举一反三」；另有计算专题（100 以内加减乘除全覆盖 + 上万道题库）、乘除法专项 500+ 重难点、数独 180+ 经典题、逻辑专项 9 种思维方式；5 步教学环节「学—玩—练—测—考」，每 8 个知识点一次阶段考试</td><td>低龄向（学龄前至小学二年级）；母题仅覆盖应用题 185 道、学科面窄；深度依赖动画课程，体量 338MB</td><td><span class="pill p-ok">最高价值</span> 「母题剖析 + 子题变式 + 阶段考试」是与需求<b>字面同构</b>的现成机制</td></tr>
+          <tr><td>学而思 AI 数学体系 / 小猴思维</td><td>AI 数学：分层教学从基础到培优分级清晰，知识点结构化拆解，低年级游戏化引导强，自有教研题库贴合新课标；小猴思维：3–8 岁，九大数学思维 + 七大底层学习能力，名师 AI 互动课引导举一反三，数百位专家原创 100 余万道题，<b>每道培优难题配视频解析</b></td><td>AI 数学：部分小众教材版本覆盖不全、拔高内容难度偏高；小猴思维：3–8 岁，卡牌收集与游戏化占比高</td><td>「名师 AI 互动课 → 引导举一反三」的提问式教学；每道难题配解析的做法</td></tr>
+          <tr><td>小猿 AI（原小猿口算升级）</td><td>题库超 30 亿、搜题命中率 98%+；「真人 + AI」双师视频讲题，<b>追问式引导</b>带动主动思考而非直接给答案；「诊—学—练—测—评」完整闭环；AI 错题本自动归集错因、推送同类题强化</td><td>免费版功能受限；深度培优体系弱于学而思；广告与会员墙多</td><td><span class="pill p-ok">重点借鉴</span> 追问式引导（不直接给答案）；「诊—学—练—测—评」闭环命名</td></tr>
+          <tr><td>科大讯飞 T90 Pro</td><td><b>能精准区分错误类型（公式记错还是步骤跳步）</b>；采用「苏格拉底式」启发提问引导学生；变式题采用情境重构设计、思维递进性强；覆盖全国全版本教材，本地考情适配度高；实测初中数理化平均提分超 20 分</td><td>与学习机硬件绑定，成本高；情境重构变式题依赖大模型，需人工审核兜底</td><td><span class="pill p-ok">最高价值</span> ① 错误类型二分 ② 苏格拉底式追问 ③ 情境重构变式 —— 三条都可脱离硬件实现</td></tr>
+          <tr><td>作业帮</td><td>拍照搜题 + 标准解析流程（题干→思路→步骤→答案）+ 智能批改错误点高亮 + 错题归档 + 一键导出 PDF 试卷</td><td>泛化题库思维：给的是题不是「一类题的结构」；广告与课程推销明显</td><td>标准解析流的四段式骨架</td></tr>
+          <tr><td>小学数学同步学</td><td>人教 / 北师大 / 苏教一键切换；题库按能力梯度分四层（例题精讲 / 基础巩固 / 能力提升 / 综合拓展）；分数、几何等抽象概念 3D 动画可视化；智能批改实时判对错并归档错题、<b>自动生成个性化复习计划</b>；无广告 + 蓝光过滤 + 用眼时长统计</td><td>题量与教研深度有限；仍是题库 + 计划，缺母题抽象层</td><td>四层梯度分法；「自动生成个性化复习计划」；无广告 + 护眼三件套</td></tr>
+          <tr><td>口算类：小猿口算 / 口算宝 / 番茄思维数学</td><td>小猿口算：拍照整页批阅、计时挑战与正确率目标闯关；口算宝：计算由易到难覆盖加减乘除混合与估算、<b>自动汇总高频错题并附文字说明定位计算失误根源</b>；番茄思维数学：错题自动收集、口算/竖式/单位换算可手写作答、多题型检查准确率称 99%+</td><td>只做计算，不涉及应用题与解题策略；番茄体量小（21MB）、内容单薄</td><td>口算的「闯关 + 计时」游戏化；「文字说明定位失误根源」的错误归因表达</td></tr>
+          <tr><td>钉题库 / 小盒学生 / 洪恩式闯关</td><td>钉题库：顺序与随机双刷题路径、错题自动关联考点标签、直播录播倍速与离线缓存、考前密押卷、助教社群；小盒学生：三科闯关解锁新关卡 + 动画演示 + 分级阅读 + 定时休息提醒与屏幕亮度自动调节</td><td>钉题库：密押卷与「预测」式内容价值可疑、依赖课程；小盒学生：深度有限</td><td>「错题自动关联考点标签」；闯关解锁 + 护眼提醒</td></tr>
+          <tr><td>海外：Photomath / Khanmigo / Mathpix</td><td>Photomath：动画分步演示，低龄友好，覆盖小学算术到微积分；Khanmigo（可汗学院）：非营利、内容权威、K12 全学段，<b>启发式提问引导思考</b>、隐私保护严格；Mathpix：手写公式与复杂几何识别精度高，一键转 LaTeX</td><td>全英文、无国内考纲与教材映射；Khanmigo 只做引导不产出题库</td><td>Khanmigo 的启发式提问范式；Photomath 的动画分步演示</td></tr>
+        </tbody>
+      </table>
+
+      <h4 class="sub-h">7.2 交叉论证：「母题」到底该是什么</h4>
+      <div class="cols">
+        <div class="panel info">
+          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>竞品给出的三个「母题雏形」</h4>
+          <ul>
+            <li><b>洪恩：母题 → 子题变式</b>（185 道应用题），配剖析讲解，最接近字面需求</li>
+            <li><b>讯飞：错误类型 → 情境重构变式</b>，把「为什么错」和「换个情境还对不对」接起来</li>
+            <li><b>学而思：知识点 → 分层（基础/培优）</b>，结构化拆解但偏课程体系</li>
+          </ul>
+        </div>
+        <div class="panel bad">
+          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4m0 4h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>大厂缺的那一样</h4>
+          <ul>
+            <li><b>没有「一类题的解题结构」这一层抽象</b>：给的是知识点下的题列表，不是「已知条件类型 → 关键关系 → 解题步骤链 → 易错点」</li>
+            <li><b>过关单位错了</b>：多数产品以「知识点」或「随机题」为进度单位，孩子感觉是「刷了 200 道」而不是「这类题我会了」</li>
+            <li><b>判对标准单一</b>：做对就过，没区分「蒙对」「过程对但步骤跳」「真懂」</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout">
+        <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>整合建议：把「过关斩将」建立在母题结构上，而不是题量上</h4>
+        <p><b>① 母题数据结构</b>：每道母题固定五段——题型名 / 已知条件类型（几个变体）/ 关键关系（解题的「眼」）/ 解题步骤链（3–5 步）/ 易错点清单。这五段既能生成讲解，也能生成变式。<br/>
+        <b>② 过关判据</b>：以母题为关卡单位，过关 = 该母题下 <b>N 道变式全对 + 能口述关键关系</b>。口述不过关就补一句追问（讯飞的苏格拉底式），而不是直接给答案。<br/>
+        <b>③ 变式生成三层</b>：换数字（同结构）→ 换情境（同结构不同表层）→ 逆向提问（已知结果求条件）。第三层最能检验真懂。<br/>
+        <b>④ 错因二分前置</b>：在解每一步时打标——公式记错 / 步骤跳步 / 审题偏差 / 方法不会，直接继承讯飞的分型思路，让错因数据反过来指导「先补哪一关」。<br/>
+        <b>⑤ 溯源到坐标</b>：母题挂到模块 ① 的「地区考纲 → 学科 → 单元 → 考点」树上，闯关顺序 = 考纲优先级，不是随机推荐。</p>
+      </div>
+    </section>
+
+    <!-- ============ 08 英语语法 ============ -->
+    <section id="grammar">
+      <div class="sec-head">
+        <span class="sec-num">08</span>
+        <h3>模块 ⑤ 英语语法趣味解读</h3>
+        <span class="tag">中间地带</span>
+      </div>
+      <p class="lead-p">
+        这个模块的竞品主要在海外，中文市场几乎空白。原因很清楚：海外做语法产品的是「查错工具」和「ESL 课程」两条线，
+        <b>两条线中间那块——用孩子自己的句子、按国内考纲讲语法——没有人做</b>。
+      </p>
+
+      <h4 class="sub-h">8.1 竞品功能对比</h4>
+      <table class="tbl-src">
+        <thead><tr><th>产品</th><th>定位与能力</th><th>价格 / 门槛</th><th>明显短板</th></tr></thead>
+        <tbody>
+          <tr><td>Grammarly</td><td>几乎所有横评的 Best Overall；实时检查语法、风格、语气、标点与清晰度，并用<b>简单语言解释错误原因</b>；改写建议、词汇增强、查重；覆盖 Chrome/Firefox/Edge/Safari 的浏览器扩展</td><td>Pro 约 $12/月（年付）或 $30（月付）；免费层 AI 提示次数受限</td><td><b>盲从接受所有建议，写作会开始「不像你」</b>；订阅贵；不针对国内考纲与教材</td></tr>
+          <tr><td>LanguageTool</td><td>多语言支持覆盖 30+ 语言，英文校对免费可用；更轻、更便宜的选择</td><td>Premium 约 €5/月（年付）或 €20（月付）</td><td>英文润色与语气建议仍落后 Grammarly；长文档受免费额度限制</td></tr>
+          <tr><td>ProWritingAid</td><td>深度写作分析：语法 + 风格 + 句子结构，产出详细分析报告</td><td>年付通常比 Grammarly Pro 便宜</td><td>只服务「写」，不教规则、不管输入</td></tr>
+          <tr><td>Quillbot</td><td>多模式改写（Standard / Fluency / Creative / Formal）、引用生成、摘要工具、AI co-writer</td><td>订阅制</td><td>面向英语母语者的表达优化，非学习者路径；改写类工具有代写副作用</td></tr>
+          <tr><td>British Council LearnEnglish Grammar</td><td>A1–A2 初学者首选：规则清晰、例句简单、结构化课程、来源权威；数千道分级练习</td><td>免费为主</td><td><b>纯英语环境，语法点排序与国内教材完全不对应</b>；无国内考纲题型映射</td></tr>
+          <tr><td>ELSA Speak</td><td>中级学习者「最佳性价比」：AI 对口语语法的反馈与母语发音训练</td><td>订阅制，评价量级 1.2 万+</td><td>重心在发音与口语，不是语法体系课</td></tr>
+          <tr><td>Babbel / FluentU / WhiteSmoke / Originality.ai</td><td>Babbel：体系化短课程；FluentU：真实视频语料；WhiteSmoke：桌面端语法检查；Originality.ai：AI 检测、查重、事实核查与可读性分析（18+）</td><td>各异</td><td>原版.ai 类工具面向创作者与出版方，不是 K12</td></tr>
+          <tr><td>语法键盘：CleverType / Grammarly Keyboard / SwiftKey</td><td>替换系统键盘，输入时实时标错与改写；多数支持 iOS + Android 且采用<b>端侧 AI 处理</b>，可适配用户写作风格；从业者报告错误减少 35%、每周省 45 分钟校对</td><td>免费 + 订阅</td><td>是被动纠错，无教学、无进度、无体系；键盘替换对儿童学习场景体验负担大</td></tr>
+          <tr><td>中文向：作业帮 / 小猿搜题 / 豆包爱学 / 千问</td><td>作业帮工具库含古文解析、单词查询；小猿搜题工具库含英语听说；豆包爱学可与「豆包老师」一对一练口语；千问 AI 写作支持多文体并自动排版</td><td>多为免费</td><td><b>四家功能高度雷同</b>，都含拍照搜题 / 错题解析 / 作文批改；AI 讲解不可控、会幻觉，<b>不能建体系</b>；千问批改已出现误判</td></tr>
+          <tr><td>中文向：高分说 / 咕噜口语</td><td>高分说：融合音标、词汇、句型、课文资源，趣味闯关游戏 + 中考标准听说测评系统，智能错题本自动归类并提供触类旁通练习，覆盖小学到初中多种教材版本；咕噜口语：专为小学生设计，国内 AI 口语赛道用户规模与活跃度双第一</td><td>免费 + 会员</td><td>重心在听说测评，<b>语法体系本身不是主线</b>；单科单线，无法与其他模块打通</td></tr>
+        </tbody>
+      </table>
+
+      <h4 class="sub-h">8.2 交叉论证：两条路线之间的空隙</h4>
+      <div class="cols">
+        <div class="panel bad">
+          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4m0 4h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>路线 A：查错工具（Grammarly 系）</h4>
+          <ul>
+            <li>强：反馈即时、解释清楚、覆盖全</li>
+            <li>弱：<b>只告诉你错在哪，不告诉你规则</b>；改写建议会把表达磨平</li>
+            <li>横评原话：「语法检查器在你漏掉的地方有用；当你开始把每句话磨成同一个腔调时，它就没用了」</li>
+            <li>弱：英文母语者导向，不接国内考纲</li>
+          </ul>
+        </div>
+        <div class="panel bad">
+          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4m0 4h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>路线 B：结构化课程（British Council 系）</h4>
+          <ul>
+            <li>强：规则讲得清、有分级、有权威来源</li>
+            <li>弱：<b>与孩子手里正在写的句子无关</b>，学完不会用</li>
+            <li>弱：纯英语环境，语法点顺序与国内教材脱节</li>
+            <li>弱：纯输入型，没有输出检验</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout">
+        <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>整合建议：做「句子变形器 + 错误即入口」，而不是语法课程</h4>
+        <p><b>① 句子变形器</b>（趣味化的核心）：给一个中文意思，让学生看同一个意思的 5 种英文表达——直译版、地道口语版、书面版、考试安全版、错误示范版，并说清各自用在什么场合。这比讲「虚拟语气由 if + 过去式构成」有效得多，因为它解决的是「怎么用」而不是「是什么」。<br/>
+        <b>② 错误即入口</b>：孩子写完一句，标出错误 → 点错误 → 弹出「这个语法点的最小讲解 + 一个同类例句 + 一个反例」，然后立刻改一次。<b>讲解永远从孩子的真实错误出发，不做预防性灌输。</b><br/>
+        <b>③ 考纲锚定</b>：每个语法点挂到模块 ① 的考点树，并标注对应中考/高考题型（单选 / 完形 / 语法填空 / 书面表达）——<b>只讲这个地区这个学段要考的</b>。<br/>
+        <b>④ 趣味化玩法</b>：句子侦探（找出错的那一句）、语法变形闯关、<b>「我的错句收藏馆」</b>（把写过错的句子收集起来定期回看，直接复用模块 ② 的复盘队列）。<br/>
+        <b>⑤ 复用语境库</b>：与模块 ③ 共用同一批例句——同一个词在课文、真题、原声素材里的不同用法，一次建库三处受益。</p>
+      </div>
+    </section>
+
+    <!-- ============ 09 语文写作 ============ -->
+    <section id="writing">
+      <div class="sec-head">
+        <span class="sec-num">09</span>
+        <h3>模块 ⑥ 语文写作技巧鉴赏</h3>
+        <span class="tag">与需求错位</span>
+      </div>
+      <p class="lead-p">
+        写作类产品的内容储备已经很厚，但<b>厚在「给范文给素材」，薄在「讲清好文章为什么好」</b>。
+        需求写的是「技巧鉴赏」，这是一个拆解动作，不是检索动作。
+      </p>
+
+      <h4 class="sub-h">9.1 竞品功能对比</h4>
+      <table class="tbl-src">
+        <thead><tr><th>产品</th><th>核心能力</th><th>明显短板</th><th>可借鉴</th></tr></thead>
+        <tbody>
+          <tr><td>笔神作文</td><td>500 万篇范文与作文素材；<b>动画微课</b>把审题立意、细节描写、谋篇布局做成短片；<b>AI 多维批改</b>（从错别字、标点、病句到段落结构、立意表达）+ 生成学情报告；提供真人老师人工精批选项；单元作文按教材每单元写作任务给独家范文并支持个性化修改；文学榜投稿可上《课堂内外》等刊物、被知名作家点评；素材卡片；读名著语音导读 + 文字赏析；听国学与成语故事；覆盖小学 2–6 年级、初中、高中</td><td>AI 深度批改与人工精批属会员内容；社区属性强（需发内容换积分）；<b>交付的是可抄的句子</b>——平台自己的 FAQ 写明「范文不建议直接抄袭照搬」；平台也承认「AI 批改不能完全等同于老师人工阅卷」</td><td><span class="pill p-ok">重点借鉴</span> ① 动画微课讲技巧 ② 批改维度从错字一路到立意 ③ 批改生成学情报告 ④ 人工精批作为兜底选项</td></tr>
+          <tr><td>稿好语文</td><td>AI 作文批改 + 智能素材库 + 思维导图模板 + 经典文学库；<b>初中 132 点 / 高中 138 点答题技巧</b>；文言文实词虚词、通假字、词类活用、特殊句式、文学常识；人物专辑、时事素材、2015 年至今高考作文题目分析、上百篇写作模板、成语与高级词汇、古诗词（唐诗 300 / 宋词 300 / 元曲 300 等上千首）；文段美化（AI 升华原段落）与同义转化（AI 重新生成）；在线自习室 / 读书会 / 文学社</td><td><b>素材堆砌导向</b>，写出来容易是拼接；「文段美化 / 同义转化」本质接近代写，与「学习写作」目标冲突；知识点罗列多而体系弱</td><td>答题技巧点位化（132 / 138 点）；思维导图模板；作文题目分析的时间线</td></tr>
+          <tr><td>语文天天读</td><td>覆盖写人 / 写事 / 写物 / 写景 / 抒情五大体裁，针对小学 / 初中 / 高中分学段提供写作技巧与范文解析；分类素材库（人物 / 名人 / 成功 / 美德 / 人生）；一线语文教师录制的写作技巧微课；AI 智能批改 + 人工建议；经典范文库含历年中考高考满分作文与名家名篇；每日打卡任务；个性化学习报告（阅读时长、收藏量、写作进步曲线）；离线阅读；多端同步；核心功能免费</td><td>同质化低、内容深度浅；<b>批改闭环弱</b>，没有从批改到重写到再批改的回路</td><td>体裁 × 学段二维组织；每日打卡；「写作进步曲线」这类过程性指标</td></tr>
+          <tr><td>作文库</td><td>内容严格遵循国家课程标准，范文均经教育领域专业人士审核；<b>内置写作方法导图与分步提示</b>（审题要点、结构设计、开头结尾技巧）；素材库标注出处；离线阅读 + 本地收藏 + 导出文本；无广告；「看图写话」专项；无障碍阅读模式（文字朗读 + 字号调节）；写作训练三步：审题 → 列提纲 → 写初稿，系统给结构反馈</td><td>内容体量小；批改基于规则与模板，深度弱；无真实同伴或家长反馈</td><td><span class="pill p-ok">重点借鉴</span> 「写作方法导图」+ 审题/提纲/初稿三步训练——这是把「鉴赏」变成可操作动作的关键结构</td></tr>
+          <tr><td>作文帮</td><td>三步提示模板「开头引导 — 中间展开 — 结尾升华」降低写作畏难；<b>无敏感词智能辅助</b>：采用教育专用语义分析模型，仅提供语法、逻辑、结构层面的温和建议，不涉及主观评价或不当引导；教师协同入口可导出写作过程记录与修改痕迹；看图写话专项</td><td>内容体量小；模板化明显，深度有限</td><td><span class="pill p-ok">重点借鉴</span> ① 「只给温和的结构性建议，不下主观评判」的分寸感 ② 导出修改痕迹供家校沟通</td></tr>
+          <tr><td>大厂：作业帮 / 小猿搜题 / 豆包爱学 / 千问</td><td>作业帮工具库含作文素材、古文解析、口算 PK、单词查询、同步学练；小猿搜题工具库 + 优学教材同步课程；豆包爱学语文作文 + 情绪陪伴；千问 AI 写作可写作文、论文、读后感、申请书、心得体会甚至小说并自动排版，PPT 创作与文库查找全部免费</td><td>功能高度雷同（都含拍照搜题 / 错题解析 / 作文批改）；<b>AI 生成作文有学写作副作用</b>——直接代写会削弱构思过程；免费额度与会员墙并存</td><td>千问的多文体 + 自动排版输出；豆包爱学的情绪陪伴（低龄场景）</td></tr>
+          <tr><td>行业观察</td><td>艾瑞专栏指出：作业帮与学而思、猿辅导相比存在较严重的功能同质化问题，猿辅导靠 AI 互动与趣味学习吸引用户</td><td>—</td><td>提醒：<b>大厂同质化反而给垂直小工具留了空隙</b>——只要垂直做深，不必和大厂比广度</td></tr>
+        </tbody>
+      </table>
+
+      <h4 class="sub-h">9.2 交叉论证：「鉴赏」与「积累」是两件事</h4>
+      <div class="cols">
+        <div class="panel bad">
+          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4m0 4h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>竞品做的：积累</h4>
+          <ul>
+            <li><b>金句 / 素材 / 模板</b>：稿好语文的成语库、高级词汇、古诗词千首；笔神的素材卡片</li>
+            <li><b>风险</b>：所有孩子写同一个人、同一件事、同一句开头；素材库越厚，作品越雷同</li>
+            <li>笔神、稿好自己提供的「文段美化」「同义转化」本质上把答案代劳了</li>
+          </ul>
+        </div>
+        <div class="panel good">
+          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>需求要的：鉴赏</h4>
+          <ul>
+            <li><b>拆解</b>：看出一篇好作文为什么好——它的钩子在哪、选材角度独特在哪、结构怎么搭、哪三个句子是手法示范</li>
+            <li><b>迁移</b>：学到的是「可以套用到自己的题目上的写法」，不是「可以抄的句子」</li>
+            <li>现有产品里<b>只有笔神的「范文逐段讲解」沾边</b>，但那是范例欣赏，不是结构化拆解</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout">
+        <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>整合建议：从「范文库」升级为「拆解库 + 对照式批改」</h4>
+        <p><b>① 名篇拆解库</b>：一篇佳作拆成六层——题目钩子 / 开篇三句 / 选材角度 / 结构图 / 三个手法例句（逐句说明手法）/ 结尾回扣。每层只给「可迁移的写法」，不给可抄的句子；<b>每层末尾附一道「换到你的题目上会怎么写」的提示题</b>。<br/>
+        <b>② 批改从「改错」升级为「对照」</b>：批改结果不是「扣了几分」，而是「你这篇 vs 同题材佳作的差异清单」，只给最该改的三条。（借鉴笔神的多维批改 + 作文帮的温和分寸。）<br/>
+        <b>③ 素材改情境库</b>：同一个「坚持」主题下，给的是不同处境、不同年龄、不同细节的<b>情境</b>而不是金句，强制孩子填自己的经历。<br/>
+        <b>④ 三步训练流</b>（借鉴作文库）：审题 → 列提纲 → 写初稿，每步有系统反馈；<b>提纲这一步必须过才能写初稿</b>，这是防代写最有效的一步。<br/>
+        <b>⑤ 真实作品闭环</b>：每周一篇 → AI 初评 → 家长一句话反馈 → 学期末做成小册子。<b>对照自己的学期初稿，不与他人排名</b>——单娃工具最忌讳公开比较。<br/>
+        <b>⑥ 与模块 ② 打通</b>：写作里的「病句 / 表达问题」按错因标签进统一错题池，和数学错题共享复习排期。</p>
+      </div>
+    </section>
+
+    <!-- ============ 10 整合建议与路线 ============ -->
+    <section id="integrate">
+      <div class="sec-head">
+        <span class="sec-num">10</span>
+        <h3>整合建议与增量上线路线</h3>
+        <span class="tag">怎么落地</span>
+      </div>
+      <p class="lead-p">
+        六个模块单独看都不难，难的是让它们共用一套数据。<b>增量追加的正确顺序，不是按开发难度，而是按「地基 → 闭环 → 增量」的顺序。</b>
+      </p>
+
+      <h4 class="sub-h">10.1 统一底座：五个共享组件</h4>
+      <table class="tbl-src">
+        <thead><tr><th>组件</th><th>做什么</th><th>为什么必须先有</th></tr></thead>
+        <tbody>
+          <tr><td>全局上下文</td><td>地区 + 学段 + 年级 + 教材版本，只配置一次，之后全局生效</td><td>模块 ① 的产出是所有内容的定位依据；模块 ③ 的教材同步与模块 ④ 的考点排序全靠它</td></tr>
+          <tr><td>坐标树</td><td>地区考纲 → 学科 → 单元 → 考点，每考点带题型、分值权重、常见错因、母题 ID</td><td>六模块的内容必须能互相引用，否则退化成拼盘</td></tr>
+          <tr><td>统一 ID 体系</td><td>题目 / 单词 / 语法点 / 作文段 / 考点各有 ID，跨模块可互引</td><td>让「数学母题错因 → 关联语法点 → 关联作文评分点」这类跨模块推荐成立</td></tr>
+          <tr><td>统一错题池</td><td>所有模块的「做错」进同一池，带模块、学科、知识点、错因、复习排期</td><td><b>这是本项目相对所有竞品唯一的结构性优势</b>，也是错题模块真正能复盘的前提</td></tr>
+          <tr><td>统一复习调度</td><td>一条间隔重复队列管全部模块（借鉴 Anki + 试卷错题宝的定向复习引擎）</td><td>竞品错题本最大缺口；也是「整理完不积灰」的唯一解法</td></tr>
+        </tbody>
+      </table>
+
+      <h4 class="sub-h">10.2 五阶段增量路线</h4>
+      <table class="tbl-src">
+        <thead><tr><th>阶段</th><th>上线内容</th><th>要达成的目标</th><th>通过标准</th></tr></thead>
+        <tbody>
+          <tr><td>V0 地基</td><td>全局上下文配置 + 坐标树骨架 + 错题池（拍照录入 + 错因标签 + 重做队列）</td><td>把「一个娃学什么」和「他错在哪、什么时候再练」两个问题解决掉</td><td>能对任意一道错题回答：属于哪个考点、错因是什么、下次什么时候复习、变式题在哪</td></tr>
+          <tr><td>V1 习惯</td><td>背单词模块（课内线优先：教材单元 1:1 映射 + 闯关 + 连续天数）</td><td>先建立每天打开的习惯与最小成就感</td><td>连续 14 天完成率 ≥ 80%，课内单元词表覆盖到当前进度</td></tr>
+          <tr><td>V2 主战场</td><td>数学母题过关斩将（母题五段结构 + 三层变式 + 过关判据 + 错因二分）</td><td>做出竞品里几乎无人做的机制差异</td><td>每个母题至少 3 道变式；变式全对且能口述关键关系才算过关</td></tr>
+          <tr><td>V3 拓展</td><td>英语语法（句子变形器 + 错误即入口）+ 课外词线（熟词过滤 + 四档反馈）</td><td>补齐英语，并验证跨模块复盘是否跑得通</td><td>语法错句自动进错题池并排期；课外词复习完成率 ≥ 课内</td></tr>
+          <tr><td>V4 沉淀</td><td>语文写作（名篇拆解库 + 对照式批改 + 三步训练）+ 全模块关联推荐</td><td>完成闭环，并做出与竞品最本质的差别</td><td>每篇作文能给出「与同题材佳作的差异清单」；跨模块推荐命中率达可用水平</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout warn">
+        <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4m0 4h.01"/><circle cx="12" cy="12" r="10"/></svg>每阶段都要守住的四条红线</h4>
+        <p><b>① 反搜题</b>：任何练习的答案入口必须排在「孩子先作答」和「先看母题思路」之后。<br/>
+        <b>② AI 只做解释层</b>：千问的批改误判说明大模型不能当结论。判对错走确定性逻辑，AI 只负责讲解与追问；涉及分数必须有人工或家长兜底通道。<br/>
+        <b>③ 护眼是硬指标</b>：用眼时长统计、蓝光过滤、定时休息提醒、每 15 分钟强制远眺提醒——参考小学数学同步学的护眼三件套与洪恩的休息提醒。<br/>
+        <b>④ 不做公开比较</b>：家长端只看客观趋势与状态，不做同龄排名（参考斑马家长伴学模式的「专注度曲线与情绪状态」而非分数排名）。</p>
+      </div>
+
+      <h4 class="sub-h">10.3 风险清单</h4>
+      <div class="risk">
+        <span class="lv-badge" style="background:var(--up-soft);color:var(--up);border:1px solid var(--up-line)">高</span>
+        <div class="rb"><b>内容版权：题库、范文、真题均不可直接搬运</b><span>学科网、菁优、笔神的题库与范文都是受版权保护的商业资产。安全做法：题目用<b>自编或公开授权</b>（如 OpenStax、CC 授权教材、各地教育考试院公开发布的样题与考纲）；范文用<b>公开发表的获奖作品并标注出处</b>；教材同步只做「结构映射」不做「内容复制」。</span></div>
+      </div>
+      <div class="risk">
+        <span class="lv-badge" style="background:var(--up-soft);color:var(--up);border:1px solid var(--up-line)">高</span>
+        <div class="rb"><b>近视与用眼：52.7% 不是小数字</b><span>国家卫健委公开监测数据显示我国儿童青少年总体近视率已突破 52.7%；超 75% 的家庭无法完全依靠自身完成孩子全流程学习辅导——这正是工具的价值，也是责任。护眼能力必须是产品指标而不是营销词。</span></div>
+      </div>
+      <div class="risk">
+        <span class="lv-badge" style="background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber-line)">中</span>
+        <div class="rb"><b>搜题依赖：这是行业公认的用户伤害</b><span>大盘盘点明确指出作业帮、小猿这类工具的劣势是「存在用户过度依赖搜题、缺乏独立思考的风险，需要家长合理管控」。本项目设计必须从反面规避，否则把孩子教成了搜题机器。</span></div>
+      </div>
+      <div class="risk">
+        <span class="lv-badge" style="background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber-line)">中</span>
+        <div class="rb"><b>AI 幻觉与批改误判</b><span>已在竞品实测中出现（千问把正确题判为错）。凡涉及分数、判对错、AI 生成讲解，都必须有确定性规则兜底 + 可申诉路径 + 人工/家长复核入口。</span></div>
+      </div>
+      <div class="risk">
+        <span class="lv-badge" style="background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber-line)">中</span>
+        <div class="rb"><b>教材版本与考纲变动</b><span>地区考纲、教材版本会周期性调整（学科网强调「紧跟教育政策，内容随教材修订实时更新」）。坐标树需要版本化与失效标记，否则孩子会按旧考纲学。</span></div>
+      </div>
+      <div class="risk">
+        <span class="lv-badge" style="background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--accent-line)">低</span>
+        <div class="rb"><b>单用户规模有限，靠外部机制补足</b><span>自用工具拿不到墨墨那样的 1200 亿级记忆行为数据，也拿不到学而思的教研厚度。应对方式：借 Anki 的间隔重复算法模型、扇贝的熟词过滤、洪恩的母题结构与菁优的考点四段式，<b>用别人的机制代替自己的数据规模</b>。</span></div>
+      </div>
+    </section>
+
+    <!-- ============ 11 信息来源 ============ -->
+    <section id="sources">
+      <div class="sec-head">
+        <span class="sec-num">11</span>
+        <h3>信息来源与说明</h3>
+        <span class="tag">采集于 2026-10-30</span>
+      </div>
+      <p class="lead-p">
+        全部为公开网络资料，按「整体格局 / 地区与考纲 / 错题集 / 背单词 / 数学母题 / 英语语法 / 语文写作」七组列出。
+        同一事实尽量由两个以上独立来源交叉印证；凡只有单一来源的结论，正文已标注为待验证。
+      </p>
+
+      <h4 class="sub-h">11.1 整体格局与 K12 平台（8 条）</h4>
+      <table class="tbl-src">
+        <thead><tr><th>来源</th><th>链接</th><th>本报告引用点</th></tr></thead>
+        <tbody>
+          <tr><td>魔果云课 · 2026 年在线教育 APP 大盘点</td><td class="u-cell"><a class="src-link" href="https://docs.moguoyunke.com/blog/202609/2026-online-education-apps-top-list" target="_blank" rel="noopener noreferrer">https://docs.moguoyunke.com/blog/202609/2026-online-education-apps-top-list</a></td><td>三大趋势：AI 助教从噱头变标配（分水岭在「因材施教」vs「电子课本问答」）、全场景闭环成刚需、SaaS 赋能中小机构；学而思 AI 诊断与知识漏洞热力图；斑马家长伴学看专注度曲线与情绪状态；搜题依赖风险</td></tr>
+          <tr><td>魔果云课 · 5 大 K12 教育平台深度测评</td><td class="u-cell"><a class="src-link" href="https://docs.moguoyunke.com/blog/202609/must-read-k12-educational-platforms-review" target="_blank" rel="noopener noreferrer">https://docs.moguoyunke.com/blog/202609/must-read-k12-educational-platforms-review</a></td><td>测评权重（课程体系 30%／师资 25%／技术 20%／价格 15%／售后 10%）；学而思分层教学与双师 AI 课堂、单课时 80–150 元；猿辅导个人学习图谱与微技能点、单课时 50–100 元；作业帮直播课与搜题联动</td></tr>
+          <tr><td>PaperBERT · 十大 AI 搜题工具评测</td><td class="u-cell"><a class="src-link" href="https://www.paperbert.com/n/na-ge-ai-sou-ti-zui-hao-yong.html" target="_blank" rel="noopener noreferrer">https://www.paperbert.com/n/na-ge-ai-sou-ti-zui-hao-yong.html</a></td><td>五款工具识别/解题准确率与响应速度对比表（作业帮 95%、小猿 93%、学而思 97%、企鹅辅导 91%、百度文库 88%）；自述为该站自行测试</td></tr>
+          <tr><td>太平洋科技 · 2026 小学学习机选购研究</td><td class="u-cell"><a class="src-link" href="https://www.pconline.com.cn/zhizao/article/1646400.html" target="_blank" rel="noopener noreferrer">https://www.pconline.com.cn/zhizao/article/1646400.html</a></td><td>近视率突破 52.7%；超 75% 家庭无法独立完成全流程辅导；学习平板 2025 年销额 199.1 亿元；小学生占学习机群体 64.03%；步步高护眼 77 项专利与 AI 实景互动课本</td></tr>
+          <tr><td>校长邦 · 实测 4 大 AI 教育 App</td><td class="u-cell"><a class="src-link" href="https://m.toutiao.com/article/7586623809084523058" target="_blank" rel="noopener noreferrer">https://m.toutiao.com/article/7586623809084523058</a></td><td>作业帮/小猿/豆包爱学/千问的功能雷同；豆包「深度解题」先给错误思路再反思；千问批改只给对错且出现误判</td></tr>
+          <tr><td>长安少年派 · 主流学习软件实测对比</td><td class="u-cell"><a class="src-link" href="https://www.toutiao.com/article/7611440338875531818/" target="_blank" rel="noopener noreferrer">https://www.toutiao.com/article/7611440338875531818/</a></td><td>蜜蜂试卷擦除与组卷优势、「举一反三」出题质量被诟病、用户反馈录入变空白与「不如手写加深记忆」；爱作业只检查不讲解；作业帮/小猿广告与会员墙</td></tr>
+          <tr><td>腾讯新闻 · AI 学习机真实测评</td><td class="u-cell"><a class="src-link" href="https://news.qq.com/rain/a/20260730A0501O00" target="_blank" rel="noopener noreferrer">https://news.qq.com/rain/a/20260730A0501O00</a></td><td>学习机「不是提分外挂，是辅助工具」；松鼠 Ai LAM 模型与五重错因分析法、算法准确率超 90%</td></tr>
+          <tr><td>艾瑞专栏 · 作业帮「恶毒考题」</td><td class="u-cell"><a class="src-link" href="https://column.iresearch.cn/b/202511/1015856.shtml" target="_blank" rel="noopener noreferrer">https://column.iresearch.cn/b/202511/1015856.shtml</a></td><td>作业帮与学而思、猿辅导相比存在较严重的功能同质化问题</td></tr>
+        </tbody>
+      </table>
+
+      <h4 class="sub-h">11.2 地区与考纲（9 条）</h4>
+      <table class="tbl-src">
+        <thead><tr><th>来源</th><th>链接</th><th>本报告引用点</th></tr></thead>
+        <tbody>
+          <tr><td>学科网 App v3.1.20.3</td><td class="u-cell"><a class="src-link" href="http://www.orange2011.com/ruanj/21577.html" target="_blank" rel="noopener noreferrer">http://www.orange2011.com/ruanj/21577.html</a></td><td>橙子学（学生版）：小初高全学段、教材同步、课前预学—课中梳理—课后解析全链路、智能诊断定位薄弱点；覆盖 32 省市地方版本</td></tr>
+          <tr><td>学科网 Android v3.8.0</td><td class="u-cell"><a class="src-link" href="https://os-android.pianyi-sjczk.com/rj/59929.shtml" target="_blank" rel="noopener noreferrer">https://os-android.pianyi-sjczk.com/rj/59929.shtml</a></td><td>覆盖小学至中职九学科；千所名校中高考会考真题，每题附知识点标注与详细答案；名师题库配套举一反三；「试卷学伴」逐题标记对错并生成学情分析</td></tr>
+          <tr><td>学科网（咕咕猪）</td><td class="u-cell"><a class="src-link" href="http://mip.guguzhu.com/apple/326926/history_v3111" target="_blank" rel="noopener noreferrer">http://mip.guguzhu.com/apple/326926/history_v3111</a></td><td>教材与练习册同步 32 省市地方版本；名校题库与答案解析</td></tr>
+          <tr><td>学科网（星星下载站）</td><td class="u-cell"><a class="src-link" href="http://www.7gameba.com/app/106844.html" target="_blank" rel="noopener noreferrer">http://www.7gameba.com/app/106844.html</a></td><td>260 万套教学资源；按中高考真题、教材章节、知识点、难易度、年份多维筛选；智能错题复练机制（重做、变式训练、举一反三）</td></tr>
+          <tr><td>学科网（安卓手游下载网）</td><td class="u-cell"><a class="src-link" href="http://www.521898.com/app/23863.html" target="_blank" rel="noopener noreferrer">http://www.521898.com/app/23863.html</a></td><td>资料总数超 1294 万套、48.87TB；3472 多万会员；日更新数千套；独立服务器与带宽</td></tr>
+          <tr><td>学科网 3.1.17（河东软件园）</td><td class="u-cell"><a class="src-link" href="https://m.pc0359.cn/android/842357.html" target="_blank" rel="noopener noreferrer">https://m.pc0359.cn/android/842357.html</a></td><td>覆盖小学、初中、高中、中职；精选中高考真题并配套课件、教案、习题与解析</td></tr>
+          <tr><td>猿题库中考版 v9.37.4</td><td class="u-cell"><a class="src-link" href="https://m.njeis.cn/apps/6078.html" target="_blank" rel="noopener noreferrer">https://m.njeis.cn/apps/6078.html</a></td><td>贴合各地中考考纲、分省份按考点做题；试卷专区按学科/年级/地区筛选并可下载离线打印；随身错题本与草稿纸、闪电估分；教材设置入口</td></tr>
+          <tr><td>菁优中考 v1.53</td><td class="u-cell"><a class="src-link" href="https://www.ashmeta.com/softa/112442/" target="_blank" rel="noopener noreferrer">https://www.ashmeta.com/softa/112442/</a></td><td>每题设考点描述、分析、解答、点评；真题/好题/常考题/压轴题/易错题分类；按年份与地区筛卷；内置计算器与单位换算</td></tr>
+          <tr><td>中考地理通 v7.8.1</td><td class="u-cell"><a class="src-link" href="https://m.32r.com/app/121979.html" target="_blank" rel="noopener noreferrer">https://m.32r.com/app/121979.html</a></td><td>中考倒计时、知识点树、专题练习、多教材版本同步练习、错题自动分析、知识/题目/文章三态收藏</td></tr>
+        </tbody>
+      </table>
+
+      <h4 class="sub-h">11.3 错题集与复盘（6 条）</h4>
+      <table class="tbl-src">
+        <thead><tr><th>来源</th><th>链接</th><th>本报告引用点</th></tr></thead>
+        <tbody>
+          <tr><td>KK 下载站 · 手机错题本软件推荐</td><td class="u-cell"><a class="src-link" href="http://www.kkx.net/zt/279623.html" target="_blank" rel="noopener noreferrer">http://www.kkx.net/zt/279623.html</a></td><td>考霸错题本（按学科知识点自动分类、拍整张卷子组卷、高频错题数据剖析）、橙果错题本（按时间/科目/年级分类、Word 导出打印）、错题打印机、拾光喵错题本（清除手写痕迹 + AI 解题 + 学习报告）、错题星</td></tr>
+          <tr><td>菜鸟 AI · 错题整理 App 免费排行</td><td class="u-cell"><a class="src-link" href="https://www.cn486.com/news/4210972" target="_blank" rel="noopener noreferrer">https://www.cn486.com/news/4210972</a></td><td>错题整理神器（擦笔迹 + 双维标签 + 统计看板 + PDF 导出 + 同类题推荐 + 云同步）、错题星（图像增强、20GB 云、组卷、诊断报告）、A+ 错题本（自定义错因标签）、考霸错题本（三级结构）、试卷错题宝（定向复习引擎）</td></tr>
+          <tr><td>KK 下载站 · 手机错题本软件合集</td><td class="u-cell"><a class="src-link" href="http://www.kkx.net/zt/276671.html" target="_blank" rel="noopener noreferrer">http://www.kkx.net/zt/276671.html</a></td><td>精准学习、向上网、叮当同学（AI 处理错题 + 一键打印）、汉印错题、橙果错题本等的功能重合情况</td></tr>
+          <tr><td>一聚教程网 · 免费错题整理 app 推荐</td><td class="u-cell"><a class="src-link" href="https://www.111cn.net/new/592098.htm" target="_blank" rel="noopener noreferrer">https://www.111cn.net/new/592098.htm</a></td><td>五款错题工具的逐项功能对照；错题整理神器的批量框选与免费导出；A+ 错题本的错因标签（计算失误/概念混淆）</td></tr>
+          <tr><td>单词鸭 · 英语错题集软件推荐</td><td class="u-cell"><a class="src-link" href="https://wordln.com/article/5945106.html" target="_blank" rel="noopener noreferrer">https://wordln.com/article/5945106.html</a></td><td>Anki 间隔重复与自定义卡片模板、Quizlet 学习集与 AI 解析、Notion 数据库与标签优先级；错题整理原则：24 小时内整理、按知识点与错误类型分类、记录错误原因与延伸</td></tr>
+          <tr><td>PP 助手 · 免费错题整理 app</td><td class="u-cell"><a class="src-link" href="https://www.25pp.com/zixun/4290905154989797654.html" target="_blank" rel="noopener noreferrer">https://www.25pp.com/zixun/4290905154989797654.html</a></td><td>错题整理工具的共性能力边界：手抄 → 拍照录入 → 自动分类 → 导出打印</td></tr>
+        </tbody>
+      </table>
+
+      <h4 class="sub-h">11.4 背单词（8 条）</h4>
+      <table class="tbl-src">
+        <thead><tr><th>来源</th><th>链接</th><th>本报告引用点</th></tr></thead>
+        <tbody>
+          <tr><td>华南新闻网 · 四六级背单词 App 横评</td><td class="u-cell"><a class="src-link" href="https://www.huasouth.com/list/160455.html" target="_blank" rel="noopener noreferrer">https://www.huasouth.com/list/160455.html</a></td><td>百词斩图片记忆与广告、扇贝精简单词与功能繁杂、墨墨算法与免费额度上限、不背单词语境与切换耗时</td></tr>
+          <tr><td>江苏广播网 · 2026 暑假背单词横评</td><td class="u-cell"><a class="src-link" href="https://www.vojs.cn/2014new/g/tw_content_2413.shtml" target="_blank" rel="noopener noreferrer">https://www.vojs.cn/2014new/g/tw_content_2413.shtml</a></td><td>扇贝注册用户超 2 亿；精简单词专利 ZL 2024 1 1008490.X、440 万用户过滤熟词 24.37 亿个；词文串学、短文填词导出 PDF；平板手写默写与手表速记；墨墨学术背书、不背单词影视原声、百词斩低龄与多邻国无国内专项</td></tr>
+          <tr><td>今日头条 · 高中生背单词 APP 怎么选 2026</td><td class="u-cell"><a class="src-link" href="https://www.toutiao.com/a7688345572306092578" target="_blank" rel="noopener noreferrer">https://www.toutiao.com/a7688345572306092578</a></td><td>课标词汇表 3,000 词构成（义务教育 1,500 + 必修 500 + 选择性必修 1,000，各地可增约 200）；百词斩 2012 上线、200 余词书、截至 2024 累计用户超 2 亿、训练题型与词典来源；分学段选型建议；三个常见误区</td></tr>
+          <tr><td>CSDN DevPress · 五大背单词 App 底层技术拆解</td><td class="u-cell"><a class="src-link" href="https://devpress.csdn.net/v1/article/detail/161926444" target="_blank" rel="noopener noreferrer">https://devpress.csdn.net/v1/article/detail/161926444</a></td><td>墨墨 SSP-MMC 顶会论文、1200 亿+ 样本、遗忘衰减函数双变量、四档反馈、365 天间隔、Excel/TXT 导入、纯原生；背单词花园 Flutter 双端、花园 2D 养成引擎、音节拆分与 48 组音标规则、30+ 教材版本映射；百词斩 6 套渲染模板与图片依赖伪记忆；不背单词 150 万原声例句与四维记忆矩阵；扇贝 LLM 动态曲线与多 App 数据中台</td></tr>
+          <tr><td>江南时报 · 主流英语背单词 APP 对比</td><td class="u-cell"><a class="src-link" href="https://www.jntimes.cn/xxzx/202509/t20250912_8521442.shtml" target="_blank" rel="noopener noreferrer">https://www.jntimes.cn/xxzx/202509/t20250912_8521442.shtml</a></td><td>「记忆」与「应用」脱节的核心弊病；百词斩图像记忆、多邻国游戏化、不背单词真实语境、墨墨遗忘曲线四条路线；扇贝 AI 语境生成与短文填词</td></tr>
+          <tr><td>新浪财经 · 四六级如何背单词</td><td class="u-cell"><a class="src-link" href="https://cj.sina.com.cn/articles/view/5578512800/14c8159a000101zpce" target="_blank" rel="noopener noreferrer">https://cj.sina.com.cn/articles/view/5578512800/14c8159a000101zpce</a></td><td>四款 App 的特点与缺点对照；艾宾浩斯复习节点（5 分钟 → 30 分钟 → 12 小时 → 1/2/4/7/15 天）；词根词缀联想法</td></tr>
+          <tr><td>金木网 · 六级词汇 app 怎么选</td><td class="u-cell"><a class="src-link" href="https://www.jingmu.net/html/baike/cd355h1ry02.html" target="_blank" rel="noopener noreferrer">https://www.jingmu.net/html/baike/cd355h1ry02.html</a></td><td>四款 App 的核心记忆模式、适配场景与明显短板对照表；每日 80–120 新词 + 两倍复习量；考前 20 天切真题词模式；超六成高分考生搭配两款 App 使用</td></tr>
+          <tr><td>人民日报 · 12 月的四六级</td><td class="u-cell"><a class="src-link" href="https://www.peopleapp.com/rmharticle/30025641405" target="_blank" rel="noopener noreferrer">https://www.peopleapp.com/rmharticle/30025641405</a></td><td>百词斩 / 墨墨 / 扇贝 / 不背单词的优缺点逐条对照（谐音记忆、词组较少、真题例句、原声例句等）</td></tr>
+        </tbody>
+      </table>
+
+      <h4 class="sub-h">11.5 数学母题（8 条）</h4>
+      <table class="tbl-src">
+        <thead><tr><th>来源</th><th>链接</th><th>本报告引用点</th></tr></thead>
+        <tbody>
+          <tr><td>好软软件站 · 洪恩思维 v5.20.4</td><td class="u-cell"><a class="src-link" href="https://haoruan.com/azrj/8100.html" target="_blank" rel="noopener noreferrer">https://haoruan.com/azrj/8100.html</a></td><td><b>应用题母题：小学 1–6 年级 185 道，母题剖析讲解 + 子题变式练习</b>；计算专题 100 以内加减乘除与上万题库；乘除法专项 500+；数独 180+；逻辑专项 9 种思维；100 核心知识点 / 10 类探索旅程 / 400 种学习场景 / 5 步教学环节 / 每 8 知识点阶段考试；四大知识板块</td></tr>
+          <tr><td>品牌网 · 三大国产 AI 学习助手实测</td><td class="u-cell"><a class="src-link" href="https://m.chinapp.com/jingcaidianping/228466" target="_blank" rel="noopener noreferrer">https://m.chinapp.com/jingcaidianping/228466</a></td><td>学而思 AI 数学（分层教学、结构化拆解、小众教材不全、拔高偏难）；小猿 AI（30 亿题库、98% 命中、真人+AI 双师追问式引导、诊—学—练—测—评闭环、AI 错题本归集错因推同类题）；科大讯飞 T90 Pro（区分公式记错与步骤跳步、苏格拉底式提问、情境重构变式、覆盖全国全版本教材、初中数理化平均提分超 20 分）；顺势 AI 自适应学练</td></tr>
+          <tr><td>新绿资源网 · 学而思小猴思维 v1.3.1</td><td class="u-cell"><a class="src-link" href="https://www.xlhs.com/app/18154.html" target="_blank" rel="noopener noreferrer">https://www.xlhs.com/app/18154.html</a></td><td>3–8 岁；九大数学思维与七大底层学习能力；名师 AI 互动课引导举一反三；每天 15 分钟；100 余万道题且每道培优难题配视频解析；卡牌收集系统</td></tr>
+          <tr><td>西西软件网 · 小学数学题练习软件合集</td><td class="u-cell"><a class="src-link" href="http://m.hzzjxy.com/softnews/115783.html" target="_blank" rel="noopener noreferrer">http://m.hzzjxy.com/softnews/115783.html</a></td><td>小猿搜题（错题自动归集、按学科知识点难度筛选、一键导出 PDF）、小盒学生（闯关解锁 + 动画 + 护眼提醒）、钉题库（顺序/随机刷题、错题关联考点、密押卷、倍速离线）、小学数学同步学（教材切换、四层梯度、3D 动画、智能批改归档、生成个性化复习计划、无广告 + 护眼）</td></tr>
+          <tr><td>豌豆荚 · 小学数学题练习软件盘点</td><td class="u-cell"><a class="src-link" href="https://www.wandoujia.com/strategy/208644025223339229.html" target="_blank" rel="noopener noreferrer">https://www.wandoujia.com/strategy/208644025223339229.html</a></td><td>同一组产品的家长视角描述：拍照搜题的手写/图表识别与解析质量、护眼与纯净界面、错题打印与重做</td></tr>
+          <tr><td>正软商城 · 小学数学题练习软件推荐</td><td class="u-cell"><a class="src-link" href="https://www.zhengruan.com/news/663173" target="_blank" rel="noopener noreferrer">https://www.zhengruan.com/news/663173</a></td><td>作业帮（智能批改错误高亮 + 错题归档）、猿题库（知识点图谱、按薄弱项定向推送、小升初真题）、小猿口算（拍照整页批阅、计时挑战与正确率闯关）、口算宝（自动汇总高频错题 + 文字说明定位失误根源）、中小学辅导班（按单元课时同步）</td></tr>
+          <tr><td>安族网 · 番茄思维数学 v1.0.1</td><td class="u-cell"><a class="src-link" href="https://m.apkzu.com/app/557322.html" target="_blank" rel="noopener noreferrer">https://m.apkzu.com/app/557322.html</a></td><td>错题自动收集；口算、竖式及单位换算手写作答；多题型检查（口算、填空、竖式、单位换算、选择、判断、应用题）准确率称 99%+；同步人教版等各地教材</td></tr>
+          <tr><td>App Store · 小学数学思维奥数（学而思考举一反三）</td><td class="u-cell"><a class="src-link" href="https://apps.apple.com/cn/app/%E5%B0%8F%E5%AD%A6%E6%95%B0%E5%AD%A6%E6%80%9D%E7%BB%B4%E5%A5%A5%E6%95%B0/id1459233467" target="_blank" rel="noopener noreferrer">https://apps.apple.com/cn/app/id1459233467</a></td><td>典型母题清单（植树问题、和差问题、数列问题、盈亏问题、和倍问题、差倍问题、列方程解应用题、相遇问题、追及问题、火车过桥问题、流水行船问题、还原问题、鸡兔同笼、火柴棒问题）；同步人教/苏教/鲁教/浙教/沪教/京教；15 分钟一节课的知识点动画 + 例题分析 + 专项习题演练结构</td></tr>
+        </tbody>
+      </table>
+
+      <h4 class="sub-h">11.6 英语语法（10 条）</h4>
+      <table class="tbl-src">
+        <thead><tr><th>来源</th><th>链接</th><th>本报告引用点</th></tr></thead>
+        <tbody>
+          <tr><td>Top Apps List · Best Grammar Checker Apps 2026</td><td class="u-cell"><a class="src-link" href="https://top-apps-list.com/articles/best-grammar-checker-apps" target="_blank" rel="noopener noreferrer">https://top-apps-list.com/articles/best-grammar-checker-apps</a></td><td>Grammarly Pro 约 $12/月年付、$30 月付；LanguageTool Premium 约 €5/月年付、€20 月付、覆盖 30+ 语言；ProWritingAid 年付更便宜；「磨平语气」的批评与免费额度限制</td></tr>
+          <tr><td>Happy English UK · ESL 中级语法 App 横评</td><td class="u-cell"><a class="src-link" href="https://www.happyenglishuk.com/?p=388/" target="_blank" rel="noopener noreferrer">https://www.happyenglishuk.com/?p=388/</a></td><td>60 小时 / 15 平台测试方法；Grammarly Premium 综合第一（4.8 分、32,140 条评价）；ELSA Speak 性价比第一（4.6 分、12,500 条评价）；British Council / Babbel / FluentU 对比</td></tr>
+          <tr><td>Happy English UK · ESL 初级语法 App</td><td class="u-cell"><a class="src-link" href="https://www.happyenglishuk.com/?p=785/" target="_blank" rel="noopener noreferrer">https://www.happyenglishuk.com/?p=785/</a></td><td>四周测试 15 个平台；Grammarly / ProWritingAid / LanguageTool / Quillbot / WhiteSmoke 五款的定位与评分</td></tr>
+          <tr><td>Your English Guide · 2025 语法学习 App 指南</td><td class="u-cell"><a class="src-link" href="https://yourenglishguide.com/?p=214/" target="_blank" rel="noopener noreferrer">https://yourenglishguide.com/?p=214/</a></td><td>语法书枯燥、规则难记的问题定义；British Council Grammar 为 A1–A2 首选（规则清晰、例句简单、结构化、来源可信）；LearnEnglish Grammar 练习题量与分级</td></tr>
+          <tr><td>English Language Studies · 十大英语写作 App</td><td class="u-cell"><a class="src-link" href="https://englishlanguagestudies.com/best-apps-to-improve-english-writing/" target="_blank" rel="noopener noreferrer">https://englishlanguagestudies.com/best-apps-to-improve-english-writing/</a></td><td>Grammarly（语法风格语气标点清晰度 + 简单语言解释 + 查重 + 浏览器扩展）、Quillbot（多模式改写）、ProWritingAid（深度分析）三家定位</td></tr>
+          <tr><td>Educational App Store · 语法 App 评测</td><td class="u-cell"><a class="src-link" href="http://educationalappstore.com/best-apps/best-grammar-apps" target="_blank" rel="noopener noreferrer">http://educationalappstore.com/best-apps/best-grammar-apps</a></td><td>语法类 App 的通用能力：交互式课程、练习、即时反馈、个性化学习路径；Originality.ai（AI 检测、查重、事实核查、可读性，18+）</td></tr>
+          <tr><td>CoursesData · 免费英语学习 App</td><td class="u-cell"><a class="src-link" href="https://coursesdata.com/?p=18398" target="_blank" rel="noopener noreferrer">https://coursesdata.com/?p=18398</a></td><td>按技能分类的免费工具组合；Duolingo 的游戏化与免费全量英语课程</td></tr>
+          <tr><td>CleverType · 语法键盘类 App</td><td class="u-cell"><a class="src-link" href="https://www.clevertype.co/post/grammatical-keyboard-apps-that-fix-your-english-instantly" target="_blank" rel="noopener noreferrer">https://www.clevertype.co/post/grammatical-keyboard-apps-that-fix-your-english-instantly</a></td><td>语法键盘机制（替换系统键盘、跨应用实时纠错）；主流选项 CleverType / Grammarly Keyboard / SwiftKey；端侧 AI 处理与隐私；从业者报告错误减少 35%、每周省 45 分钟校对</td></tr>
+          <tr><td>Cosmiq · 各类学习者语法 App</td><td class="u-cell"><a class="src-link" href="https://getcosmiq.app/blog/boost-your-english-top-grammar-apps-for-every-learner" target="_blank" rel="noopener noreferrer">https://getcosmiq.app/blog/boost-your-english-top-grammar-apps-for-every-learner</a></td><td>语法 App 的五项通用价值（灵活、个性化、互动、即时反馈、成本低）；Grammarly 的实时反馈与解释如何帮助内化正确用法</td></tr>
+          <tr><td>English Language Studies · 英语写作练习 App 指南</td><td class="u-cell"><a class="src-link" href="https://www.englishlanguagestudies.com/best-apps-to-improve-english-writing" target="_blank" rel="noopener noreferrer">https://www.englishlanguagestudies.com/best-apps-to-improve-english-writing</a></td><td>写作练习类工具的三种形态与适用人群（学术写作、邮件沟通、博客创作）</td></tr>
+        </tbody>
+      </table>
+
+      <h4 class="sub-h">11.7 语文写作（10 条）</h4>
+      <table class="tbl-src">
+        <thead><tr><th>来源</th><th>链接</th><th>本报告引用点</th></tr></thead>
+        <tbody>
+          <tr><td>手心网 · 笔神作文 v7.13.28</td><td class="u-cell"><a class="src-link" href="https://www.139y.com/android/384093.html" target="_blank" rel="noopener noreferrer">https://www.139y.com/android/384093.html</a></td><td>500 万篇范文与素材；看动画（写作思路）、读名著（语音导读 + 文字赏析）、听知识（国学、成语故事）、范文讲解、文学榜投稿与名家点评、素材卡片、单元作文与个性化修改、AI 批改 360 度评估、人工批改</td></tr>
+          <tr><td>优软安卓网 · 笔神作文介绍</td><td class="u-cell"><a class="src-link" href="https://m.youruanapk.com/apply/bgxx/20260729/1688.html" target="_blank" rel="noopener noreferrer">https://m.youruanapk.com/apply/bgxx/20260729/1688.html</a></td><td>动画微课四大技巧（审题立意、细节描写、谋篇布局）；AI 多维批改从错别字标点病句到段落结构立意并生成学情报告；真人精批选项；平台自述「AI 不能完全等同于老师人工阅卷」「范文不建议直接抄袭照搬」；覆盖小学 2–6、初中、高中</td></tr>
+          <tr><td>96 下载站 · 笔神作文手机版</td><td class="u-cell"><a class="src-link" href="http://m.96xz.com/show-6-34170-1.html" target="_blank" rel="noopener noreferrer">http://m.96xz.com/show-6-34170-1.html</a></td><td>素材卡片每日五句、分类素材关键词库、各地中高考优秀范文、AI 辅导老师给出立意方向与结构框架并指出逻辑漏洞与词汇重复</td></tr>
+          <tr><td>9 亿软件站 · 笔神作文 v7.13.22</td><td class="u-cell"><a class="src-link" href="https://www.91rjz.com/pcsoft/207830.html" target="_blank" rel="noopener noreferrer">https://www.91rjz.com/pcsoft/207830.html</a></td><td>选年级后自动匹配素材与指导；自定义范文段落并智能优化句子结构；教材同步作文新增五四制版本；素材分类（坚持/爱国/自律/文艺/文化/自然/梦想/美德/历史）</td></tr>
+          <tr><td>多多网 · 稿好语文 v2.10.7</td><td class="u-cell"><a class="src-link" href="https://ddooo.com/softdown/217626.htm" target="_blank" rel="noopener noreferrer">https://ddooo.com/softdown/217626.htm</a></td><td>初中 132 点 / 高中 138 点答题技巧；文言文实词虚词、通假字、词类活用、特殊句式；人物专辑、时事、2015 至今高考作文分析、写作模板、文段美化、同义转化、AI 写作多文体；在线自习室与文学社</td></tr>
+          <tr><td>河东软件园 · 语文天天读 3.0.0</td><td class="u-cell"><a class="src-link" href="https://m.pc0359.cn/android/921363.html" target="_blank" rel="noopener noreferrer">https://m.pc0359.cn/android/921363.html</a></td><td>五大体裁与分学段指导；人物/名人/成功/美德/人生分类素材库；名师视频微课；AI 批改 + 人工建议；中高考满分作文与名家名篇；每日打卡、个性化学习报告、离线、多端同步、核心功能免费</td></tr>
+          <tr><td>作文库 App</td><td class="u-cell"><a class="src-link" href="http://www.cbjy520.com/app/301508.html" target="_blank" rel="noopener noreferrer">http://www.cbjy520.com/app/301508.html</a></td><td>严格遵循国家课程标准；写作方法导图与分步提示（审题要点、结构设计、开头结尾技巧）；素材标注出处；离线 + 本地收藏 + 导出文本；无广告；看图写话专项；无障碍阅读模式；审题—列提纲—写初稿三步训练</td></tr>
+          <tr><td>作文帮 App</td><td class="u-cell"><a class="src-link" href="http://www.cbjy520.com/app/258392.html" target="_blank" rel="noopener noreferrer">http://www.cbjy520.com/app/258392.html</a></td><td>三步提示模板「开头引导—中间展开—结尾升华」；无敏感词智能辅助（仅语法、逻辑、结构层面的温和建议）；教师协同入口可导出写作过程记录与修改痕迹；看图写话专项</td></tr>
+          <tr><td>pc768 · 笔神作文安卓版</td><td class="u-cell"><a class="src-link" href="https://www.pc768.com/soft/98062.html" target="_blank" rel="noopener noreferrer">https://www.pc768.com/soft/98062.html</a></td><td>范文讲解（讲结构、逻辑与表达技巧）、智能辅导分析优点不足并推荐描写段落与词汇、个性化选题、互动社区、人工批改一对一辅导、离线使用</td></tr>
+          <tr><td>3322 软件站 · 笔神作文 iOS 版</td><td class="u-cell"><a class="src-link" href="https://m.32r.com/app/74497.html" target="_blank" rel="noopener noreferrer">https://m.32r.com/app/74497.html</a></td><td>文学榜、素材卡片、范文搜索与逐段讲解、名著音频导读；覆盖小学到高中分年级提供写作技能</td></tr>
+        </tbody>
+      </table>
+
+      <p class="note"><b>采信程度说明</b>：本报告全部来源为公开网络资料，竞品功能描述多来自其官方应用商店页、官网介绍与第三方横评文章，已按「官方 / 第三方测评 / 用户实测」三档交叉比对；标注了「仅该站自行测试」的评分类数据（AI 搜题准确率横评）不作为绝对结论使用。第三方横评存在利益相关与样本偏差，可能对推广产品有利，<b>建议把每条结论回到官方页面复核后再用于开发决策</b>。<b>本报告为公开资料研究，不构成教育效果承诺，也不构成法律意见</b>——涉及教材与题库版权、未成年人数据合规的最终判断，建议在正式开发前取得平台或专业法律意见。</p>
+    </section>
+
+    <footer class="foot" id="bottom">
+      <span>研究于 2026-10-30 · 归属「常规事务研究」</span>
+      <span>资料来源：59 组公开网络资料（格局 8 / 地区 9 / 错题 6 / 单词 8 / 数学 8 / 语法 10 / 写作 10）</span>
+      <span>方法：需求拆解 → 分模块竞品采集 → 功能对比 → 优缺点判读 → 整合建议 → 增量路线</span>
+      <span>本报告为公开资料研究，不构成教育效果承诺与法律意见</span>
+    </footer>
+
+  </main>
+</div>
+
+<!-- 移动端悬浮导航按钮（下滑后出现） -->
+<button class="m-fab" id="fab" type="button" aria-label="打开导航目录">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+  目录
+</button>
+
+<script>
+(function(){
+  var links   = Array.prototype.slice.call(document.querySelectorAll('.nav-link'));
+  var pairs   = links.map(function(l){
+    var id = l.getAttribute('href').replace('#','');
+    var isJump = (id === 'top' || id === 'bottom');
+    return { link:l, sec: isJump ? null : document.getElementById(id) };
+  });
+  var sidebar = document.querySelector('.sidebar');
+  var scrim   = document.getElementById('scrim');
+  var fab     = document.getElementById('fab');
+  var mTitle  = document.getElementById('mTitle');
+  var panelOpen = false;
+
+  function isMobile(){ return window.matchMedia('(max-width:1000px)').matches; }
+  function openPanel(){
+    panelOpen = true;
+    if (sidebar) sidebar.classList.add('open');
+    if (scrim)   scrim.classList.add('show');
+  }
+  function closePanel(){
+    panelOpen = false;
+    if (sidebar) sidebar.classList.remove('open');
+    if (scrim)   scrim.classList.remove('show');
+  }
+  function togglePanel(){ panelOpen ? closePanel() : openPanel(); }
+
+  function onScroll(){
+    var y = window.scrollY + 140, idx = -1;
+    for (var i=0;i<pairs.length;i++){
+      if (pairs[i].sec && pairs[i].sec.offsetTop <= y) { idx = i; }
+    }
+    if (idx < 0) { idx = 0; for (var j=0;j<pairs.length;j++){ if (pairs[j].sec){ idx = j; break; } } }
+
+    pairs.forEach(function(p,i){ if (p.sec) p.link.classList.toggle('active', i === idx); });
+
+    if (mTitle) {
+      mTitle.textContent = window.scrollY < 40
+        ? '常规事务研究'
+        : pairs[idx].link.textContent.replace(/[↑↓]\s*/g,'').trim();
+    }
+    // 下滑后导航不可见 → 收起来为悬浮按钮
+    if (fab) fab.classList.toggle('show', window.scrollY > 80);
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', onScroll);
+  onScroll();
+
+  // 导航点击：顶/底跳转 或 锚点定位
+  pairs.forEach(function(p){
+    p.link.addEventListener('click', function(e){
+      e.preventDefault();
+      var href = p.link.getAttribute('href');
+      if (href === '#top') {
+        window.scrollTo({top:0, behavior:'smooth'});
+      } else if (href === '#bottom') {
+        window.scrollTo({top:document.documentElement.scrollHeight, behavior:'smooth'});
+      } else if (p.sec) {
+        window.scrollTo({top: p.sec.getBoundingClientRect().top + window.scrollY - 18, behavior:'smooth'});
+        history.replaceState(null,'',href);
+      }
+      closePanel();
+    });
+  });
+
+  var menuBtn  = document.getElementById('menuBtn');
+  var closeBtn = document.getElementById('closeBtn');
+  var topBtn   = document.getElementById('topBtn');
+  if (menuBtn)  menuBtn.addEventListener('click', togglePanel);
+  if (closeBtn) closeBtn.addEventListener('click', closePanel);
+  if (fab)      fab.addEventListener('click', togglePanel);
+  if (scrim)    scrim.addEventListener('click', closePanel);
+  if (topBtn)   topBtn.addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closePanel(); });
+
+  // 移动端表格卡片：为每个单元格补列名标签
+  Array.prototype.forEach.call(document.querySelectorAll('table'), function(t){
+    var heads = Array.prototype.map.call(t.querySelectorAll('thead th'), function(th){
+      return th.textContent.trim();
+    });
+    Array.prototype.forEach.call(t.querySelectorAll('tbody tr'), function(tr){
+      Array.prototype.forEach.call(tr.children, function(td,i){
+        if (heads[i]) td.setAttribute('data-label', heads[i]);
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>

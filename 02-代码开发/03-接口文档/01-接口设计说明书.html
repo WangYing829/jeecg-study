@@ -1,0 +1,3811 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jeecg-study · 接口设计说明书</title>
+<style>
+
+  :root{
+    --bg:#fafaf9; --surface:#ffffff; --chrome:#f7f7f5; --line:#e6e6e1; --line-soft:#eeeeea;
+    --ink:#15171c; --ink-2:#454b58; --muted:#8b8f98;
+    --accent:#10b981; --accent-ink:#047857; --accent-soft:rgba(16,185,129,.10); --accent-line:rgba(16,185,129,.28);
+    --up:#d93a2b; --up-soft:rgba(217,58,43,.10); --up-line:rgba(217,58,43,.28);
+    --down:#0f8a6d; --down-soft:rgba(15,138,109,.10); --down-line:rgba(15,138,109,.28);
+    --amber:#b07d12; --amber-soft:rgba(176,125,18,.10); --amber-line:rgba(176,125,18,.28);
+    --sans:'Outfit','PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif;
+    --mono:'JetBrains Mono','SFMono-Regular',Consolas,monospace;
+    --nav-w:272px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:var(--sans);font-size:15px;line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(720px 300px at 10% -8%, rgba(16,185,129,.06), transparent 62%),
+      radial-gradient(620px 280px at 94% -6%, rgba(21,94,117,.05), transparent 60%);
+    background-repeat:no-repeat;
+  }
+  a{color:inherit;}
+  code{font-family:var(--mono);font-size:.88em;background:#f4f4f1;border:1px solid var(--line-soft);border-radius:4px;padding:1px 5px;overflow-wrap:anywhere;}
+
+  /* ============ 布局：侧边导航 + 章节正文 ============ */
+  .shell{display:flex;align-items:flex-start;max-width:1280px;margin:0 auto;gap:0;}
+  .sidebar{
+    width:var(--nav-w);flex:none;position:sticky;top:0;align-self:flex-start;
+    height:100vh;overflow-y:auto;padding:26px 20px 40px 24px;border-right:1px solid var(--line);
+  }
+  .sidebar::-webkit-scrollbar{width:8px;}
+  .sidebar::-webkit-scrollbar-thumb{background:#dcdcd6;border-radius:6px;}
+  .brand{display:flex;align-items:center;gap:9px;margin-bottom:6px;}
+  .brand-mark{width:26px;height:26px;flex:none;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--accent-line);}
+  .brand-mark svg{width:14px;height:14px;}
+  .brand h1{font-size:15px;font-weight:600;margin:0;letter-spacing:-.01em;}
+  .meta-line{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-bottom:18px;}
+  .nav-title{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;padding-left:11px;}
+  .nav-link{
+    display:flex;align-items:center;gap:8px;padding:7px 11px;border-radius:9px;
+    font-size:13.5px;color:var(--ink-2);text-decoration:none;border-left:2px solid transparent;
+    transition:background .15s,color .15s,border-color .15s;
+  }
+  .nav-link:hover{background:#f0f0ec;color:var(--ink);}
+  .nav-link.active{background:var(--accent-soft);color:var(--accent-ink);border-left-color:var(--accent);font-weight:500;}
+  .nav-link .lv{
+    margin-left:auto;font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:999px;
+    border:1px solid var(--line);background:var(--surface);color:var(--muted);white-space:nowrap;
+  }
+  .nav-link.active .lv{border-color:var(--accent-line);background:var(--surface);}
+  .mini-rate{margin-top:14px;border-top:1px solid var(--line);padding-top:14px;}
+  .mini-row{display:flex;align-items:center;gap:8px;margin-bottom:9px;font-size:12px;color:var(--ink-2);}
+  .mini-row .bar{flex:1;height:6px;background:#eeeeea;border-radius:4px;overflow:hidden;}
+  .mini-row .bar i{display:block;height:100%;border-radius:4px;}
+  .mini-row .n{font-family:var(--mono);font-size:10.5px;color:var(--muted);width:58px;text-align:right;}
+
+  .main{flex:1;min-width:0;padding:34px 40px 80px;}
+
+  /* ============ 标题区 ============ */
+  .kicker{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink);background:var(--accent-soft);border:1px solid var(--accent-line);padding:5px 11px;border-radius:999px;}
+  .kicker i{width:6px;height:6px;border-radius:50%;background:var(--accent);}
+  h2.title{font-size:32px;line-height:1.25;font-weight:600;letter-spacing:-.018em;margin:16px 0 0;}
+  .sub{color:var(--ink-2);font-size:15px;margin:10px 0 0;max-width:74ch;}
+  .facts{display:flex;flex-wrap:wrap;gap:9px;margin-top:20px;}
+  .fact{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:9px 13px;box-shadow:0 2px 8px rgba(0,0,0,.03);}
+  .fact b{display:block;font-family:var(--mono);font-size:15px;font-weight:600;letter-spacing:-.01em;}
+  .fact span{font-size:11.5px;color:var(--muted);}
+
+  /* 语义色工具类 */
+  .up{color:var(--up);} .down{color:var(--down);} .flat{color:var(--muted);} .amber{color:var(--amber);}
+
+  /* ============ 章节 ============ */
+  section{margin-top:52px;scroll-margin-top:24px;}
+  .sec-head{display:flex;align-items:baseline;gap:11px;padding-bottom:11px;border-bottom:1px solid var(--line);margin-bottom:20px;}
+  .sec-num{font-family:var(--mono);font-size:12px;color:var(--accent-ink);font-weight:600;}
+  .sec-head h3{font-size:21px;font-weight:600;letter-spacing:-.012em;margin:0;}
+  .sec-head .tag{margin-left:auto;font-size:11.5px;color:var(--muted);font-family:var(--mono);}
+  p{margin:0 0 11px;}
+  .lead-p{font-size:15.5px;color:var(--ink-2);max-width:78ch;margin-bottom:18px;}
+  h4.sub-h{font-size:15px;font-weight:600;margin:26px 0 10px;letter-spacing:-.008em;}
+  h5.sub-h5{font-size:13.5px;font-weight:600;margin:18px 0 7px;color:var(--ink-2);}
+  ul.plain{margin:6px 0 12px;padding-left:20px;}
+  ul.plain li{margin:5px 0;font-size:13.5px;color:var(--ink-2);}
+  ol.plain{margin:6px 0 12px;padding-left:20px;}
+  ol.plain li{margin:5px 0;font-size:13.5px;color:var(--ink-2);}
+  .cite-src{display:inline-block;margin-top:5px;font-family:var(--mono);font-size:10.5px;color:var(--muted);
+    border:1px solid var(--line);border-radius:5px;padding:1px 6px;background:var(--surface);}
+  .cite-src a{color:var(--accent-ink);text-decoration:none;}
+
+  /* ============ 核心信息 ============ */
+  .core-list{list-style:none;padding:0;margin:0;}
+  .core-item{display:flex;gap:13px;padding:13px 0;border-bottom:1px solid var(--line-soft);}
+  .core-item:last-child{border-bottom:0;}
+  .core-dot{width:9px;height:9px;border-radius:50%;flex:none;margin-top:7px;background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .core-dot.r{background:var(--up);box-shadow:0 0 0 3px var(--up-soft);}
+  .core-dot.a{background:var(--amber);box-shadow:0 0 0 3px var(--amber-soft);}
+  .core-body{min-width:0;}
+  .core-body h4{margin:0 0 3px;font-size:14.5px;font-weight:600;}
+  .core-body p{margin:0;font-size:13.5px;color:var(--ink-2);}
+
+  /* ============ 数据卡 ============ */
+  .grid4{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));margin:18px 0 4px;}
+  .dcard{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:14px 15px;box-shadow:0 2px 8px rgba(0,0,0,.03);}
+  .dcard .k{font-size:11.5px;color:var(--muted);margin-bottom:5px;}
+  .dcard .v{font-family:var(--mono);font-size:19px;font-weight:600;letter-spacing:-.02em;line-height:1.2;}
+  .dcard .d{font-family:var(--mono);font-size:11.5px;margin-top:3px;}
+
+  /* ============ 表格 ============ */
+  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13.5px;}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line-soft);vertical-align:top;}
+  th{font-size:11.5px;color:var(--muted);font-weight:500;letter-spacing:.04em;background:#f7f7f4;border-bottom:1px solid var(--line);}
+  td:first-child{font-weight:500;white-space:normal;min-width:72px;}
+  td.mono{font-family:var(--mono);font-size:12px;white-space:nowrap;}
+  .pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap;}
+  .p-ok{background:var(--down-soft);color:var(--down);border:1px solid var(--down-line);}
+  .p-warn{background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber-line);}
+  .p-bad{background:var(--up-soft);color:var(--up);border:1px solid var(--up-line);}
+  .p-info{background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--accent-line);}
+  .p-gray{background:#f2f2ef;color:var(--muted);border:1px solid var(--line);}
+
+  /* ============ 来源表：长名称不撑破表格 + 可点链接 ============ */
+  .tbl-src td:first-child{white-space:normal;min-width:150px;}
+  .tbl-src .u-cell{font-family:var(--mono);font-size:11.5px;line-height:1.5;word-break:break-all;overflow-wrap:anywhere;}
+  .src-link{color:var(--accent-ink);text-decoration:none;border-bottom:1px solid var(--accent-line);word-break:break-all;}
+  .src-link:hover{color:var(--accent);border-bottom-color:var(--accent);}
+
+  /* ============ 流程/命令块：宽内容内部滚动，不撑破页面 ============ */
+  pre.cmd{background:#15171c;color:#e6e8ec;border-radius:12px;padding:14px 16px;overflow-x:auto;
+    font-family:var(--mono);font-size:12px;line-height:1.7;margin:10px 0 14px;
+    -webkit-overflow-scrolling:touch;}
+  pre.cmd code{background:transparent;border:0;padding:0;color:inherit;font-size:inherit;overflow-wrap:normal;white-space:pre;}
+  pre.cmd .c{color:#8b8f98;}
+  pre.cmd .ok{color:#34d399;font-weight:600;}
+  pre.cmd .bad{color:#f87171;font-weight:600;}
+  pre.cmd .warn{color:#fbbf24;font-weight:600;}
+
+  /* ============ 双栏 ============ */
+  .cols{display:grid;gap:14px;grid-template-columns:1fr 1fr;margin-top:14px;}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 17px;box-shadow:0 2px 8px rgba(0,0,0,.03);}
+  .panel h4{margin:0 0 10px;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:7px;}
+  .panel h4 svg{width:15px;height:15px;}
+  .panel.bad h4{color:var(--up);}
+  .panel.good h4{color:var(--down);}
+  .panel.info h4{color:var(--accent-ink);}
+  .panel.warn h4{color:var(--amber);}
+  .panel ul{margin:0;padding-left:0;list-style:none;}
+  .panel li{position:relative;padding-left:15px;margin-bottom:9px;font-size:13.5px;color:var(--ink-2);line-height:1.6;}
+  .panel li:last-child{margin-bottom:0;}
+  .panel li::before{content:"";position:absolute;left:0;top:9px;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.45;}
+  .panel p{font-size:13.5px;color:var(--ink-2);}
+
+  /* ============ 结论条 ============ */
+  .callout{border:1px solid var(--accent-line);background:var(--accent-soft);border-radius:14px;padding:16px 18px;margin-top:18px;}
+  .callout h4{margin:0 0 7px;font-size:14px;font-weight:600;color:var(--accent-ink);display:flex;align-items:center;gap:8px;}
+  .callout h4 svg{width:15px;height:15px;}
+  .callout p{margin:0;font-size:13.5px;color:#2c4a3e;}
+  .callout p+p{margin-top:7px;}
+  .callout.warn{border-color:var(--amber-line);background:var(--amber-soft);}
+  .callout.warn h4{color:var(--amber);} .callout.warn p{color:#5c4413;}
+  .callout.bad{border-color:var(--up-line);background:var(--up-soft);}
+  .callout.bad h4{color:var(--up);} .callout.bad p{color:#6b2018;}
+  .note{border:1px solid var(--line);background:var(--surface);border-radius:13px;padding:14px 16px;margin-top:14px;font-size:12.5px;color:var(--muted);}
+  .note b{color:var(--ink-2);}
+
+  /* ============ 风险条 ============ */
+  .risk{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px dashed var(--line);}
+  .risk:last-child{border-bottom:0;}
+  .risk .lv-badge{flex:none;font-family:var(--mono);font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;}
+  .risk .rb{min-width:0;}
+  .risk .rb b{display:block;font-size:13.5px;margin-bottom:2px;}
+  .risk .rb span{font-size:13px;color:var(--ink-2);}
+
+  /* 正文 markdown 渲染补充 */
+  .main h4{font-size:15px;font-weight:600;margin:26px 0 10px;letter-spacing:-.008em;}
+  .main h5{font-size:13.5px;font-weight:600;margin:18px 0 7px;color:var(--ink-2);}
+  .main ul,.main ol{margin:6px 0 12px;padding-left:20px;}
+  .main li{margin:5px 0;font-size:13.5px;color:var(--ink-2);}
+  .main strong{color:var(--ink);font-weight:600;}
+  .main blockquote{border-left:3px solid var(--accent-line);background:var(--accent-soft);
+    border-radius:0 12px 12px 0;padding:11px 15px;margin:12px 0;font-size:13.5px;color:#2c4a3e;}
+  .main blockquote p{margin:0;}
+  .main hr{border:0;border-top:1px solid var(--line);margin:26px 0;}
+  .main img{max-width:100%;}
+
+  .foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px 20px;}
+  .foot code{background:transparent;border:0;padding:0;color:var(--muted);}
+
+  /* ============ 移动端：悬浮导航面板 ============ */
+  .m-topbar,.m-fab,.scrim,.m-close{display:none;}
+
+  @media (max-width:1000px){
+    .shell{display:block;}
+    body{padding-top:48px;}
+
+    .m-topbar{
+      display:flex;align-items:center;gap:9px;
+      position:fixed;top:0;left:0;right:0;height:48px;z-index:45;
+      padding:0 12px;background:rgba(250,250,249,.94);backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--line);
+    }
+    .m-topbar .t-btn{
+      display:inline-flex;align-items:center;gap:5px;flex:none;
+      font-family:var(--sans);font-size:12.5px;color:var(--ink-2);
+      background:var(--surface);border:1px solid var(--line);border-radius:8px;
+      padding:6px 10px;cursor:pointer;transition:all .16s;
+    }
+    .m-topbar .t-btn:hover{border-color:#d3d3cd;color:var(--ink);}
+    .m-topbar .t-btn svg{width:14px;height:14px;color:var(--muted);}
+    .m-topbar .t-title{
+      flex:1;min-width:0;font-size:13px;color:var(--ink-2);font-weight:500;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+
+    .sidebar{
+      position:fixed;left:auto;right:14px;top:auto;bottom:78px;
+      width:min(80vw,320px);height:auto;max-height:min(64vh,580px);
+      z-index:70;border:1px solid var(--line);border-radius:18px;
+      background:var(--chrome);padding:16px 16px 22px;
+      box-shadow:0 20px 56px -14px rgba(0,0,0,.32);
+      opacity:0;transform:translateY(18px) scale(.97);pointer-events:none;
+      transition:opacity .26s ease,transform .26s cubic-bezier(.2,.8,.3,1);
+    }
+    .sidebar.open{opacity:1;transform:none;pointer-events:auto;}
+    .m-close{
+      display:inline-flex;align-items:center;justify-content:center;margin-left:auto;flex:none;
+      width:30px;height:30px;border-radius:8px;border:1px solid var(--line);
+      background:var(--surface);color:var(--muted);cursor:pointer;padding:0;
+    }
+    .m-close svg{width:14px;height:14px;}
+    .m-close:hover{color:var(--ink);border-color:#d3d3cd;}
+
+    .scrim{
+      display:block;position:fixed;inset:0;z-index:65;
+      background:rgba(21,23,28,.34);opacity:0;pointer-events:none;transition:opacity .26s;
+    }
+    .scrim.show{opacity:1;pointer-events:auto;}
+
+    .m-fab{
+      display:inline-flex;align-items:center;gap:7px;
+      position:fixed;right:14px;bottom:16px;z-index:60;
+      font-family:var(--sans);font-size:13px;color:#fff;
+      background:var(--ink);border:1px solid var(--ink);border-radius:999px;
+      padding:11px 16px;cursor:pointer;
+      box-shadow:0 10px 26px -6px rgba(0,0,0,.45);
+      opacity:0;transform:translateY(14px) scale(.9);pointer-events:none;
+      transition:opacity .24s,transform .24s,background .16s;
+    }
+    .m-fab.show{opacity:1;transform:none;pointer-events:auto;}
+    .m-fab:hover{background:#2b2f38;}
+    .m-fab svg{width:15px;height:15px;}
+
+    .main{padding:26px 22px 96px;}
+    .cols{grid-template-columns:1fr;}
+  }
+
+  /* 手机小屏：表格转卡片 */
+  @media (max-width:820px){
+    table,tbody,tr,td{display:block;width:100%;}
+    thead{display:none;}
+    table{font-size:12.5px;}
+    tr{
+      background:var(--surface);border:1px solid var(--line);border-radius:12px;
+      padding:11px 14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.03);
+    }
+    td{border:0;padding:3px 0;}
+    td:first-child{font-weight:600;font-size:13.5px;padding-bottom:6px;white-space:normal;}
+    td:not(:first-child){
+      position:relative;padding:3px 0 3px 76px;font-size:12.5px;color:var(--ink-2);
+    }
+    td:not(:first-child)::before{
+      content:attr(data-label);position:absolute;left:0;top:3px;width:68px;
+      font-size:11px;color:var(--muted);
+    }
+  }
+
+  @media (max-width:680px){
+    body{font-size:14px;line-height:1.72;overflow-wrap:anywhere;}
+    h2.title{font-size:23px;letter-spacing:-.015em;}
+    .sub{font-size:14px;}
+    .kicker{font-size:10px;padding:4px 9px;}
+    .facts{gap:7px;}
+    .fact{flex:1 1 calc(50% - 4px);min-width:0;padding:9px 11px;}
+    .fact b{font-size:14px;}
+    .fact span{font-size:10.5px;}
+    .grid4{grid-template-columns:1fr 1fr;gap:9px;}
+    .dcard{padding:12px 13px;}
+    .dcard .v{font-size:16px;}
+    .main{padding:22px 15px 92px;}
+    section{margin-top:38px;}
+    .sec-head{flex-wrap:wrap;gap:8px;}
+    .sec-head h3{font-size:18px;}
+    .sec-head .tag{margin-left:0;width:100%;}
+    .core-body h4{font-size:14px;}
+    .core-body p{font-size:13px;}
+    .panel{padding:14px 15px;}
+    .panel li{font-size:13px;}
+    .panel h4{font-size:13px;}
+    .callout{padding:14px 15px;}
+    .callout p{font-size:13px;}
+    .foot{gap:6px 14px;font-size:11.5px;}
+    .note{font-size:12px;}
+  }
+
+  :root{--accent:#722ed1;--accent-ink:#18009f;--accent-soft:rgba(114,46,209,.10);--accent-line:rgba(114,46,209,.28);}
+  .tbl-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .tbl-wrap table{margin-top:0;}
+  @media (max-width:820px){ .tbl-wrap{overflow-x:visible;} }
+</style>
+</head>
+<body id="top">
+<div class="scrim" id="scrim"></div>
+
+<div class="m-topbar">
+  <button class="t-btn" id="menuBtn" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+    目录
+  </button>
+  <span class="m-title" id="mTitle">jeecg-study</span>
+  <button class="t-btn" id="topBtn" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/></svg>
+    顶部
+  </button>
+</div>
+
+<div class="shell">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg></span>
+      <h1>jeecg-study</h1>
+      <button class="m-close" id="closeBtn" type="button" aria-label="关闭导航">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="meta-line">20261030 · V1.1 · 接口设计</div>
+
+    <div class="nav-title">快速跳转</div>
+    <a class="nav-link" href="#top"><span>↑ 页面顶部</span></a>
+    <a class="nav-link" href="#bottom"><span>↓ 页面底部</span></a>
+
+    <div class="nav-title">章节</div>
+    <a class="nav-link" href="#conv">通用约定</a>
+    <a class="nav-link" href="#err">错误码表</a>
+    <a class="nav-link" href="#list">接口总表<span class="lv">99 个</span></a>
+    <a class="nav-link" href="#base">底座接口<span class="lv">15</span></a>
+    <a class="nav-link" href="#practice">练习与判定接口<span class="lv">10</span></a>
+    <a class="nav-link" href="#error">错题与排期接口<span class="lv">12</span></a>
+    <a class="nav-link" href="#biz">业务模块接口<span class="lv">24</span></a>
+    <a class="nav-link" href="#parent">家长端与护眼接口<span class="lv">7</span></a>
+    <a class="nav-link" href="#family">家庭与成员接口<span class="lv">21</span></a>
+    <a class="nav-link" href="#authn">认证与多用户</a>
+    <a class="nav-link" href="#contract">判对错响应契约<span class="lv">核心</span></a>
+    <a class="nav-link" href="#idemp">幂等与并发</a>
+    <a class="nav-link" href="#auth">权限码设计</a>
+    <a class="nav-link" href="#ai">AI 降级契约</a>
+
+    <div class="nav-title">接口分布</div><div class="mini-rate"><div class="mini-row"><span>底座 / 上下文</span><span class="bar"><i style="width:100%;background:#722ed1"></i></span><span class="n">8</span></div><div class="mini-row"><span>坐标树</span><span class="bar"><i style="width:100%;background:#722ed1"></i></span><span class="n">7</span></div><div class="mini-row"><span>练习 / 判定</span><span class="bar"><i style="width:100%;background:#722ed1"></i></span><span class="n">10</span></div><div class="mini-row"><span>错题 / 排期</span><span class="bar"><i style="width:100%;background:#722ed1"></i></span><span class="n">12</span></div><div class="mini-row"><span>母题 / 背单词</span><span class="bar"><i style="width:80%;background:#722ed1"></i></span><span class="n">15</span></div><div class="mini-row"><span>语法 / 写作</span><span class="bar"><i style="width:100%;background:#b07d12"></i></span><span class="n">16</span></div><div class="mini-row"><span>家长端 / 护眼</span><span class="bar"><i style="width:70%;background:#8b8f98"></i></span><span class="n">10</span></div><div class="mini-row"><span>家庭 / 多用户</span><span class="bar"><i style="width:40%;background:#722ed1"></i></span><span class="n">21</span></div></div>
+  </aside>
+
+  <main class="main">
+    <div class="kicker"><i></i>代码开发 · API 契约</div>
+    <h2 class="title">接口设计说明书</h2>
+    <p class="sub">jeecg-study 接口设计说明书 V1.1。RESTful 风格，根路径 /api/v1/study，覆盖底座五组件、六业务模块、家长端与多家庭多用户共 99 个接口（其中 21 个为多用户新增），附完整请求/响应示例、错误码表、认证与数据范围、幂等与并发约定。</p>
+    <div class="facts"><div class="fact"><b>99</b><span>接口总数</span></div><div class="fact"><b>21</b><span>多用户新增接口</span></div><div class="fact"><b>/api/v1/study</b><span>API 根</span></div><div class="fact"><b>8</b><span>资源域</span></div><div class="fact"><b>9</b><span>业务错误码</span></div><div class="fact"><b>rule</b><span>判定来源</span></div><div class="fact"><b>10s</b><span>axios 超时</span></div></div>
+
+<section id="conv">
+  <div class="sec-head"><span class="sec-num">01</span><h3>通用约定</h3><span class="tag">统一写法</span></div>
+  <p>通用约定</p>
+<h3>1.1 路径与命名</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>约定</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>根路径</td>
+<td><code>/api/v1/study</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td>资源命名</td>
+<td>小写复数，短横线分隔</td>
+<td><code>/error-pool</code></td>
+</tr>
+<tr>
+<td>动作</td>
+<td>仅在 REST 无法表达时用子资源动作</td>
+<td><code>/error-pool/{id}/review</code></td>
+</tr>
+<tr>
+<td>版本</td>
+<td>路径段 <code>v1</code>；<strong>不兼容变更升 v2</strong>，兼容变更直接加字段</td>
+<td>—</td>
+</tr>
+<tr>
+<td>路径参数</td>
+<td>业务 ID（<code>error_code</code> 等）而非自增 ID</td>
+<td><code>/error-pool/ERR-00000123</code></td>
+</tr>
+<tr>
+<td>前缀</td>
+<td>前端请求带 <code>/api/v1/study</code> 由 axios baseURL 统一拼接</td>
+<td>—</td>
+</tr>
+</tbody>
+</table></div>
+<h3>1.2 统一响应体</h3>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true,
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {}
+}
+</code></pre>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>success</code></td>
+<td>boolean</td>
+<td>是否成功</td>
+</tr>
+<tr>
+<td><code>code</code></td>
+<td>number</td>
+<td>0 = 成功；非 0 见错误码表</td>
+</tr>
+<tr>
+<td><code>message</code></td>
+<td>string</td>
+<td>面向人的提示文案</td>
+</tr>
+<tr>
+<td><code>result</code></td>
+<td>object | array | null</td>
+<td>业务数据，失败时为 null</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>与 JeecgBoot 底座的 <code>ApiResult</code> 保持一致，不另造格式。</p>
+</blockquote>
+<h3>1.3 分页约定</h3>
+<p><strong>请求参数</strong>：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pageNo</code></td>
+<td>number</td>
+<td>1</td>
+<td>页码，从 1 开始</td>
+</tr>
+<tr>
+<td><code>pageSize</code></td>
+<td>number</td>
+<td>10</td>
+<td>每页条数，可选 10/20/50/100</td>
+</tr>
+<tr>
+<td><code>order</code></td>
+<td>string</td>
+<td>—</td>
+<td>排序，格式 <code>column,asc\|desc</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>响应结构</strong>：</p>
+<pre class="cmd"><code class="language-json">{
+  &quot;records&quot;: [],
+  &quot;total&quot;: 128,
+  &quot;pageNo&quot;: 1,
+  &quot;pageSize&quot;: 10,
+  &quot;pages&quot;: 13
+}
+</code></pre>
+<blockquote>
+<p>字段名与 JeecgBoot 的 <code>IPage</code> 对齐（<code>records</code> / <code>total</code> / <code>current</code> / <code>size</code>），前端表格组件可直接消费。</p>
+</blockquote>
+<h3>1.4 鉴权</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>约定</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>机制</td>
+<td>JeecgBoot 底座的 Shiro + JWT，Header <code>X-Access-Token</code></td>
+</tr>
+<tr>
+<td>身份</td>
+<td>孩子（角色 <code>study_kid</code>）/ 家长（角色 <code>study_parent</code>）/ 管理员（<code>admin</code>）</td>
+</tr>
+<tr>
+<td>角色隔离</td>
+<td>家长角色<strong>不得</strong>调用练习作答接口；孩子角色<strong>不得</strong>调用家长端接口。服务端按角色校验，不依赖前端</td>
+</tr>
+<tr>
+<td>多用户</td>
+<td><strong>多家庭 / 多孩子 / 多家长</strong>：按 <code>child_id</code> 做强制数据隔离；不做多租户、不预留租户字段。详见「认证与多用户」</td>
+</tr>
+<tr>
+<td>家长登录</td>
+<td>底座原生 <code>POST /sys/login</code>，<strong>不新增</strong>接口</td>
+</tr>
+<tr>
+<td>孩子登录</td>
+<td><code>POST /api/v1/study/kid/login</code>（PIN），两步流程见「认证与多用户」</td>
+</tr>
+</tbody>
+</table></div>
+<h3>1.5 请求约定</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>约定</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Content-Type</td>
+<td><code>application/json;charset=UTF-8</code>（文件上传用 <code>multipart/form-data</code>）</td>
+</tr>
+<tr>
+<td>字段命名</td>
+<td>驼峰 <code>camelCase</code>（与数据库下划线通过 MyBatis-Plus 映射）</td>
+</tr>
+<tr>
+<td>日期时间</td>
+<td><code>yyyy-MM-dd HH:mm:ss</code>；纯日期 <code>yyyy-MM-dd</code></td>
+</tr>
+<tr>
+<td>枚举</td>
+<td>传字符串码（如 <code>CONCEPT</code>），不传数字</td>
+</tr>
+<tr>
+<td>布尔</td>
+<td>传 <code>true</code> / <code>false</code></td>
+</tr>
+<tr>
+<td>空值</td>
+<td>不传该字段 = 不修改；传 <code>null</code> = 置空（仅 PATCH 语义接口）</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="err">
+  <div class="sec-head"><span class="sec-num">02</span><h3>错误码表</h3><span class="tag">失败语义</span></div>
+  <p>错误码表</p>
+<h3>2.1 业务错误码</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>码</th>
+<th>含义</th>
+<th>HTTP</th>
+<th>触发场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4001</td>
+<td>缺少错因</td>
+<td>400</td>
+<td>提交练习未选错因</td>
+</tr>
+<tr>
+<td>4002</td>
+<td>前置步骤未完成</td>
+<td>400</td>
+<td>写作未过提纲提交初稿</td>
+</tr>
+<tr>
+<td>4003</td>
+<td>违反练习顺序</td>
+<td>400</td>
+<td>未作答就请求解析</td>
+</tr>
+<tr>
+<td>4004</td>
+<td>上下文未配置</td>
+<td>400</td>
+<td>首次使用未配置地区/教材</td>
+</tr>
+<tr>
+<td>4005</td>
+<td>判定策略缺失</td>
+<td>500</td>
+<td>该题型未注册 <code>JudgeStrategy</code></td>
+</tr>
+<tr>
+<td>4006</td>
+<td>版权信息不完整</td>
+<td>400</td>
+<td>导入非自编题目未填 <code>source_ref</code></td>
+</tr>
+<tr>
+<td>4007</td>
+<td>母题结构不完整</td>
+<td>400</td>
+<td>母题五段缺任一段</td>
+</tr>
+<tr>
+<td>4008</td>
+<td>变式不足</td>
+<td>400</td>
+<td>过关要求 N 道变式但不足</td>
+</tr>
+<tr>
+<td>4009</td>
+<td>家庭码不正确</td>
+<td>400</td>
+<td>孩子端 <code>POST /kid/lookup</code> 家庭码校验失败</td>
+</tr>
+<tr>
+<td>4010</td>
+<td>越权</td>
+<td>403</td>
+<td>家长访问非关联孩子的数据 / 孩子访问他人数据</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>4010 为什么不是 404</strong>：若越权访问返回 404，攻击者可借「404 vs 200」区分<strong>资源是否存在</strong>（资源探测 / 枚举 childCode）。返回统一的 <strong>4010</strong> 表示「你无权访问」，无论该资源是否存在，响应形态完全一致，无法反推资源存在性。</p>
+<p>触发场景：家长请求的 <code>childCode</code> 不在 <code>study_parent_child_rel</code> 关联集合内；孩子 token 的 <code>childId</code> 与目标资源归属不一致。</p>
+<p>业务错误码一律返回 <strong>HTTP 200 + <code>code != 0</code></strong>（见 2.2 约定），表中 HTTP 列仅标注语义状态。</p>
+</blockquote>
+<h3>2.2 通用 HTTP 码</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>码</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>200</td>
+<td>成功</td>
+</tr>
+<tr>
+<td>400</td>
+<td>参数错误</td>
+</tr>
+<tr>
+<td>401</td>
+<td>未登录 / token 失效</td>
+</tr>
+<tr>
+<td>403</td>
+<td>无权限（角色不符或缺权限码）</td>
+</tr>
+<tr>
+<td>404</td>
+<td>资源不存在</td>
+</tr>
+<tr>
+<td>405</td>
+<td>方法不允许</td>
+</tr>
+<tr>
+<td>500</td>
+<td>服务端异常</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>约定</strong>：业务错误一律返回 <strong>HTTP 200 + <code>code != 0</code></strong>，由前端按 <code>success</code> 判断；仅鉴权与路由错误使用 4xx/5xx。这与 JeecgBoot 的 <code>Result</code> 处理一致。</p>
+</blockquote>
+</section>
+<section id="list">
+  <div class="sec-head"><span class="sec-num">03</span><h3>接口总表</h3><span class="tag">清单</span></div>
+  <p>接口总表</p>
+<h3>3.1 底座（15 个）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>方法</th>
+<th>路径</th>
+<th>说明</th>
+<th>需求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>GET</td>
+<td><code>/context/current</code></td>
+<td>取当前全局上下文</td>
+<td>F-BASE-01</td>
+</tr>
+<tr>
+<td>2</td>
+<td>POST</td>
+<td><code>/context</code></td>
+<td>创建/切换全局上下文</td>
+<td>F-BASE-01</td>
+</tr>
+<tr>
+<td>3</td>
+<td>GET</td>
+<td><code>/context/list</code></td>
+<td>历史上下文列表</td>
+<td>F-BASE-01</td>
+</tr>
+<tr>
+<td>4</td>
+<td>PUT</td>
+<td><code>/context/{id}/eye-interval</code></td>
+<td>配置护眼提醒间隔</td>
+<td>F-EYE-04</td>
+</tr>
+<tr>
+<td>5</td>
+<td>GET</td>
+<td><code>/textbook-versions</code></td>
+<td>教材版本列表</td>
+<td>F-REG-03</td>
+</tr>
+<tr>
+<td>6</td>
+<td>GET</td>
+<td><code>/knowledge-points/tree</code></td>
+<td>坐标树全树（缓存）</td>
+<td>F-BASE-02</td>
+</tr>
+<tr>
+<td>7</td>
+<td>GET</td>
+<td><code>/knowledge-points/{code}</code></td>
+<td>考点详情</td>
+<td>F-REG-02</td>
+</tr>
+<tr>
+<td>8</td>
+<td>PUT</td>
+<td><code>/knowledge-points/{code}</code></td>
+<td>维护考点四属性</td>
+<td>F-REG-02</td>
+</tr>
+<tr>
+<td>9</td>
+<td>GET</td>
+<td><code>/knowledge-points/{code}/children</code></td>
+<td>考点下挂内容统计</td>
+<td>F-REG-04</td>
+</tr>
+<tr>
+<td>10</td>
+<td>GET</td>
+<td><code>/knowledge-points/versions</code></td>
+<td>考纲版本列表</td>
+<td>F-REG-05</td>
+</tr>
+<tr>
+<td>11</td>
+<td>GET</td>
+<td><code>/knowledge-points/{code}/history</code></td>
+<td>节点历史版本</td>
+<td>F-REG-05</td>
+</tr>
+<tr>
+<td>12</td>
+<td>GET</td>
+<td><code>/knowledge-points/search</code></td>
+<td>按名称/编码检索考点</td>
+<td>F-REG-04</td>
+</tr>
+<tr>
+<td>13</td>
+<td>POST</td>
+<td><code>/knowledge-points/import</code></td>
+<td>导入坐标树（幂等）</td>
+<td>F-REG-01</td>
+</tr>
+<tr>
+<td>14</td>
+<td>GET</td>
+<td><code>/mastery/weak-points</code></td>
+<td>薄弱考点排行</td>
+<td>F-PAR-01</td>
+</tr>
+<tr>
+<td>15</td>
+<td>GET</td>
+<td><code>/mastery/{pointCode}</code></td>
+<td>某考点掌握度</td>
+<td>F-PAR-01</td>
+</tr>
+</tbody>
+</table></div>
+<h3>3.2 练习与判定（10 个）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>方法</th>
+<th>路径</th>
+<th>说明</th>
+<th>需求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>16</td>
+<td>GET</td>
+<td><code>/practice/{type}/next</code></td>
+<td>取下一题（按模块类型）</td>
+<td>F-BASE-06</td>
+</tr>
+<tr>
+<td>17</td>
+<td>POST</td>
+<td><code>/practice/answer</code></td>
+<td>提交作答 → 判定 + 错因采集</td>
+<td>F-WRG-01</td>
+</tr>
+<tr>
+<td>18</td>
+<td>GET</td>
+<td><code>/practice/{type}/session</code></td>
+<td>生成练习会话</td>
+<td>—</td>
+</tr>
+<tr>
+<td>19</td>
+<td>POST</td>
+<td><code>/practice/session/{id}/finish</code></td>
+<td>结束会话</td>
+<td>—</td>
+</tr>
+<tr>
+<td>20</td>
+<td>GET</td>
+<td><code>/practice/{contentId}/explanation</code></td>
+<td>取解析（<strong>必须</strong>在作答后）</td>
+<td>R-01</td>
+</tr>
+<tr>
+<td>21</td>
+<td>GET</td>
+<td><code>/practice/{contentId}/explanation/feedback</code></td>
+<td>提交「我不同意」</td>
+<td>R-02</td>
+</tr>
+<tr>
+<td>22</td>
+<td>POST</td>
+<td><code>/practice/{contentId}/oral</code></td>
+<td>口述关键关系提交</td>
+<td>F-MTH-03</td>
+</tr>
+<tr>
+<td>23</td>
+<td>GET</td>
+<td><code>/practice/records</code></td>
+<td>作答记录分页</td>
+<td>F-PAR-01</td>
+</tr>
+<tr>
+<td>24</td>
+<td>GET</td>
+<td><code>/practice/stats/today</code></td>
+<td>今日练习统计</td>
+<td>F-PAR-01</td>
+</tr>
+<tr>
+<td>25</td>
+<td>GET</td>
+<td><code>/practice/stats/streak</code></td>
+<td>连续天数</td>
+<td>F-WRD-02</td>
+</tr>
+</tbody>
+</table></div>
+<h3>3.3 错题与排期（12 个）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>方法</th>
+<th>路径</th>
+<th>说明</th>
+<th>需求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>26</td>
+<td>POST</td>
+<td><code>/error-pool</code></td>
+<td>手动录入错题（拍照）</td>
+<td>F-WRG-05、F-BASE-04</td>
+</tr>
+<tr>
+<td>27</td>
+<td>GET</td>
+<td><code>/error-pool</code></td>
+<td>错题分页查询</td>
+<td>F-WRG-04、F-BASE-04</td>
+</tr>
+<tr>
+<td>28</td>
+<td>GET</td>
+<td><code>/error-pool/{code}</code></td>
+<td>错题详情</td>
+<td>F-WRG-04</td>
+</tr>
+<tr>
+<td>29</td>
+<td>PUT</td>
+<td><code>/error-pool/{code}/cause</code></td>
+<td>修改错因</td>
+<td>F-WRG-01</td>
+</tr>
+<tr>
+<td>30</td>
+<td>GET</td>
+<td><code>/error-pool/{code}/variants</code></td>
+<td>错题变式列表</td>
+<td>F-WRG-03、F-BASE-04</td>
+</tr>
+<tr>
+<td>31</td>
+<td>POST</td>
+<td><code>/error-pool/{code}/variants</code></td>
+<td>生成变式</td>
+<td>F-WRG-03</td>
+</tr>
+<tr>
+<td>32</td>
+<td>GET</td>
+<td><code>/error-pool/statistics</code></td>
+<td>错因分布统计</td>
+<td>F-PAR-01</td>
+</tr>
+<tr>
+<td>33</td>
+<td>GET</td>
+<td><code>/error-pool/statistics/hot</code></td>
+<td>高频错题/薄弱点</td>
+<td>F-PAR-01</td>
+</tr>
+<tr>
+<td>34</td>
+<td>GET</td>
+<td><code>/review/queue</code></td>
+<td>今日复习队列（物化）</td>
+<td>F-BASE-05、F-BASE-04</td>
+</tr>
+<tr>
+<td>35</td>
+<td>GET</td>
+<td><code>/review/upcoming</code></td>
+<td>未来 7 天排期预览</td>
+<td>F-BASE-05</td>
+</tr>
+<tr>
+<td>36</td>
+<td>POST</td>
+<td><code>/review/queue/{code}/complete</code></td>
+<td>完成一项复习</td>
+<td>F-BASE-05</td>
+</tr>
+<tr>
+<td>37</td>
+<td>POST</td>
+<td><code>/review/queue/complete-batch</code></td>
+<td>批量完成</td>
+<td>F-BASE-05</td>
+</tr>
+</tbody>
+</table></div>
+<h3>3.4 业务模块（36 个）</h3>
+<p><strong>母题（8）</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>方法</th>
+<th>路径</th>
+<th>说明</th>
+<th>需求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>38</td>
+<td>GET</td>
+<td><code>/math/mother/list</code></td>
+<td>母题列表（按闯关顺序）</td>
+<td>F-MTH-01</td>
+</tr>
+<tr>
+<td>39</td>
+<td>GET</td>
+<td><code>/math/mother/{code}</code></td>
+<td>母题详情（五段结构）</td>
+<td>F-MTH-01</td>
+</tr>
+<tr>
+<td>40</td>
+<td>POST</td>
+<td><code>/math/mother</code></td>
+<td>新建母题（五段齐全校验）</td>
+<td>F-MTH-02</td>
+</tr>
+<tr>
+<td>41</td>
+<td>PUT</td>
+<td><code>/math/mother/{code}</code></td>
+<td>修改母题</td>
+<td>F-MTH-02</td>
+</tr>
+<tr>
+<td>42</td>
+<td>POST</td>
+<td><code>/math/mother/{code}/variants</code></td>
+<td>生成三层变式</td>
+<td>F-MTH-04</td>
+</tr>
+<tr>
+<td>43</td>
+<td>GET</td>
+<td><code>/math/mother/{code}/variants</code></td>
+<td>变式列表</td>
+<td>F-MTH-04</td>
+</tr>
+<tr>
+<td>44</td>
+<td>POST</td>
+<td><code>/math/mother/{code}/pass</code></td>
+<td>提交过关判定</td>
+<td>F-MTH-03</td>
+</tr>
+<tr>
+<td>45</td>
+<td>GET</td>
+<td><code>/math/mother/{code}/narrative</code></td>
+<td>取关卡说明</td>
+<td>F-MTH-05</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>背单词（7）</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>方法</th>
+<th>路径</th>
+<th>说明</th>
+<th>需求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>46</td>
+<td>GET</td>
+<td><code>/word/line/{lineType}/units</code></td>
+<td>课内单元列表</td>
+<td>F-WRD-01</td>
+</tr>
+<tr>
+<td>47</td>
+<td>GET</td>
+<td><code>/word/line/{lineType}/list</code></td>
+<td>词表分页</td>
+<td>F-WRD-01</td>
+</tr>
+<tr>
+<td>48</td>
+<td>POST</td>
+<td><code>/word/practice</code></td>
+<td>背单词作答</td>
+<td>F-WRD-02</td>
+</tr>
+<tr>
+<td>49</td>
+<td>POST</td>
+<td><code>/word/feedback</code></td>
+<td>四档反馈（认识/模糊/忘记/熟知）</td>
+<td>F-WRD-03</td>
+</tr>
+<tr>
+<td>50</td>
+<td>POST</td>
+<td><code>/word/known-test</code></td>
+<td>熟词测试（词汇量过滤）</td>
+<td>F-WRD-04</td>
+</tr>
+<tr>
+<td>51</td>
+<td>GET</td>
+<td><code>/word/due</code></td>
+<td>到期复习词</td>
+<td>F-WRD-05</td>
+</tr>
+<tr>
+<td>52</td>
+<td>GET</td>
+<td><code>/word/stats</code></td>
+<td>背诵统计</td>
+<td>F-WRD-02</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>语法（6）</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>方法</th>
+<th>路径</th>
+<th>说明</th>
+<th>需求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>53</td>
+<td>GET</td>
+<td><code>/grammar/points</code></td>
+<td>语法点列表</td>
+<td>F-GRM-01</td>
+</tr>
+<tr>
+<td>54</td>
+<td>GET</td>
+<td><code>/grammar/points/{code}</code></td>
+<td>语法点详情（三件套）</td>
+<td>F-GRM-01</td>
+</tr>
+<tr>
+<td>55</td>
+<td>POST</td>
+<td><code>/grammar/transform</code></td>
+<td>句子变形器（5 种表达）</td>
+<td>F-GRM-02</td>
+</tr>
+<tr>
+<td>56</td>
+<td>POST</td>
+<td><code>/grammar/detect</code></td>
+<td>错误检测（规则优先）</td>
+<td>F-GRM-03</td>
+</tr>
+<tr>
+<td>57</td>
+<td>GET</td>
+<td><code>/grammar/collection</code></td>
+<td>我的错句收藏馆</td>
+<td>F-GRM-06</td>
+</tr>
+<tr>
+<td>58</td>
+<td>POST</td>
+<td><code>/grammar/error-detail</code></td>
+<td>点开某个错误 → 三件套讲解（2026-10-31 新增，见 §7.3）</td>
+<td>F-GRM-03</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>写作（7）</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>方法</th>
+<th>路径</th>
+<th>说明</th>
+<th>需求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>59</td>
+<td>GET</td>
+<td><code>/writing/dissections</code></td>
+<td>拆解库列表（六层）</td>
+<td>F-WRT-01</td>
+</tr>
+<tr>
+<td>60</td>
+<td>GET</td>
+<td><code>/writing/dissections/{code}</code></td>
+<td>拆解详情</td>
+<td>F-WRT-01</td>
+</tr>
+<tr>
+<td>61</td>
+<td>POST</td>
+<td><code>/writing/train/outline</code></td>
+<td>提交提纲（进入下一步的前置）</td>
+<td>F-WRT-04</td>
+</tr>
+<tr>
+<td>62</td>
+<td>POST</td>
+<td><code>/writing/train/draft</code></td>
+<td>提交初稿（要求提纲已通过）</td>
+<td>F-WRT-02、F-WRT-04、F-WRT-05、F-WRT-07</td>
+</tr>
+<tr>
+<td>63</td>
+<td>GET</td>
+<td><code>/writing/parent/drafts</code></td>
+<td>家长可反馈的最近初稿（摘要，<strong>不含正文</strong>）</td>
+<td>F-PAR-02</td>
+</tr>
+<tr>
+<td>64</td>
+<td>POST</td>
+<td><code>/writing/parent/feedback</code></td>
+<td>一句话反馈（≤100 字，绑定具体作品）</td>
+<td>F-PAR-02、F-FAM-08、F-WRT-06</td>
+</tr>
+<tr>
+<td>65</td>
+<td>GET</td>
+<td><code>/writing/parent/feedbacks</code></td>
+<td>反馈列表（仅自己关联的孩子）</td>
+<td>F-PAR-02、A-21</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>护眼（5）</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>方法</th>
+<th>路径</th>
+<th>说明</th>
+<th>需求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>66</td>
+<td>POST</td>
+<td><code>/eye/session/start</code></td>
+<td>开始用眼会话</td>
+<td>F-EYE-01、N-01</td>
+</tr>
+<tr>
+<td>67</td>
+<td>POST</td>
+<td><code>/eye/session/{sessionId}/heartbeat</code></td>
+<td>用眼心跳（只报「还在」，<strong>不上报时长</strong>）</td>
+<td>F-EYE-02、N-01</td>
+</tr>
+<tr>
+<td>68</td>
+<td>POST</td>
+<td><code>/eye/session/{sessionId}/rest</code></td>
+<td>确认已远眺（解除阻断式提醒）</td>
+<td>F-EYE-03、N-01</td>
+</tr>
+<tr>
+<td>69</td>
+<td>POST</td>
+<td><code>/eye/session/{sessionId}/end</code></td>
+<td>结束用眼会话</td>
+<td>F-EYE-01</td>
+</tr>
+<tr>
+<td>70</td>
+<td>GET</td>
+<td><code>/eye/session/{sessionId}</code></td>
+<td>当前护眼状态（是否需要休息）</td>
+<td>F-EYE-01、N-01</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>写作情境库（3 个）</strong></p>
+<!--update-begin---author:mavis ---date:2026-10-31  for：【F-WRT-03】新增写作情境库三个端点----------- -->
+
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>方法</th>
+<th>路径</th>
+<th>说明</th>
+<th>需求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>97</td>
+<td>GET</td>
+<td><code>/writing/scenario/themes</code></td>
+<td>情境主题清单（同一主题下有多个不同处境）</td>
+<td>F-WRT-03</td>
+</tr>
+<tr>
+<td>98</td>
+<td>GET</td>
+<td><code>/writing/scenario/list</code></td>
+<td>情境清单（按主题 / 学段过滤）</td>
+<td>F-WRT-03</td>
+</tr>
+<tr>
+<td>99</td>
+<td>GET</td>
+<td><code>/writing/scenario/{code}</code></td>
+<td>情境详情（训练入口：提示题 + 细节线索 + 限制条件）</td>
+<td>F-WRT-03</td>
+</tr>
+</tbody>
+</table></div>
+<!--update-end---author:mavis ---date:2026-10-31  for：【F-WRT-03】新增写作情境库三个端点----------- -->
+
+<p><strong>语法 · 语境库与趣味玩法（7 个）</strong></p>
+<!--update-begin---author:mavis ---date:2026-10-31  for：【F-GRM-05 / F-GRM-04】新增语境库与玩法七个端点----------- -->
+
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>方法</th>
+<th>路径</th>
+<th>说明</th>
+<th>需求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>100</td>
+<td>GET</td>
+<td><code>/grammar/context</code></td>
+<td>语境例句库（<strong>与背单词共用同一批例句</strong>：课文 / 真题 / 原声素材）</td>
+<td>F-GRM-05</td>
+</tr>
+<tr>
+<td>101</td>
+<td>GET</td>
+<td><code>/grammar/game/detective/next</code></td>
+<td>句子侦探取题（四句话，<strong>只给句子不给答案</strong>）</td>
+<td>F-GRM-04</td>
+</tr>
+<tr>
+<td>102</td>
+<td>POST</td>
+<td><code>/grammar/game/detective/judge</code></td>
+<td>句子侦探判定（孩子指出错的是第几句）</td>
+<td>F-GRM-04</td>
+</tr>
+<tr>
+<td>103</td>
+<td>GET</td>
+<td><code>/grammar/game/transform/next</code></td>
+<td>语法变形闯关取题（只给中文意思）</td>
+<td>F-GRM-04</td>
+</tr>
+<tr>
+<td>104</td>
+<td>POST</td>
+<td><code>/grammar/game/transform/judge</code></td>
+<td>语法变形闯关判定（孩子写的句子对不对）</td>
+<td>F-GRM-04</td>
+</tr>
+<tr>
+<td>105</td>
+<td>GET</td>
+<td><code>/grammar/game/collection</code></td>
+<td>我的错句收藏馆（玩法入口，读统一错题池）</td>
+<td>F-GRM-04、F-GRM-06</td>
+</tr>
+<tr>
+<td>106</td>
+<td>GET</td>
+<td><code>/grammar/game/progress</code></td>
+<td>闯关进度（只跟自己比）</td>
+<td>F-GRM-04</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>编号</strong>：延续 §3.7 的连续编号（1–106 不跳号、不重排既有编号）。
+<strong>端点归属</strong>：前 6 个在语法域；<code>/grammar/game/collection</code> 与既有 <code>/grammar/collection</code>
+<strong>读的是同一张统一错题池</strong>（<code>study_error_pool</code>），不另建错句表（F-GRM-06）。</p>
+</blockquote>
+<!--update-begin---author:mavis ---date:2026-10-31  for：【F-GRM-04 / F-GRM-05】登记这 7 个端点的前端落点----------- -->
+
+<blockquote>
+<p><strong>前端落点</strong>：这 7 个端点由学习端「语法玩法」页消费——
+路由 <code>/study/grammar/game</code>，组件 <code>study/grammar/game/index</code>（组件名 <code>StudyGrammarGame</code>），
+菜单 <code>st_menu_grammar_game</code>（增量脚本 <code>02-代码开发/02-数据库/03-脚本/17-seed-grammar-game-menu.sql</code>）。</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>端点</th>
+<th>页面里的玩法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>100 <code>GET /grammar/context</code></td>
+<td>语境例句（按词条 / 语法点查例句）</td>
+</tr>
+<tr>
+<td>101 <code>GET /grammar/game/detective/next</code></td>
+<td>句子侦探取题</td>
+</tr>
+<tr>
+<td>102 <code>POST /grammar/game/detective/judge</code></td>
+<td>句子侦探判定</td>
+</tr>
+<tr>
+<td>103 <code>GET /grammar/game/transform/next</code></td>
+<td>变形闯关取题</td>
+</tr>
+<tr>
+<td>104 <code>POST /grammar/game/transform/judge</code></td>
+<td>变形闯关判定</td>
+</tr>
+<tr>
+<td>105 <code>GET /grammar/game/collection</code></td>
+<td>我的错句收藏馆（可按错因过滤）</td>
+</tr>
+<tr>
+<td>106 <code>GET /grammar/game/progress</code></td>
+<td>闯关进度</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>权限码不新建</strong>：沿用语法域既有口径 <code>study:kid:grammar:view</code>（语境例句）与
+<code>study:kid:grammar:practice</code>（四个玩法端点 + 收藏馆 + 进度），
+已在 <code>07-seed-role-menu.sql</code> 里授给 <code>study_kid</code>，页面菜单只补一条路由授权。</p>
+<p><strong>前端红线口径</strong>：取题响应（101 / 103）不含答案或对错字段，
+讲解区（规则 / 正例 / 反例 / 改法 / 参考表达 / 提示）<strong>只在孩子提交判定之后才渲染</strong>（R-01）；
+进度页只显示「答过几关 / 过了几关 / 上次玩是什么时候」（R-04）。</p>
+</blockquote>
+<!--update-end---author:mavis ---date:2026-10-31  for：【F-GRM-04 / F-GRM-05】登记这 7 个端点的前端落点----------- -->
+
+<!--update-end---author:mavis ---date:2026-10-31  for：【F-GRM-05 / F-GRM-04】新增语境库与玩法七个端点----------- -->
+
+<h3>3.5 家长端（5 个）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>方法</th>
+<th>路径</th>
+<th>说明</th>
+<th>需求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>71</td>
+<td>GET</td>
+<td><code>/parent/report/overview</code></td>
+<td>总览（用眼、连续天数、掌握度）</td>
+<td>F-PAR-01</td>
+</tr>
+<tr>
+<td>72</td>
+<td>GET</td>
+<td><code>/parent/report/weekly</code></td>
+<td>周报</td>
+<td>F-PAR-01</td>
+</tr>
+<tr>
+<td>73</td>
+<td>GET</td>
+<td><code>/parent/report/errors</code></td>
+<td>错因分布</td>
+<td>F-PAR-01</td>
+</tr>
+<tr>
+<td>74</td>
+<td>GET</td>
+<td><code>/parent/notification-preference</code></td>
+<td>提醒偏好</td>
+<td>F-PAR-04</td>
+</tr>
+<tr>
+<td>75</td>
+<td>PUT</td>
+<td><code>/parent/notification-preference</code></td>
+<td>更新提醒偏好</td>
+<td>F-PAR-04</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>家长反馈不在家长端资源域</strong>：按 ADR-030，家长一句话反馈归<strong>写作域</strong>（<code>/writing/parent/feedback</code>），
+家长端资源域保持「只读报告」的边界（F-PAR-01），不提供辅导建议、答案速查类内容。
+护眼心跳 <code>/eye/session/*</code> 走独立轻量通道（见第 8 章说明），已列在 §3.4 护眼子表。</p>
+</blockquote>
+<h3>3.6 家庭与成员（17 个）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>方法</th>
+<th>路径</th>
+<th>说明</th>
+<th>需求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>76</td>
+<td>POST</td>
+<td><code>/family</code></td>
+<td>创建家庭（首个家长自动成为 OWNER）</td>
+<td>F-FAM-01</td>
+</tr>
+<tr>
+<td>77</td>
+<td>GET</td>
+<td><code>/family</code></td>
+<td>家庭详情（含成员）</td>
+<td>F-FAM-01</td>
+</tr>
+<tr>
+<td>78</td>
+<td>PUT</td>
+<td><code>/family</code></td>
+<td>修改家庭名称</td>
+<td>F-FAM-01</td>
+</tr>
+<tr>
+<td>79</td>
+<td>POST</td>
+<td><code>/family/code/reset</code></td>
+<td>重置家庭码（明文<strong>仅本次返回</strong>）</td>
+<td>F-FAM-06</td>
+</tr>
+<tr>
+<td>80</td>
+<td>GET</td>
+<td><code>/family/members</code></td>
+<td>家庭成员列表（家长）</td>
+<td>F-FAM-02</td>
+</tr>
+<tr>
+<td>81</td>
+<td>POST</td>
+<td><code>/family/members</code></td>
+<td>添加家长成员（按用户名）</td>
+<td>F-FAM-02</td>
+</tr>
+<tr>
+<td>82</td>
+<td>DELETE</td>
+<td><code>/family/members/{id}</code></td>
+<td>移除家长成员</td>
+<td>F-FAM-02</td>
+</tr>
+<tr>
+<td>83</td>
+<td>GET</td>
+<td><code>/children</code></td>
+<td>我关联的孩子列表</td>
+<td>F-FAM-03</td>
+</tr>
+<tr>
+<td>84</td>
+<td>POST</td>
+<td><code>/children</code></td>
+<td>新增孩子档案（同时创建 <code>sys_user</code> + PIN）</td>
+<td>F-FAM-03</td>
+</tr>
+<tr>
+<td>85</td>
+<td>GET</td>
+<td><code>/children/{code}</code></td>
+<td>孩子档案详情</td>
+<td>F-FAM-03</td>
+</tr>
+<tr>
+<td>86</td>
+<td>PUT</td>
+<td><code>/children/{code}</code></td>
+<td>更新孩子档案（昵称/头像/年级/生日）</td>
+<td>F-FAM-03</td>
+</tr>
+<tr>
+<td>87</td>
+<td>DELETE</td>
+<td><code>/children/{code}</code></td>
+<td>停用孩子档案</td>
+<td>F-FAM-03</td>
+</tr>
+<tr>
+<td>88</td>
+<td>POST</td>
+<td><code>/children/{code}/pin/reset</code></td>
+<td>重置孩子 PIN（明文仅本次返回）</td>
+<td>F-FAM-05</td>
+</tr>
+<tr>
+<td>89</td>
+<td>GET</td>
+<td><code>/children/{code}/relations</code></td>
+<td>孩子的关联家长列表</td>
+<td>F-FAM-04</td>
+</tr>
+<tr>
+<td>90</td>
+<td>POST</td>
+<td><code>/children/{code}/relations</code></td>
+<td>关联家长（<code>parentUserId</code> + 关系标签）</td>
+<td>F-FAM-04</td>
+</tr>
+<tr>
+<td>91</td>
+<td>DELETE</td>
+<td><code>/children/{code}/relations/{parentUserId}</code></td>
+<td>解除关联</td>
+<td>F-FAM-04</td>
+</tr>
+<tr>
+<td>92</td>
+<td>GET</td>
+<td><code>/children/{code}/overview</code></td>
+<td>孩子概览（家长视角：趋势/护眼/错题概况）</td>
+<td>F-FAM-07</td>
+</tr>
+</tbody>
+</table></div>
+<h3>3.7 孩子端登录与身份（4 个）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>方法</th>
+<th>路径</th>
+<th>说明</th>
+<th>需求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>93</td>
+<td>POST</td>
+<td><code>/kid/lookup</code></td>
+<td>家庭码 → 候选孩子列表（<strong>免认证</strong>）</td>
+<td>F-FAM-06</td>
+</tr>
+<tr>
+<td>94</td>
+<td>POST</td>
+<td><code>/kid/login</code></td>
+<td>孩子 PIN 登录 → JWT（<strong>免认证</strong>）</td>
+<td>F-FAM-05</td>
+</tr>
+<tr>
+<td>95</td>
+<td>POST</td>
+<td><code>/kid/logout</code></td>
+<td>孩子退出（吊销 Redis 会话）</td>
+<td>F-FAM-05</td>
+</tr>
+<tr>
+<td>96</td>
+<td>GET</td>
+<td><code>/kid/me</code></td>
+<td>当前孩子信息（仅本人）</td>
+<td>F-FAM-05</td>
+</tr>
+</tbody>
+</table></div>
+<!--update-begin---author:mavis ---date:2026-10-31  for：【F-GRM-05 / F-GRM-04】接口编号延到 106----------- -->
+
+<blockquote>
+<p><strong>编号连续性</strong>：接口编号 1–106 连续不跳号（2026-10-31 合流后）。</p>
+</blockquote>
+<!--update-end---author:mavis ---date:2026-10-31  for：【F-GRM-05 / F-GRM-04】接口编号延到 106----------- -->
+<blockquote>
+<p>其中家长反馈端点按 ADR-030 从家长端资源域挪进写作域，护眼轻量通道按 §3.4 护眼子表登记。
+免认证的两个接口（86 / 87）不持有权限码，其余按第 13 章「权限码设计」标注。
+<strong>写作情境库三个端点（97 / 98 / 99）追加在业务模块子表末尾</strong>：既有模块的编号一律不动，
+新增从 97 起往后排，避免牵动已登记的编号。</p>
+</blockquote>
+</section>
+<section id="base">
+  <div class="sec-head"><span class="sec-num">04</span><h3>底座接口</h3><span class="tag">上下文+坐标</span></div>
+  <p>底座接口</p>
+<h3>4.1 GET /context/current — 取当前上下文</h3>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;contextCode&quot;: &quot;CTX-JS-G5-RENJIAO&quot;,
+    &quot;provinceCode&quot;: &quot;32&quot;, &quot;provinceName&quot;: &quot;江苏省&quot;,
+    &quot;stageCode&quot;: &quot;PRIMARY&quot;, &quot;stageName&quot;: &quot;小学&quot;,
+    &quot;gradeCode&quot;: &quot;G5&quot;, &quot;gradeName&quot;: &quot;五年级&quot;,
+    &quot;textbookVersionId&quot;: &quot;TV-RENJIAO&quot;,
+    &quot;textbookVersionName&quot;: &quot;人教版&quot;,
+    &quot;eyeIntervalMin&quot;: 15,
+    &quot;configured&quot;: true
+  }
+}
+</code></pre>
+<blockquote>
+<p><code>configured=false</code> 表示尚未配置，前端应引导到配置页而非报错。</p>
+</blockquote>
+<h3>4.2 POST /context — 创建/切换上下文</h3>
+<p><strong>请求</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;provinceCode&quot;: &quot;32&quot;,
+  &quot;stageCode&quot;: &quot;PRIMARY&quot;,
+  &quot;gradeCode&quot;: &quot;G5&quot;,
+  &quot;textbookVersionId&quot;: &quot;TV-RENJIAO&quot;
+}
+</code></pre>
+<p><strong>响应</strong>：同 4.1。</p>
+<p><strong>副作用</strong>：旧上下文 <code>is_current</code> 置 0；新上下文入库并置 1；<strong>历史学习记录不回填</strong>（系统设计 5.1）。</p>
+<h3>4.3 GET /knowledge-points/tree — 坐标树全树</h3>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;version&quot;: &quot;v2&quot;,
+    &quot;updatedAt&quot;: &quot;2026-10-30 09:12:00&quot;,
+    &quot;nodes&quot;: [
+      {
+        &quot;code&quot;: &quot;KPT-MA-0001&quot;, &quot;name&quot;: &quot;小学数学&quot;, &quot;level&quot;: 2,
+        &quot;parentCode&quot;: &quot;KPT-SCOPE-32-PRIMARY&quot;, &quot;sortNo&quot;: 1,
+        &quot;children&quot;: [
+          {
+            &quot;code&quot;: &quot;KPT-MA-0417&quot;, &quot;name&quot;: &quot;行程问题·相遇&quot;, &quot;level&quot;: 4,
+            &quot;questionType&quot;: &quot;应用题/画图题/列表题&quot;,
+            &quot;scoreWeight&quot;: 6.50,
+            &quot;errorTypes&quot;: &quot;READING,METHOD&quot;,
+            &quot;motherQuestionCode&quot;: &quot;MTH-MA-0123&quot;,
+            &quot;childCount&quot;: { &quot;question&quot;: 12, &quot;word&quot;: 0, &quot;mother&quot;: 1, &quot;grammar&quot;: 0, &quot;writing&quot;: 0 },
+            &quot;children&quot;: []
+          }
+        ]
+      }
+    ]
+  }
+}
+</code></pre>
+<p><strong>性能</strong>：服务端从 Redis 读缓存（<code>study:kp:tree:{contextId}</code>），缓存未命中时回源并写回。<strong>节点变更后主动失效</strong>。</p>
+<h3>4.4 PUT /knowledge-points/{code} — 维护考点四属性</h3>
+<p><strong>请求</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;questionType&quot;: &quot;应用题/画图题/列表题&quot;,
+  &quot;scoreWeight&quot;: 6.50,
+  &quot;errorTypes&quot;: [&quot;READING&quot;, &quot;METHOD&quot;],
+  &quot;motherQuestionCode&quot;: &quot;MTH-MA-0123&quot;
+}
+</code></pre>
+<p><strong>校验</strong>：<code>motherQuestionCode</code> 若指向不存在的母题，返回 4004 业务错误。</p>
+</section>
+<section id="practice">
+  <div class="sec-head"><span class="sec-num">05</span><h3>练习与判定接口</h3><span class="tag">R-01/R-02</span></div>
+  <p>练习与判定接口</p>
+<h3>5.1 GET /practice/{type}/next — 取下一题</h3>
+<p><strong>路径参数</strong>：<code>type</code> ∈ <code>word</code> | <code>math</code> | <code>grammar</code> | <code>writing</code> | <code>wrong</code>（错题重做）</p>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;contentId&quot;: &quot;QST-SELF-2026-0088&quot;,
+    &quot;contentType&quot;: &quot;NUMERIC&quot;,
+    &quot;subjectCode&quot;: &quot;MA&quot;,
+    &quot;knowledgePointCode&quot;: &quot;KPT-MA-0417&quot;,
+    &quot;stem&quot;: &quot;甲、乙两地相距 240 千米，两车同时从两地相对开出…&quot;,
+    &quot;options&quot;: null,
+    &quot;imageUrl&quot;: null,
+    &quot;difficulty&quot;: 3,
+    &quot;inputSpec&quot;: { &quot;type&quot;: &quot;NUMERIC&quot;, &quot;unit&quot;: &quot;千米&quot;, &quot;placeholder&quot;: &quot;请输入数值&quot; },
+    &quot;sourceType&quot;: &quot;SELF&quot;
+  }
+}
+</code></pre>
+<blockquote>
+<p><strong>关键</strong>：<code>answer</code>（正确答案）与 <code>analysis</code>（解析）<strong>不出现在此响应中</strong>。这从接口层落实红线 R-01——前端拿不到答案，就无法在未作答时展示。</p>
+<p><strong>字段名说明</strong>：作答控件规格原名 <code>answerEntry</code>，2026-10-31 改为 <code>inputSpec</code>。原因是红线断言 R01-1 按<strong>子串</strong>匹配字段名，<code>answerEntry</code> 会被判成「取题接口返回了答案字段」而误杀（它描述的是输入框形态，本身不含答案）。改名后语义也更准：该字段说的是「怎么填」，不是「答案是什么」。</p>
+</blockquote>
+<h3>5.2 POST /practice/answer — 提交作答</h3>
+<p><strong>请求</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;sessionId&quot;: &quot;PS-20261030-0007&quot;,
+  &quot;contentId&quot;: &quot;QST-SELF-2026-0088&quot;,
+  &quot;answer&quot;: &quot;12&quot;,
+  &quot;durationMs&quot;: 45000,
+  &quot;errorCause&quot;: &quot;READING&quot;,
+  &quot;stepTags&quot;: [{ &quot;stepIndex&quot;: 2, &quot;cause&quot;: &quot;METHOD&quot; }]
+}
+</code></pre>
+<p><strong>字段说明</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sessionId</code></td>
+<td>是</td>
+<td>练习会话 ID</td>
+</tr>
+<tr>
+<td><code>contentId</code></td>
+<td>是</td>
+<td>内容业务 ID</td>
+</tr>
+<tr>
+<td><code>answer</code></td>
+<td>是</td>
+<td>孩子作答</td>
+</tr>
+<tr>
+<td><code>durationMs</code></td>
+<td>否</td>
+<td>本题耗时</td>
+</tr>
+<tr>
+<td><code>errorCause</code></td>
+<td><strong>答错时必填</strong></td>
+<td>错因码；缺失返回 <strong>4001</strong></td>
+</tr>
+<tr>
+<td><code>stepTags</code></td>
+<td>否</td>
+<td>步骤级错因打标（F-MTH-04）</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>响应</strong>（完整契约见第 11 章）</p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;contentId&quot;: &quot;QST-SELF-2026-0088&quot;,
+    &quot;correct&quot;: false,
+    &quot;source&quot;: &quot;rule&quot;,
+    &quot;basis&quot;: &quot;数值容差判定：期望 12.5，实际 12，允许偏差 ±0.05&quot;,
+    &quot;detail&quot;: { &quot;expected&quot;: &quot;12.5&quot;, &quot;actual&quot;: &quot;12&quot;, &quot;tolerance&quot;: 0.05 },
+    &quot;explain&quot;: { &quot;type&quot;: &quot;STEP_BY_STEP&quot;, &quot;text&quot;: &quot;先求速度和：… &quot; },
+    &quot;explainStatus&quot;: &quot;OK&quot;,
+    &quot;errorId&quot;: &quot;ERR-00000123&quot;,
+    &quot;nextReviewAt&quot;: &quot;2026-10-30&quot;,
+    &quot;masteryState&quot;: 2
+  }
+}
+</code></pre>
+<h3>5.3 GET /practice/{contentId}/explanation — 取解析</h3>
+<p><strong>前置条件</strong>：该内容在<strong>当前会话中已被作答过</strong>。未作答直接调用返回 <strong>4003</strong>。</p>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;contentId&quot;: &quot;QST-SELF-2026-0088&quot;,
+    &quot;type&quot;: &quot;STEP_BY_STEP&quot;,
+    &quot;sections&quot;: [
+      { &quot;key&quot;: &quot;QUESTION&quot;, &quot;title&quot;: &quot;题干&quot;, &quot;text&quot;: &quot;…&quot; },
+      { &quot;key&quot;: &quot;IDEA&quot;,    &quot;title&quot;: &quot;思路&quot;, &quot;text&quot;: &quot;…&quot; },
+      { &quot;key&quot;: &quot;STEP&quot;,    &quot;title&quot;: &quot;步骤&quot;, &quot;text&quot;: &quot;…&quot; },
+      { &quot;key&quot;: &quot;ANSWER&quot;,  &quot;title&quot;: &quot;答案&quot;, &quot;text&quot;: &quot;12.5 千米&quot; }
+    ],
+    &quot;wrongPath&quot;: &quot;常见错误：直接用总路程 ÷ 时间，把两车速度当成一辆车的速度。&quot;,
+    &quot;relatedQuestionIds&quot;: [&quot;QST-SELF-2026-0091&quot;, &quot;QST-SELF-2026-0094&quot;]
+  }
+}
+</code></pre>
+<blockquote>
+<p><code>wrongPath</code> 对应竞品分析 C-25（豆包爱学「深度解题」先给错误思路再反思）——它由规则从错因推导，不是模型自由发挥。</p>
+</blockquote>
+<h3>5.4 POST /practice/{contentId}/oral — 口述关键关系</h3>
+<p><strong>请求</strong></p>
+<pre class="cmd"><code class="language-json">{ &quot;speechText&quot;: &quot;路程和等于速度和乘以时间&quot; }
+</code></pre>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;passed&quot;: false,
+    &quot;matchedKeywords&quot;: [&quot;路程&quot;, &quot;速度&quot;, &quot;时间&quot;],
+    &quot;missingKeywords&quot;: [&quot;和&quot;, &quot;等于&quot;],
+    &quot;followUpQuestion&quot;: &quot;如果两车速度不一样，这个关系还成立吗？想想「速度和」是怎么来的。&quot;,
+    &quot;motherPassed&quot;: false
+  }
+}
+</code></pre>
+<p><strong>规则</strong>：口述未通过时<strong>不给答案</strong>，只返回一条苏格拉底式追问（PRD F-MTH-03）。</p>
+</section>
+<section id="error">
+  <div class="sec-head"><span class="sec-num">06</span><h3>错题与排期接口</h3><span class="tag">复盘引擎</span></div>
+  <p>错题与排期接口</p>
+<h3>6.1 POST /error-pool — 手动录入错题</h3>
+<p><strong>Content-Type</strong>：<code>multipart/form-data</code></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>image</code></td>
+<td>file</td>
+<td>是</td>
+<td>试卷/错题照片</td>
+</tr>
+<tr>
+<td><code>subjectCode</code></td>
+<td>string</td>
+<td>是</td>
+<td>学科</td>
+</tr>
+<tr>
+<td><code>knowledgePointCode</code></td>
+<td>string</td>
+<td>否</td>
+<td>考点</td>
+</tr>
+<tr>
+<td><code>errorCause</code></td>
+<td>string</td>
+<td>是</td>
+<td>错因</td>
+</tr>
+<tr>
+<td><code>sourceType</code></td>
+<td>string</td>
+<td>是</td>
+<td><code>SELF</code> / <code>PUBLIC</code> / <code>LICENSE</code></td>
+</tr>
+<tr>
+<td><code>sourceRef</code></td>
+<td>string</td>
+<td><code>sourceType != SELF</code> 时必填</td>
+<td>出处；缺失返回 <strong>4006</strong></td>
+</tr>
+<tr>
+<td><code>boxes</code></td>
+<td>json</td>
+<td>否</td>
+<td>框选区域坐标</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;errorCode&quot;: &quot;ERR-00000123&quot;,
+    &quot;imageUrl&quot;: &quot;/study/error/20261030/ERR-00000123.jpg&quot;,
+    &quot;erasable&quot;: true,
+    &quot;erasableRegions&quot;: [{ &quot;x&quot;: 12, &quot;y&quot;: 48, &quot;w&quot;: 320, &quot;h&quot;: 96 }],
+    &quot;variants&quot;: [],
+    &quot;nextReviewAt&quot;: &quot;2026-10-30&quot;
+  }
+}
+</code></pre>
+<h3>6.2 GET /error-pool — 错题分页</h3>
+<p><strong>请求参数</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sourceModule</code></td>
+<td>来源模块</td>
+</tr>
+<tr>
+<td><code>errorCause</code></td>
+<td>错因</td>
+</tr>
+<tr>
+<td><code>knowledgePointCode</code></td>
+<td>考点</td>
+</tr>
+<tr>
+<td><code>reviewStatus</code></td>
+<td>1 待复习 / 2 已移出</td>
+</tr>
+<tr>
+<td><code>keyword</code></td>
+<td>题干关键词</td>
+</tr>
+<tr>
+<td><code>pageNo</code> / <code>pageSize</code></td>
+<td>分页</td>
+</tr>
+</tbody>
+</table></div>
+<h3>6.3 GET /review/queue — 今日复习队列</h3>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;queueDate&quot;: &quot;2026-10-30&quot;,
+    &quot;total&quot;: 23,
+    &quot;completed&quot;: 5,
+    &quot;items&quot;: [
+      {
+        &quot;seq&quot;: 1,
+        &quot;errorCode&quot;: &quot;ERR-00000123&quot;,
+        &quot;sourceModule&quot;: &quot;MATH&quot;,
+        &quot;contentType&quot;: &quot;QUESTION&quot;,
+        &quot;contentId&quot;: &quot;QST-SELF-2026-0088&quot;,
+        &quot;knowledgePointCode&quot;: &quot;KPT-MA-0417&quot;,
+        &quot;knowledgePointName&quot;: &quot;行程问题·相遇&quot;,
+        &quot;errorCause&quot;: &quot;READING&quot;,
+        &quot;sortScore&quot;: 12.4820,
+        &quot;hasVariants&quot;: true,
+        &quot;variantRequired&quot;: 2
+      }
+    ]
+  }
+}
+</code></pre>
+<p><strong>规则</strong>：队列<strong>物化</strong>，当天重复调用返回相同顺序；单日上限 50 条。</p>
+<h3>6.4 POST /review/queue/{code}/complete — 完成一项复习</h3>
+<p><strong>请求</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;correct&quot;: true,
+  &quot;oralPassed&quot;: null,
+  &quot;variantResults&quot;: [
+    { &quot;variantCode&quot;: &quot;QST-VAR-MTH-MA-0123-1-001&quot;, &quot;correct&quot;: true },
+    { &quot;variantCode&quot;: &quot;QST-VAR-MTH-MA-0123-2-002&quot;, &quot;correct&quot;: true }
+  ]
+}
+</code></pre>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;errorCode&quot;: &quot;ERR-00000123&quot;,
+    &quot;correctStreak&quot;: 2,
+    &quot;masteryState&quot;: 2,
+    &quot;archived&quot;: false,
+    &quot;nextReviewAt&quot;: &quot;2026-11-02&quot;,
+    &quot;message&quot;: &quot;连续三次做对后会移出队列&quot;
+  }
+}
+</code></pre>
+<p><strong>排期规则</strong>（服务端计算，前端不参与）：当天→+1 天→+3 天→+7 天→+14 天；连续三次做对即移出；母题口述未过时 <code>archived</code> 恒为 <code>false</code>。</p>
+</section>
+<section id="biz">
+  <div class="sec-head"><span class="sec-num">07</span><h3>业务模块接口</h3><span class="tag">六模块</span></div>
+  <p>业务模块接口</p>
+<h3>7.1 母题</h3>
+<p><strong>POST /math/mother — 新建母题</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;title&quot;: &quot;行程问题·相遇&quot;,
+  &quot;conditionTypes&quot;: [
+    { &quot;key&quot;: &quot;distance&quot;, &quot;label&quot;: &quot;路程&quot;, &quot;variants&quot;: [&quot;总路程&quot;, &quot;往返路程&quot;] },
+    { &quot;key&quot;: &quot;speed&quot;,    &quot;label&quot;: &quot;速度&quot;, &quot;variants&quot;: [&quot;甲速度&quot;, &quot;乙速度&quot;, &quot;速度和&quot;] }
+  ],
+  &quot;keyRelation&quot;: &quot;路程和 = 速度和 × 相遇时间&quot;,
+  &quot;steps&quot;: [
+    { &quot;index&quot;: 1, &quot;title&quot;: &quot;求速度和&quot;, &quot;formula&quot;: &quot;v1 + v2&quot;, &quot;note&quot;: &quot;…&quot; },
+    { &quot;index&quot;: 2, &quot;title&quot;: &quot;求相遇时间&quot;, &quot;formula&quot;: &quot;S ÷ (v1 + v2)&quot;, &quot;note&quot;: &quot;…&quot; }
+  ],
+  &quot;pitfalls&quot;: [&quot;把两车速度当成一辆&quot;, &quot;忘了单位换算&quot;, &quot;算成相遇后的路程&quot;],
+  &quot;subjectCode&quot;: &quot;MA&quot;,
+  &quot;knowledgePointCode&quot;: &quot;KPT-MA-0417&quot;,
+  &quot;passVariantCount&quot;: 3
+}
+</code></pre>
+<p><strong>校验</strong>：五段结构缺任一段 → <strong>4007</strong>。<code>keyRelation</code> 为空也视为缺段。</p>
+<p><strong>POST /math/mother/{code}/variants — 生成三层变式</strong></p>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;motherCode&quot;: &quot;MTH-MA-0123&quot;,
+    &quot;variants&quot;: [
+      { &quot;variantCode&quot;: &quot;QST-VAR-MTH-MA-0123-1-001&quot;, &quot;layer&quot;: 1, &quot;layerName&quot;: &quot;换数字&quot;,
+        &quot;questionCode&quot;: &quot;QST-SELF-2026-0088&quot;, &quot;answer&quot;: &quot;2&quot;, &quot;answerTolerance&quot;: 0.01, &quot;generatedBy&quot;: &quot;RULE&quot; },
+      { &quot;variantCode&quot;: &quot;QST-VAR-MTH-MA-0123-2-002&quot;, &quot;layer&quot;: 2, &quot;layerName&quot;: &quot;换情境&quot;,
+        &quot;questionCode&quot;: &quot;QST-SELF-2026-0091&quot;, &quot;answer&quot;: &quot;3&quot;, &quot;answerTolerance&quot;: 0.01, &quot;generatedBy&quot;: &quot;RULE+MODEL&quot; },
+      { &quot;variantCode&quot;: &quot;QST-VAR-MTH-MA-0123-3-003&quot;, &quot;layer&quot;: 3, &quot;layerName&quot;: &quot;逆向&quot;,
+        &quot;questionCode&quot;: &quot;QST-SELF-2026-0094&quot;, &quot;answer&quot;: &quot;18&quot;, &quot;answerTolerance&quot;: 0.01, &quot;generatedBy&quot;: &quot;RULE&quot; }
+    ],
+    &quot;passVariantCount&quot;: 3
+  }
+}
+</code></pre>
+<blockquote>
+<p><code>generatedBy</code> 显式暴露生成方式：<code>RULE</code> 表示结构与答案全由规则产出；<code>RULE+MODEL</code> 表示结构与答案仍由规则产出，仅自然语言表述经模型润色。<strong>任何情况下 <code>generatedBy</code> 都不可能是 <code>MODEL</code></strong>（红线 R-02）。</p>
+</blockquote>
+<h3>7.2 背单词</h3>
+<p><strong>POST /word/feedback — 四档反馈</strong></p>
+<pre class="cmd"><code class="language-json">{ &quot;wordCode&quot;: &quot;WRD-A-04512&quot;, &quot;feedback&quot;: &quot;VAGUE&quot; }
+</code></pre>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;wordCode&quot;: &quot;WRD-A-04512&quot;,
+    &quot;memoryStrength&quot;: 0.8420,
+    &quot;decayLambda&quot;: 2.4000,
+    &quot;nextReviewAt&quot;: &quot;2026-11-02&quot;,
+    &quot;lineType&quot;: &quot;IN&quot;,
+    &quot;upgraded&quot;: false
+  }
+}
+</code></pre>
+<p><strong>四档映射</strong>（服务端计算）：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>反馈</th>
+<th>S 更新</th>
+<th>λ 更新</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>KNOWN</code> 认识</td>
+<td>+0.35</td>
+<td>不变</td>
+</tr>
+<tr>
+<td><code>VAGUE</code> 模糊</td>
+<td>+0.10</td>
+<td>×1.20</td>
+</tr>
+<tr>
+<td><code>FORGOT</code> 忘记</td>
+<td>归零</td>
+<td>×1.60</td>
+</tr>
+<tr>
+<td><code>FAMILIAR</code> 熟知</td>
+<td>+0.50</td>
+<td>×0.80</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>跨线升级</strong>：课内词答错时，服务端把该词的 <code>upgrade_flag</code> 置 1 并在外课线到期队列中加权（F-WRD-05），响应中 <code>upgraded</code> 字段告知前端。</p>
+<h3>7.3 语法</h3>
+<p><strong>POST /grammar/transform — 句子变形器</strong></p>
+<p><strong>请求</strong></p>
+<pre class="cmd"><code class="language-json">{ &quot;zhMeaning&quot;: &quot;我想去商店&quot;, &quot;grammarCode&quot;: &quot;GRP-0012&quot; }
+</code></pre>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;variants&quot;: [
+      { &quot;type&quot;: &quot;LITERAL&quot;,    &quot;name&quot;: &quot;直译版&quot;,     &quot;text&quot;: &quot;I want to go to the store.&quot;, &quot;usage&quot;: &quot;能懂但常被母语者觉得生硬&quot; },
+      { &quot;type&quot;: &quot;COLLOQUIAL&quot;, &quot;name&quot;: &quot;地道口语版&quot;, &quot;text&quot;: &quot;I feel like going to the store.&quot;, &quot;usage&quot;: &quot;日常口语最自然&quot; },
+      { &quot;type&quot;: &quot;WRITTEN&quot;,    &quot;name&quot;: &quot;书面版&quot;,     &quot;text&quot;: &quot;I would like to go to the store.&quot;, &quot;usage&quot;: &quot;书面表达更稳妥&quot; },
+      { &quot;type&quot;: &quot;EXAM_SAFE&quot;,  &quot;name&quot;: &quot;考试安全版&quot;, &quot;text&quot;: &quot;I would like to go to the store.&quot;, &quot;usage&quot;: &quot;口语考试与写作的稳妥选择&quot; },
+      { &quot;type&quot;: &quot;WRONG&quot;,      &quot;name&quot;: &quot;错误示范版&quot;, &quot;text&quot;: &quot;I am wanting to go to the store.&quot;, &quot;usage&quot;: &quot;语法错误示范，不要这样写&quot; }
+    ],
+    &quot;source&quot;: &quot;library&quot;
+  }
+}
+</code></pre>
+<blockquote>
+<p>优先从语料库检索（<code>source: "library"</code>），未命中时模型生成并经校验（<code>source: "model"</code>）。</p>
+</blockquote>
+<p><strong>POST /grammar/detect — 错误检测</strong></p>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;hasError&quot;: true,
+    &quot;source&quot;: &quot;rule&quot;,
+    &quot;errors&quot;: [
+      {
+        &quot;index&quot;: 12, &quot;length&quot;: 4, &quot;fragment&quot;: &quot;want to&quot;,
+        &quot;grammarCode&quot;: &quot;GRP-0031&quot;,
+        &quot;rule&quot;: &quot;want to do sth 中 want 后面用动词原形，不能加 -ing&quot;,
+        &quot;example&quot;: &quot;I want to go home.&quot;,
+        &quot;counterExample&quot;: &quot;I am wanting to go home. ✗&quot;,
+        &quot;fix&quot;: &quot;I want to go home.&quot;
+      }
+    ]
+  }
+}
+</code></pre>
+<blockquote>
+<p><code>source</code> 字段同样只在 <code>rule</code> / <code>rule+model</code> 之间取值。规则无法定位时才降级到模型。</p>
+</blockquote>
+<p><strong>POST /grammar/error-detail — 点开某个错误（2026-10-31 新增）</strong></p>
+<p>「错误即入口」链路的最后一步：孩子在句子上点中一处错误，前端把<strong>原句 + 错误标记ID</strong>回传，服务端返回该错误的三件套。</p>
+<p><strong>请求</strong></p>
+<pre class="cmd"><code class="language-json">{ &quot;sentence&quot;: &quot;He go to school every day.&quot;, &quot;errorId&quot;: &quot;GR-ERR-05@a1b2c3d4#0&quot; }
+</code></pre>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;originalSentence&quot;: &quot;He go to school every day.&quot;,
+    &quot;error&quot;: {
+      &quot;errorId&quot;: &quot;GR-ERR-05@a1b2c3d4#0&quot;,
+      &quot;index&quot;: 0, &quot;length&quot;: 5, &quot;fragment&quot;: &quot;He go&quot;,
+      &quot;grammarCode&quot;: &quot;GRP-0007&quot;,
+      &quot;rule&quot;: &quot;第三人称单数（he / she / it）后面的动词要加 -s 或 -es（你写的是「He go」）&quot;,
+      &quot;example&quot;: &quot;He goes to school every day.&quot;,
+      &quot;counterExample&quot;: &quot;He go to school every day.&quot;,
+      &quot;fix&quot;: &quot;He goes to school every day.&quot;
+    },
+    &quot;canRetry&quot;: true,
+    &quot;maxRetry&quot;: 1
+  }
+}
+</code></pre>
+<blockquote>
+<p><strong>讲解从孩子的真实错误出发</strong>（F-GRM-02 / TC-05-04）：<code>rule</code> 里必然带上孩子刚写的那一段原文，不做预防性灌输。
+<strong>可立即改一次</strong>：<code>maxRetry</code> 恒为 1。错误标记由「规则ID + 句子摘要 + 序号」构成，同一句话重复提交标记稳定可复现。</p>
+</blockquote>
+<!--update-begin---author:mavis ---date:2026-10-31  for：【F-GRM-05 / F-GRM-04】补语境库与玩法端点样例----------- -->
+
+<p><strong>GET /grammar/context — 语境例句库（与背单词共用同一批例句）</strong></p>
+<p><strong>请求</strong>：<code>GET /api/v1/study/grammar/context?wordCode=WRD-000001&amp;contextType=EXAM&amp;limit=20</code></p>
+<blockquote>
+<p><code>wordCode</code> 与 <code>grammarCode</code> <strong>至少给一个</strong>：<code>wordCode</code> 按词查，<code>grammarCode</code> 按语法点查。</p>
+</blockquote>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;wordCode&quot;: &quot;WRD-000001&quot;,
+    &quot;spelling&quot;: &quot;apple&quot;,
+    &quot;meaning&quot;: &quot;苹果&quot;,
+    &quot;wordExampleSentence&quot;: &quot;I eat an apple every morning.&quot;,
+    &quot;total&quot;: 3,
+    &quot;items&quot;: [
+      {
+        &quot;sentenceCode&quot;: &quot;SCT-000001&quot;,
+        &quot;sentence&quot;: &quot;I eat an apple every morning.&quot;,
+        &quot;zhMeaning&quot;: &quot;苹果&quot;,
+        &quot;contextType&quot;: &quot;TEXTBOOK&quot;,
+        &quot;contextTypeName&quot;: &quot;课文&quot;,
+        &quot;relationType&quot;: &quot;MAIN&quot;,
+        &quot;usageNote&quot;: &quot;课文里的主例句，与背单词域共用同一句&quot;,
+        &quot;sourceRef&quot;: &quot;课内例句（自编）&quot;,
+        &quot;grammarCode&quot;: null
+      },
+      {
+        &quot;sentenceCode&quot;: &quot;SCT-000101&quot;,
+        &quot;sentence&quot;: &quot;The doctor asked me to eat an apple every morning.&quot;,
+        &quot;zhMeaning&quot;: &quot;医生让我每天早上吃一个苹果。&quot;,
+        &quot;contextType&quot;: &quot;EXAM&quot;,
+        &quot;contextTypeName&quot;: &quot;真题&quot;,
+        &quot;relationType&quot;: &quot;EXTEND&quot;,
+        &quot;usageNote&quot;: &quot;真题里 apple 常出现在健康建议语境，作可数名词用单数，前面的不定冠词用 an。&quot;,
+        &quot;sourceRef&quot;: &quot;中考真题风格改写（自编）&quot;,
+        &quot;grammarCode&quot;: null
+      }
+    ]
+  }
+}
+</code></pre>
+<blockquote>
+<p><strong>同一批例句是可断言的事实</strong>（F-GRM-05）：<code>items</code> 的 <code>sentenceCode</code> 与数量来自
+<code>study_word_context</code> 关联表，背单词域与语法域读的是<strong>同一张表</strong>；
+主例句（<code>relationType=MAIN</code>）的正文与 <code>wordExampleSentence</code>（背单词域 <code>study_word.context_sentence</code>）<strong>是同一句</strong>。
+<code>total</code> 取关联表的条数，<strong>不受 <code>limit</code> 影响</strong>。</p>
+</blockquote>
+<p><strong>GET /grammar/game/detective/next — 句子侦探取题</strong></p>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;roundId&quot;: &quot;GAM-000001&quot;,
+    &quot;grammarCode&quot;: null,
+    &quot;total&quot;: 4,
+    &quot;sentences&quot;: [
+      { &quot;position&quot;: 1, &quot;text&quot;: &quot;I eat an apple every morning.&quot;, &quot;sentenceCode&quot;: &quot;SCT-000101&quot; },
+      { &quot;position&quot;: 2, &quot;text&quot;: &quot;He go to school every day.&quot;, &quot;sentenceCode&quot;: null },
+      { &quot;position&quot;: 3, &quot;text&quot;: &quot;We read books in the library every weekend.&quot;, &quot;sentenceCode&quot;: &quot;SCT-000125&quot; },
+      { &quot;position&quot;: 4, &quot;text&quot;: &quot;My bag is blue.&quot;, &quot;sentenceCode&quot;: &quot;SCT-000114&quot; }
+    ]
+  }
+}
+</code></pre>
+<blockquote>
+<p><strong>取题不给答案</strong>（R-01）：响应里<strong>没有</strong>哪一句是错的、也没有任何讲解字段；
+正例句来自语境库，错句由服务端持有，<code>sentences</code> 里看不出差别。</p>
+</blockquote>
+<p><strong>POST /grammar/game/detective/judge — 句子侦探判定</strong></p>
+<p><strong>请求</strong></p>
+<pre class="cmd"><code class="language-json">{ &quot;roundId&quot;: &quot;GAM-000001&quot;, &quot;pickedIndex&quot;: 2, &quot;durationMs&quot;: 8400 }
+</code></pre>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;roundId&quot;: &quot;GAM-000001&quot;,
+    &quot;correct&quot;: true,
+    &quot;pickedIndex&quot;: 2,
+    &quot;wrongPosition&quot;: 2,
+    &quot;wrongSentence&quot;: &quot;He go to school every day.&quot;,
+    &quot;rule&quot;: &quot;第三人称单数（he / she / it）后面的动词要加 -s 或 -es（你写的是「He go」）&quot;,
+    &quot;example&quot;: &quot;He goes to school every day.&quot;,
+    &quot;counterExample&quot;: &quot;He go to school every day.&quot;,
+    &quot;fix&quot;: &quot;He goes to school every day.&quot;,
+    &quot;judgeSource&quot;: &quot;rule&quot;,
+    &quot;errorCode&quot;: null
+  }
+}
+</code></pre>
+<blockquote>
+<p><strong>判定确定性</strong>（R-02）：错句位置由服务端按规则重新算出，不看前端传了什么；
+<code>judgeSource</code> 恒为 <code>rule</code>。
+<strong>没找对就入池</strong>：答错时错句按错因进入统一错题池，<code>errorCode</code> 回填错题业务ID，
+于是「我的错句收藏馆」里能看到它（F-GRM-06）。</p>
+</blockquote>
+<p><strong>GET /grammar/game/transform/next — 语法变形闯关取题</strong></p>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;roundId&quot;: &quot;GAM-000101&quot;,
+    &quot;grammarCode&quot;: null,
+    &quot;meaning&quot;: &quot;医生让我每天早上吃一个苹果。&quot;,
+    &quot;prompt&quot;: &quot;把这句话写成通顺的英文，写完提交就行&quot;,
+    &quot;targetSentenceCode&quot;: &quot;SCT-000101&quot;
+  }
+}
+</code></pre>
+<blockquote>
+<p><strong>取题不给目标表达</strong>（R-01）：只给中文意思与任务说明；参考表达等孩子写完才给。</p>
+</blockquote>
+<p><strong>POST /grammar/game/transform/judge — 语法变形闯关判定</strong></p>
+<p><strong>请求</strong></p>
+<pre class="cmd"><code class="language-json">{ &quot;roundId&quot;: &quot;GAM-000101&quot;, &quot;sentence&quot;: &quot;The doctor asked me to eat an apple every morning.&quot;, &quot;durationMs&quot;: 15200 }
+</code></pre>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;roundId&quot;: &quot;GAM-000101&quot;,
+    &quot;correct&quot;: false,
+    &quot;judgeSource&quot;: &quot;rule&quot;,
+    &quot;rule&quot;: &quot;第三人称单数（he / she / it）后面的动词要加 -s 或 -es（你写的是「doctor ask」）&quot;,
+    &quot;example&quot;: &quot;He goes to school every day.&quot;,
+    &quot;counterExample&quot;: &quot;He go to school every day.&quot;,
+    &quot;fix&quot;: &quot;The doctor asked me to eat an apple every morning.&quot;,
+    &quot;referenceText&quot;: &quot;The doctor asked me to eat an apple every morning.&quot;,
+    &quot;hint&quot;: &quot;第三人称单数（he / she / it）后面的动词要加 -s 或 -es（你写的是「doctor ask」）&quot;,
+    &quot;errorCode&quot;: &quot;ERR-000123&quot;
+  }
+}
+</code></pre>
+<blockquote>
+<p><strong>过关口径固定为两条</strong>（确定性，不含任何模型判断）：
+① 规则<strong>没有</strong>在孩子的句子里查出语法错误；② 句子里用到了目标表达的实词
+（去虚词后命中数 ≥ 目标实词数的一半，向上取整）。
+两条都满足才算过关，否则给一句提示；答错的句子进统一错题池，收藏馆可见。</p>
+</blockquote>
+<p><strong>GET /grammar/game/collection — 我的错句收藏馆（玩法入口）</strong></p>
+<blockquote>
+<p>与既有的 <code>GET /grammar/collection</code> <strong>读的是同一张统一错题池</strong>（<code>study_error_pool</code>，来源模块 GRAMMAR），
+按 <code>child_id</code> 隔离；区别只是这里给玩法视角的字段。可选参数 <code>errorCause</code> 按五维错因过滤。</p>
+</blockquote>
+<p><strong>GET /grammar/game/progress — 闯关进度</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;items&quot;: [
+      {
+        &quot;gameType&quot;: &quot;DETECTIVE&quot;,
+        &quot;gameTypeName&quot;: &quot;句子侦探&quot;,
+        &quot;totalCount&quot;: 14,
+        &quot;passedCount&quot;: 3,
+        &quot;answeredCount&quot;: 5,
+        &quot;lastPlayedAt&quot;: &quot;2026-10-31 09:30:00&quot;
+      },
+      {
+        &quot;gameType&quot;: &quot;TRANSFORM&quot;,
+        &quot;gameTypeName&quot;: &quot;语法变形闯关&quot;,
+        &quot;totalCount&quot;: 12,
+        &quot;passedCount&quot;: 1,
+        &quot;answeredCount&quot;: 2,
+        &quot;lastPlayedAt&quot;: &quot;2026-10-31 09:26:00&quot;
+      }
+    ]
+  }
+}
+</code></pre>
+<blockquote>
+<p><strong>只跟自己比</strong>（R-04）：进度里只有「已过几关 / 答过几回 / 最近一次什么时候玩」，
+<strong>没有分数、没有名次、没有与他人比较的字段</strong>。</p>
+</blockquote>
+<!--update-end---author:mavis ---date:2026-10-31  for：【F-GRM-05 / F-GRM-04】补语境库与玩法端点样例----------- -->
+
+<h3>7.4 写作</h3>
+<p><strong>POST /writing/train/outline — 提交提纲</strong></p>
+<p><strong>请求</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;writingCode&quot;: &quot;WRT-HOOK-0031&quot;,
+  &quot;topic&quot;: &quot;一次难忘的坚持&quot;,
+  &quot;outline&quot;: {
+    &quot;opening&quot;: &quot;从那天清晨说起……&quot;,
+    &quot;body&quot;: [&quot;第一段写阻力&quot;, &quot;第二段写转折&quot;],
+    &quot;ending&quot;: &quot;回到清晨的那句话&quot;
+  }
+}
+</code></pre>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;passed&quot;: true,
+    &quot;feedback&quot;: [
+      { &quot;type&quot;: &quot;STRUCTURE&quot;, &quot;message&quot;: &quot;提纲有明确的开—中—末三段，结构可用。&quot; }
+    ],
+    &quot;nextStep&quot;: &quot;DRAFT&quot;
+  }
+}
+</code></pre>
+<p><strong>POST /writing/train/draft — 提交初稿</strong></p>
+<p><strong>前置</strong>：<code>nextStep == "DRAFT"</code>。未过提纲直接提交 → <strong>4002</strong>。</p>
+<p><strong>响应</strong>（对照式批改，只给最该改的三条）</p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;contentId&quot;: &quot;WR-SUB-20261030-0003&quot;,
+    &quot;diffList&quot;: [
+      { &quot;dimension&quot;: &quot;STRUCTURE&quot;, &quot;title&quot;: &quot;结尾回扣偏弱&quot;, &quot;detail&quot;: &quot;佳作在结尾用一句回到开头的意象，你的结尾停在总结上。&quot;, &quot;suggestion&quot;: &quot;试试把开头的『清晨』放到最后一句。&quot; },
+      { &quot;dimension&quot;: &quot;MATERIAL&quot;,  &quot;title&quot;: &quot;选材角度同质&quot;, &quot;detail&quot;: &quot;『坚持』题材大多写跑步/跳绳，佳作用的是每天记一句话。&quot;, &quot;suggestion&quot;: &quot;换一个只有你才有的细节。&quot; },
+      { &quot;dimension&quot;: &quot;HAND&quot;,      &quot;title&quot;: &quot;缺少手法例句&quot;, &quot;detail&quot;: &quot;全文是叙述，没有一处细节描写。&quot;, &quot;suggestion&quot;: &quot;在最紧张的那一段加一个特写镜头。&quot; }
+    ],
+    &quot;diffCount&quot;: 3,
+    &quot;source&quot;: &quot;model&quot;,
+    &quot;note&quot;: &quot;对照同题材佳作给出差异，非评分&quot;
+  }
+}
+</code></pre>
+<blockquote>
+<p><strong>写作批改的 <code>source</code> 允许为 <code>model</code></strong>——因为它产出的是「差异建议」而非「对错结论」。这不违反 R-02（红线约束的是判定对错与分数，写作模块本就不判对错）。<code>diffCount</code> 在服务端硬上限为 3。</p>
+</blockquote>
+<p><strong>GET /writing/dissections — 拆解库列表（六层）</strong></p>
+<p><strong>请求</strong>：<code>?gradeCode=&amp;genre=</code>（均可选）</p>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;items&quot;: [
+      { &quot;writingCode&quot;: &quot;WRT-HOOK-0031&quot;, &quot;layer&quot;: &quot;HOOK&quot;, &quot;title&quot;: &quot;开头三句定调子&quot;,
+        &quot;teachingPoint&quot;: &quot;开头不交代时间地点，先给一个画面&quot;, &quot;genre&quot;: &quot;写事&quot;, &quot;stageCode&quot;: &quot;PRIMARY&quot; }
+    ],
+    &quot;total&quot;: 1
+  }
+}
+</code></pre>
+<blockquote>
+<p>六层拆解是<strong>全局内容</strong>（<code>child_id = NULL</code>），所有孩子共享同一份拆解库。</p>
+</blockquote>
+<p><strong>GET /writing/parent/drafts — 家长可反馈的最近初稿</strong></p>
+<p><strong>请求</strong>：<code>?childCode=</code>（可选；省略时取关系表交集内的全部可见孩子）</p>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: [
+    { &quot;writingCode&quot;: &quot;WRT-DRAFT-0007&quot;, &quot;title&quot;: &quot;一次难忘的坚持&quot;,
+      &quot;createTime&quot;: &quot;2026-10-31 09:12:00&quot;, &quot;childCode&quot;: &quot;CHD-0003&quot; }
+  ]
+}
+</code></pre>
+<blockquote>
+<p>只返回<strong>摘要</strong>，<strong>不含初稿正文</strong>（家长端只读边界，见 §8.1）。
+家长只能看到自己关联的孩子（关系表求交集，ADR-018）；越权一律 <strong>4010</strong>，
+且「不存在」与「无权」返回完全一致的响应，避免资源探测。</p>
+</blockquote>
+<p><strong>POST /writing/parent/feedback — 一句话反馈</strong></p>
+<p><strong>请求</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;targetType&quot;: &quot;WRITING&quot;,
+  &quot;targetCode&quot;: &quot;WRT-DRAFT-0007&quot;,
+  &quot;content&quot;: &quot;开头写得挺稳，可以把第二段再写细一点&quot;
+}
+</code></pre>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>targetType</code></td>
+<td>是</td>
+<td>固定 <code>WRITING</code></td>
+</tr>
+<tr>
+<td><code>targetCode</code></td>
+<td>是</td>
+<td>反馈对象（某篇初稿）的业务ID；必须属于该家长可见的孩子，否则 <strong>4010</strong></td>
+</tr>
+<tr>
+<td><code>content</code></td>
+<td>是</td>
+<td>一句话反馈，≤ <strong>100</strong> 字，超限直接拒绝且<strong>不落库</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;writingCode&quot;: &quot;WRT-FEEDBACK-0012&quot;,
+    &quot;targetCode&quot;: &quot;WRT-DRAFT-0007&quot;,
+    &quot;childId&quot;: &quot;…&quot;,
+    &quot;content&quot;: &quot;开头写得挺稳，可以把第二段再写细一点&quot;,
+    &quot;createTime&quot;: &quot;2026-10-31 20:41:00&quot;
+  }
+}
+</code></pre>
+<blockquote>
+<p><strong>权限码</strong> <code>study:parent:writing:feedback</code>，角色 <code>study_parent</code>。
+反馈单独存一层（<code>layer = FEEDBACK</code>），<strong>不进入孩子的练习数据流</strong>（F-PAR-02 / A-21）；
+家长 A 看不到家长 B 的反馈（F-FAM-08）。
+归属说明见 ADR-030：家长反馈归<strong>写作域</strong>，家长端资源域不另设反馈端点。</p>
+</blockquote>
+<p><strong>GET /writing/parent/feedbacks — 反馈列表</strong></p>
+<p><strong>请求</strong>：<code>?childCode=</code>（可选）</p>
+<p><strong>响应</strong>：<code>result</code> 为反馈数组，元素含 <code>writingCode</code> / <code>targetCode</code> / <code>content</code> / <code>createTime</code>，
+只含关系表交集内孩子的反馈；越权 <strong>4010</strong>。</p>
+<!--update-begin---author:mavis ---date:2026-10-31  for：【F-WRT-03】补写作情境库三个端点的请求/响应契约----------- -->
+
+<p><strong>GET /writing/scenario/themes — 情境主题清单</strong></p>
+<p><strong>请求</strong>：<code>?stageCode=</code>（可选，按学段过滤）</p>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;items&quot;: [
+      { &quot;themeCode&quot;: &quot;PERSIST&quot;, &quot;themeName&quot;: &quot;坚持&quot;, &quot;scenarioCount&quot;: 4 }
+    ],
+    &quot;total&quot;: 6
+  }
+}
+</code></pre>
+<blockquote>
+<p><strong>权限码</strong> <code>study:writing:view</code>。
+一个主题下有多个不同处境，主题清单是进入情境库的入口。</p>
+</blockquote>
+<p><strong>GET /writing/scenario/list — 情境清单</strong></p>
+<p><strong>请求</strong>：<code>?themeCode=&amp;stageCode=</code>（均可选；<code>themeCode</code> 省略时返回全部情境）</p>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;items&quot;: [
+      {
+        &quot;scenarioCode&quot;: &quot;SEED-SCN-PERSIST-01&quot;,
+        &quot;themeCode&quot;: &quot;PERSIST&quot;,
+        &quot;themeName&quot;: &quot;坚持&quot;,
+        &quot;title&quot;: &quot;抄写本上的第三个圈&quot;,
+        &quot;situationDesc&quot;: &quot;语文老师要求每天把三个生字抄五遍。第一天你把字写得又大又歪，老师走过来用红笔在旁边画了一个圈……&quot;,
+        &quot;ageStage&quot;: &quot;小学低年级&quot;,
+        &quot;ageMin&quot;: 6,
+        &quot;ageMax&quot;: 8,
+        &quot;detailClues&quot;: [&quot;擦得只剩半块的橡皮&quot;, &quot;作业本右下角洇开的一小片墨&quot;, &quot;老师画的那个红圈&quot;],
+        &quot;stageCode&quot;: &quot;G1&quot;,
+        &quot;genre&quot;: &quot;写事&quot;,
+        &quot;difficulty&quot;: 1,
+        &quot;promptQuestion&quot;: &quot;你被圈住的那天，手上的动作是什么？后来这个圈还在纸上吗？&quot;,
+        &quot;restrictionNote&quot;: &quot;只写你自己身上发生过的事，不要写别人的故事&quot;,
+        &quot;forbiddenWords&quot;: &quot;不要写成「坚持就是胜利」这类口号，不要引用别人作品里的句子&quot;
+      }
+    ],
+    &quot;total&quot;: 4
+  }
+}
+</code></pre>
+<blockquote>
+<p><strong>权限码</strong> <code>study:writing:view</code>。
+<strong>同一主题下必须给到不同处境</strong>：年龄段不同、细节线索不同、难度不同，
+不是同一个处境换一套说法。</p>
+</blockquote>
+<p><strong>GET /writing/scenario/{code} — 情境详情（训练入口）</strong></p>
+<p><strong>请求</strong>：<code>{code}</code> = 情境业务ID（如 <code>SEED-SCN-PERSIST-01</code>）；不存在返回 <strong>400</strong>。</p>
+<p><strong>响应</strong>：与 <code>GET /writing/scenario/list</code> 的单个元素同构（<code>title</code> / <code>situationDesc</code> /
+<code>ageStage</code> / <code>detailClues</code> / <code>promptQuestion</code> / <code>restrictionNote</code> / <code>forbiddenWords</code>）。</p>
+<blockquote>
+<p><strong>权限码</strong> <code>study:writing:train</code>（训练入口带提示题与限制条件）。</p>
+<p><strong>数据范围</strong>：情境库是<strong>全局共享的内容表</strong>（表里没有 <code>child_id</code>），
+因此这三个端点<strong>不接受前端传来的 childId</strong>，也不做按孩子的隔离；
+孩子写出来的内容落在带 <code>child_id</code> 的 <code>study_writing</code> 上。</p>
+<p><strong>红线</strong>：三个端点的响应里<strong>只有处境、年龄段、细节线索、提示题与限制条件</strong>，
+<strong>没有任何可以直接抄走的句子</strong>，也没有任何横向衡量类字段（R-01 / R-04）。
+写作域<strong>不依赖 AI 客户端</strong>，这三个端点只做确定性的查询与拼装（R-02）。</p>
+</blockquote>
+<!--update-end---author:mavis ---date:2026-10-31  for：【F-WRT-03】补写作情境库三个端点的请求/响应契约----------- -->
+</section>
+<section id="parent">
+  <div class="sec-head"><span class="sec-num">08</span><h3>家长端与护眼接口</h3><span class="tag">只读</span></div>
+  <p>家长端与护眼接口</p>
+<h3>8.1 家长端只读边界</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>保证</th>
+<th>实现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>无答案查询</td>
+<td>不提供任何「按 ID 取答案」的家长端接口；<code>study_question.answer</code> 不出现在家长端 DTO</td>
+</tr>
+<tr>
+<td>无辅导建议</td>
+<td>家长端 DTO 中不含讲解、建议、知识点教学字段</td>
+</tr>
+<tr>
+<td>无排名</td>
+<td>DTO 字段不含 <code>rank</code> / <code>percentile</code> / <code>compare</code>；响应文案经关键词过滤（禁用「排名」「排行」「超过 X% 的同学」）；多家长场景下<strong>同样禁止家庭内比较</strong>（R-04 强化）</td>
+</tr>
+<tr>
+<td>只读</td>
+<td>家长端<strong>报告</strong>接口全部为 <code>GET</code>；家长端资源域唯一的 <code>POST</code> 是「提醒偏好」。家长的一句话反馈归<strong>写作域</strong>（<code>/writing/parent/feedback</code>，ADR-030），不在家长端资源域。家庭 / 成员 / 孩子档案管理属<strong>独立资源域</strong>（见第 9 章），家长在其中是可写的</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>GET /parent/report/overview 响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;eyeUsage&quot;: { &quot;todayMinutes&quot;: 42, &quot;weekMinutes&quot;: 260, &quot;avgSessionMinutes&quot;: 18 },
+    &quot;streak&quot;: { &quot;days&quot;: 12, &quot;todayCompleted&quot;: true },
+    &quot;mastery&quot;: { &quot;mastered&quot;: 18, &quot;familiar&quot;: 26, &quot;learning&quot;: 41, &quot;unknown&quot;: 9 },
+    &quot;errorTop&quot;: [
+      { &quot;cause&quot;: &quot;READING&quot;, &quot;causeName&quot;: &quot;审题偏差&quot;, &quot;count&quot;: 7 },
+      { &quot;cause&quot;: &quot;METHOD&quot;,  &quot;causeName&quot;: &quot;方法不会&quot;, &quot;count&quot;: 4 }
+    ],
+    &quot;weakPoints&quot;: [
+      { &quot;pointCode&quot;: &quot;KPT-MA-0417&quot;, &quot;pointName&quot;: &quot;行程问题·相遇&quot;, &quot;masteryState&quot;: 2, &quot;errorCount&quot;: 9 }
+    ],
+    &quot;writingTrend&quot;: [
+      { &quot;date&quot;: &quot;2026-10-24&quot;, &quot;diffCount&quot;: 6 },
+      { &quot;date&quot;: &quot;2026-10-31&quot;, &quot;diffCount&quot;: 3 }
+    ]
+  }
+}
+</code></pre>
+<blockquote>
+<p>全部为<strong>与自身历史趋势的对比</strong>，无任何横向比较字段。</p>
+</blockquote>
+<p><strong>POST /parent/feedback</strong></p>
+<pre class="cmd"><code class="language-json">{ &quot;targetType&quot;: &quot;WRITING&quot;, &quot;targetCode&quot;: &quot;WR-SUB-20261030-0003&quot;, &quot;content&quot;: &quot;这次开头写得比上次好&quot; }
+</code></pre>
+<p><strong>约束</strong>：<code>content</code> 长度 ≤ 100 字，超出返回 400；家长评论不进入孩子的练习数据流。</p>
+<h3>8.2 护眼心跳（独立轻量通道）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>方法</th>
+<th>路径</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POST</td>
+<td><code>/eye/session/start</code></td>
+<td>开始一次学习会话，返回 <code>sessionId</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/eye/session/{id}/heartbeat</code></td>
+<td>心跳（客户端每 30 秒一次），服务端累加有效时长</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/eye/session/{id}/rest</code></td>
+<td>记录一次休息提醒确认</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/eye/session/{id}/end</code></td>
+<td>结束会话</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>心跳请求</strong>：<code>{"active": true, "blueLight": false}</code>——<strong>服务端不信任客户端上报的时长</strong>，只按心跳次数 × 30 秒累加。这是系统设计 8.8 的落地。</p>
+<blockquote>
+<p>该通道不计入第 3 章的 89 个接口统计（属基础设施类）。</p>
+</blockquote>
+</section>
+<section id="family">
+  <div class="sec-head"><span class="sec-num">09</span><h3>家庭与成员接口</h3><span class="tag">多家庭多孩子</span></div>
+  <p>家庭与成员接口</p>
+<blockquote>
+<p>本章展开接口总表 §3.6（家长端 17 个）与 §3.7（孩子端 4 个）。路径均相对 <code>/api/v1/study</code>。
+权限码前缀 <code>study:parent:*</code>（家长端）/ <code>study:kid:*</code>（孩子端），认证与令牌见第 10 章「认证与多用户」。
+<strong>数据范围前提</strong>：家长只能操作自己家庭与自己关联的孩子；越权一律返回 <strong>4010</strong>。</p>
+</blockquote>
+<h3>9.1 POST /family — 创建家庭</h3>
+<p><strong>请求</strong></p>
+<pre class="cmd"><code class="language-json">{ &quot;familyName&quot;: &quot;我们家&quot; }
+</code></pre>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;familyId&quot;: &quot;FAM-000001&quot;,
+    &quot;familyName&quot;: &quot;我们家&quot;,
+    &quot;memberRole&quot;: &quot;OWNER&quot;,
+    &quot;familyCode&quot;: null,
+    &quot;childCount&quot;: 0
+  }
+}
+</code></pre>
+<blockquote>
+<p>首个创建家庭的家长自动成为 <code>OWNER</code>。<strong>家庭码不在创建时下发</strong>——由家长显式调用 <code>POST /family/code/reset</code> 生成，明文仅该次返回。</p>
+</blockquote>
+<h3>9.2 POST /family/code/reset — 重置家庭码</h3>
+<p><strong>响应</strong>（明文仅此一次返回，之后库里只有哈希）</p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;familyCode&quot;: &quot;K7M2QP&quot;,
+    &quot;issuedAt&quot;: &quot;2026-10-30 21:10:00&quot;
+  }
+}
+</code></pre>
+<blockquote>
+<p>家庭码为 6 位大写字母数字，<strong>明文只在生成/重置时返回一次</strong>，前端必须让家长当场抄走；之后任何接口都取不回明文，只能重置。
+<code>GET /family</code> 响应中的 <code>familyCode</code> 恒为 <code>null</code>，避免任何接口泄露明文。</p>
+</blockquote>
+<h3>9.3 POST /children — 新增孩子档案</h3>
+<p><strong>请求</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;nickname&quot;: &quot;小满&quot;,
+  &quot;avatar&quot;: &quot;/study/avatar/kid-01.png&quot;,
+  &quot;gender&quot;: 1,
+  &quot;birthday&quot;: &quot;2016-03-12&quot;,
+  &quot;gradeCode&quot;: &quot;G3&quot;,
+  &quot;pin&quot;: &quot;2468&quot;
+}
+</code></pre>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;childCode&quot;: &quot;CHD-000001&quot;,
+    &quot;nickname&quot;: &quot;小满&quot;,
+    &quot;userId&quot;: &quot;u-8f21c0&quot;,
+    &quot;role&quot;: &quot;study_kid&quot;,
+    &quot;pin&quot;: &quot;2468&quot;,
+    &quot;familyId&quot;: &quot;FAM-000001&quot;
+  }
+}
+</code></pre>
+<blockquote>
+<p><strong>一次事务</strong>内完成：建 <code>sys_user</code>（角色 <code>study_kid</code>）+ 建 <code>study_child</code> 档案 + 建 <code>study_parent_child_rel</code> 关联（<code>is_primary=1</code>）+ 写 PIN 哈希。
+<code>pin</code> <strong>明文仅此一次返回</strong>，服务端只存 <code>pin_hash</code> + <code>pin_salt</code>。
+<code>childCode</code> 是对外业务 ID（<code>CHD-</code> + 序号），接口路径一律用 <code>childCode</code> 而非 <code>study_child.id</code>。</p>
+</blockquote>
+<h3>9.4 POST /children/{code}/pin/reset — 重置孩子 PIN</h3>
+<p><strong>请求</strong></p>
+<pre class="cmd"><code class="language-json">{ &quot;pin&quot;: &quot;1357&quot; }
+</code></pre>
+<p><strong>响应</strong>：同 9.3 的 <code>pin</code> 明文返回一次；同时把 <code>pin_fail_count</code> 归零、<code>pin_lock_until</code> 清空。</p>
+<blockquote>
+<p>只有 <code>is_primary=1</code> 的<strong>主家长</strong>可以重置 PIN；其他关联家长调用返回 <strong>403</strong>（缺权限码 <code>study:parent:child:pin</code>）。
+停用状态（<code>status=2</code>）的孩子不可登录，重置 PIN 不解除停用。</p>
+</blockquote>
+<h3>9.5 POST /children/{code}/relations — 关联家长</h3>
+<p><strong>请求</strong></p>
+<pre class="cmd"><code class="language-json">{ &quot;parentUserId&quot;: &quot;u-31a7e5&quot;, &quot;relationLabel&quot;: &quot;爸爸&quot;, &quot;isPrimary&quot;: 0 }
+</code></pre>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;childCode&quot;: &quot;CHD-000001&quot;,
+    &quot;parentUserId&quot;: &quot;u-31a7e5&quot;,
+    &quot;relationLabel&quot;: &quot;爸爸&quot;,
+    &quot;isPrimary&quot;: 0,
+    &quot;status&quot;: 1
+  }
+}
+</code></pre>
+<blockquote>
+<p><strong>多对多核心</strong>：一个孩子可被多个家长关联，一个家长可关联多个孩子。<code>uk_parent_child</code> 唯一约束保证重复关联被拒。
+关联生效后，该家长立即获得该孩子的<strong>只读</strong>数据视角；解除关联后立即失效——每次请求实时查关系表，不做缓存。</p>
+</blockquote>
+<h3>9.6 GET /children — 我关联的孩子列表</h3>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: [
+    {
+      &quot;childCode&quot;: &quot;CHD-000001&quot;,
+      &quot;nickname&quot;: &quot;小满&quot;,
+      &quot;avatar&quot;: &quot;/study/avatar/kid-01.png&quot;,
+      &quot;gradeCode&quot;: &quot;G3&quot;,
+      &quot;isPrimary&quot;: 1,
+      &quot;relationLabel&quot;: &quot;妈妈&quot;
+    }
+  ]
+}
+</code></pre>
+<blockquote>
+<p>列表只返回<strong>当前登录家长关联的孩子</strong>，不返回未关联的孩子，也不返回孩子账号名或 PIN。</p>
+</blockquote>
+<h3>9.7 GET /children/{code}/overview — 孩子概览</h3>
+<p><strong>响应</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;childCode&quot;: &quot;CHD-000001&quot;,
+    &quot;nickname&quot;: &quot;小满&quot;,
+    &quot;eyeUsage&quot;: { &quot;todayMinutes&quot;: 42, &quot;weekMinutes&quot;: 260 },
+    &quot;streak&quot;: { &quot;days&quot;: 12, &quot;todayCompleted&quot;: true },
+    &quot;mastery&quot;: { &quot;mastered&quot;: 18, &quot;familiar&quot;: 26, &quot;learning&quot;: 41, &quot;unknown&quot;: 9 },
+    &quot;errorTop&quot;: [ { &quot;cause&quot;: &quot;READING&quot;, &quot;causeName&quot;: &quot;审题偏差&quot;, &quot;count&quot;: 7 } ]
+  }
+}
+</code></pre>
+<blockquote>
+<p>与 <code>GET /parent/report/overview</code> 同口径，但<strong>绑定到具体孩子</strong>。全部为该孩子自身历史趋势，<strong>无任何横向比较字段</strong>（R-04）。
+请求的孩子不在当前家长的关联集合内 → <strong>4010</strong>。</p>
+</blockquote>
+</section>
+<section id="authn">
+  <div class="sec-head"><span class="sec-num">10</span><h3>认证与多用户</h3><span class="tag">身份与数据范围</span></div>
+  <p>认证与多用户</p>
+<blockquote>
+<p>本章依据《多用户改造契约》§1、§3、§5。系统已从「单用户」改为<strong>多家庭 / 多孩子 / 多家长</strong>，本章是接口层唯一依据。</p>
+</blockquote>
+<h3>10.1 三类身份与凭据</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>身份</th>
+<th>载体</th>
+<th>凭据</th>
+<th>登录端点</th>
+<th>权限码前缀</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>家长</td>
+<td><code>sys_user</code> + 角色 <code>study_parent</code></td>
+<td>用户名 + 密码</td>
+<td><code>POST /sys/login</code>（底座原生）</td>
+<td><code>study:parent:*</code></td>
+</tr>
+<tr>
+<td>孩子</td>
+<td><code>sys_user</code> + 角色 <code>study_kid</code> + <code>study_child</code> 档案</td>
+<td><strong>PIN</strong>（4–6 位数字）</td>
+<td><code>POST /api/v1/study/kid/login</code></td>
+<td><code>study:kid:*</code></td>
+</tr>
+<tr>
+<td>管理员</td>
+<td><code>sys_user</code> + 底座 <code>admin</code> 角色</td>
+<td>用户名 + 密码</td>
+<td><code>POST /sys/login</code></td>
+<td><code>study:*</code>（全部）</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>关键设计：孩子也是 <code>sys_user</code>。</strong> Shiro/JWT、Redis 会话、<code>@RequiresPermissions</code>、菜单权限<strong>全部复用底座现成能力</strong>，不新增第二套认证栈。孩子只是<strong>登录方式</strong>不同（PIN 代替密码），登录成功后签发的 token 与家长<strong>完全同构</strong>。</p>
+</blockquote>
+<h3>10.2 家长登录：不新增接口</h3>
+<p>家长直接用 JeecgBoot 原生登录 <code>POST /sys/login</code>，<strong>本项目不新增任何家长登录接口</strong>。理由：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>复用底座现成的 Shiro + JWT + Redis 会话、密码策略、登录审计、验证码，不重复造轮子</td>
+</tr>
+<tr>
+<td>2</td>
+<td>家长就是 <code>sys_user</code> + 角色 <code>study_parent</code>，底座 <code>/sys/login</code> 签发的 token 与孩子 token 同构，前端拦截器统一</td>
+</tr>
+<tr>
+<td>3</td>
+<td>不新增接口 = <strong>不引入第二套认证栈</strong>，避免两套令牌语义、过期策略、踢下线逻辑不一致</td>
+</tr>
+<tr>
+<td>4</td>
+<td>底座 <code>/sys/login</code> 的请求/响应体<strong>保持原样</strong>，study 模块不包裹、不改字段</td>
+</tr>
+</tbody>
+</table></div>
+<p>登录后家长进入<strong>家长端</strong>（独立布局，与学习端一样不吃管理端顶栏），首页展示「我关联的孩子」卡片列表。家长切换查看哪个孩子是<strong>切换视角</strong>，不是切换身份。</p>
+<h3>10.3 孩子登录：两步流程</h3>
+<pre class="cmd"><code>孩子端打开
+  ↓
+① POST /api/v1/study/kid/lookup   { familyCode }
+  → 校验家庭码 → 返回该家庭孩子的候选列表（仅 id / nickname / avatar）
+  → 失败 4009「家庭码不正确」
+  ↓
+② POST /api/v1/study/kid/login    { childId, pin }
+  → 校验孩子状态 + PIN（连续失败 5 次锁 10 分钟）
+  → 复用底座 JwtUtil.sign(username, password, CLIENT_TYPE_APP) + Redis 存 token
+  → 返回 token + 孩子信息 + 绑定的家长昵称列表（仅昵称）
+</code></pre>
+<blockquote>
+<p><strong>为什么要有「家庭码」这一步</strong>：孩子端不能公开列出所有孩子（信息泄露），也不能暴露底座登录页。家庭码由家长在家长端生成/重置，<strong>明文只在生成时返回一次</strong>。</p>
+</blockquote>
+<p><strong>POST /kid/lookup — 家庭码 → 候选孩子</strong></p>
+<pre class="cmd"><code class="language-json">{ &quot;familyCode&quot;: &quot;K7M2QP&quot; }
+</code></pre>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;children&quot;: [
+      { &quot;childId&quot;: &quot;c-7b31d9&quot;, &quot;nickname&quot;: &quot;小满&quot;, &quot;avatar&quot;: &quot;/study/avatar/kid-01.png&quot; }
+    ]
+  }
+}
+</code></pre>
+<blockquote>
+<p><strong>只返回 id / nickname / avatar</strong>——不返回性别、年级、生日、账号名、PIN、家庭成员数量。家庭码泄露时，攻击者能拿到的信息严格受限。</p>
+</blockquote>
+<p><strong>POST /kid/login — PIN 登录</strong></p>
+<pre class="cmd"><code class="language-json">{ &quot;childId&quot;: &quot;c-7b31d9&quot;, &quot;pin&quot;: &quot;2468&quot; }
+</code></pre>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;token&quot;: &quot;eyJhbGciOiJIUzI1NiJ9...&quot;,
+    &quot;childId&quot;: &quot;c-7b31d9&quot;,
+    &quot;childCode&quot;: &quot;CHD-000001&quot;,
+    &quot;nickname&quot;: &quot;小满&quot;,
+    &quot;avatar&quot;: &quot;/study/avatar/kid-01.png&quot;,
+    &quot;role&quot;: &quot;study_kid&quot;,
+    &quot;parents&quot;: [ { &quot;nickname&quot;: &quot;妈妈&quot; }, { &quot;nickname&quot;: &quot;爸爸&quot; } ]
+  }
+}
+</code></pre>
+<blockquote>
+<p>家长列表<strong>只给昵称</strong>，不含账号名、密码、联系方式等任何账号信息。</p>
+</blockquote>
+<h3>10.4 PIN 与家庭码的存储</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>孩子 PIN</th>
+<th>家庭码</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>形态</td>
+<td>4–6 位数字</td>
+<td>6 位大写字母数字</td>
+</tr>
+<tr>
+<td>哈希</td>
+<td><code>PasswordUtil.encrypt(childCode, pin, pinSalt)</code></td>
+<td><code>PasswordUtil.encrypt(familyCode, code, salt)</code></td>
+</tr>
+<tr>
+<td>盐列</td>
+<td><code>study_child.pin_salt</code></td>
+<td><code>study_family.family_code_salt</code></td>
+</tr>
+<tr>
+<td>明文</td>
+<td>仅创建 / 重置时返回一次</td>
+<td>仅生成 / 重置时返回一次</td>
+</tr>
+<tr>
+<td>强度要求</td>
+<td>不要求复杂度（低龄孩子），靠失败锁定兜底</td>
+<td>同款哈希实现</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>两者都不存明文</strong>，哈希与底座密码同款（用户名 + 密码 + 盐），可复用底座的加盐哈希与校验逻辑。
+校验用「按库中盐重算哈希并比对」，不做明文比对。</p>
+</blockquote>
+<h3>10.5 免认证路径与 Shiro 排除</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>路径</th>
+<th>认证</th>
+<th>登记位置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/v1/study/kid/lookup</code></td>
+<td><strong>免认证</strong></td>
+<td>底座 <code>shiro.excludeUrls</code> + 方法 <code>@IgnoreAuth</code></td>
+</tr>
+<tr>
+<td><code>/api/v1/study/kid/login</code></td>
+<td><strong>免认证</strong></td>
+<td>同上</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>免认证<strong>仅限这两个路径</strong>；其余 study 接口一律需要 token，底座 <code>/sys/login</code> 也照常走 Shiro 过滤链。
+两个免认证接口<strong>自身仍做校验</strong>：家庭码哈希比对、PIN 哈希比对、失败次数与锁定。</p>
+</blockquote>
+<h3>10.6 PIN 失败锁定</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>约定</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>计数</td>
+<td><code>study_child.pin_fail_count</code>，<strong>连续</strong>失败计数</td>
+</tr>
+<tr>
+<td>锁定阈值</td>
+<td>连续 <strong>5</strong> 次失败</td>
+</tr>
+<tr>
+<td>锁定时长</td>
+<td><strong>10</strong> 分钟（写入 <code>pin_lock_until</code>）</td>
+</tr>
+<tr>
+<td>锁定期间</td>
+<td>直接拒绝（不再比对 PIN），提示「请稍后再试」</td>
+</tr>
+<tr>
+<td>成功登录</td>
+<td><code>pin_fail_count</code> 归零、<code>pin_lock_until</code> 清空</td>
+</tr>
+<tr>
+<td>家长重置 PIN</td>
+<td>同时清零失败计数与锁定</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>计数与锁定按 <code>child_id</code> 维度，不按 IP——锁定的是<strong>这个孩子的 PIN</strong>，不影响同家庭其他孩子。</p>
+</blockquote>
+<h3>10.7 身份 → 可见数据范围</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>身份</th>
+<th>可读范围</th>
+<th>判定来源</th>
+<th>实现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>管理员</td>
+<td><strong>全部</strong></td>
+<td>—</td>
+<td>不加过滤条件</td>
+</tr>
+<tr>
+<td>家长</td>
+<td><strong>仅 <code>study_parent_child_rel</code> 中与自己关联的 <code>child_id</code></strong></td>
+<td>每次请求实时查关系表</td>
+<td><code>ChildScopeHelper.childIdsOf(currentUserId)</code> 强制拼进 where</td>
+</tr>
+<tr>
+<td>孩子</td>
+<td><strong>仅自己的 <code>child_id</code></strong></td>
+<td>JWT 携带 <code>childId</code></td>
+<td>令牌附加 claim 直接作为过滤条件</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>Controller 不接受前端传来的 <code>childId</code> 作为唯一依据</strong>——家长侧必须与关系表<strong>求交集</strong>，防止越权。
+违反隔离 → <strong>4010</strong>（不是 404，避免资源探测）。
+<strong>家长之间的隔离</strong>：家长 A 看不到家长 B 的反馈、评价、申诉记录；<strong>禁止家庭内比较</strong>（R-04 强化）。</p>
+</blockquote>
+<p><strong>令牌载荷</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>身份</th>
+<th>附加 claim</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>孩子</td>
+<td><code>childId</code>、<code>childCode</code>、<code>role=study_kid</code></td>
+</tr>
+<tr>
+<td>家长</td>
+<td><code>role=study_parent</code></td>
+</tr>
+<tr>
+<td>会话</td>
+<td>Redis，TTL 与底座一致；孩子端用 <code>CLIENT_TYPE_APP</code> 更长的过期时间</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="contract">
+  <div class="sec-head"><span class="sec-num">11</span><h3>判对错响应契约</h3><span class="tag">前后端红线</span></div>
+  <p>判对错响应契约</p>
+<blockquote>
+<p>这是前后端之间最关键的一份契约，直接决定红线 R-01、R-02 能否成立。</p>
+</blockquote>
+<h3>11.1 字段契约</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>必返</th>
+<th>取值</th>
+<th>前端用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>contentId</code></td>
+<td>string</td>
+<td>是</td>
+<td>—</td>
+<td>定位内容</td>
+</tr>
+<tr>
+<td><code>correct</code></td>
+<td>boolean</td>
+<td>是</td>
+<td>—</td>
+<td>对错反馈</td>
+</tr>
+<tr>
+<td><code>source</code></td>
+<td>string</td>
+<td>是</td>
+<td><code>rule</code> / <code>rule+model</code></td>
+<td>决定是否显示「AI 辅助讲解，判定以规则为准」角标</td>
+</tr>
+<tr>
+<td><code>basis</code></td>
+<td>string</td>
+<td>是</td>
+<td>人可读判定依据</td>
+<td>「依据」折叠区内容；申诉时回传</td>
+</tr>
+<tr>
+<td><code>detail</code></td>
+<td>object</td>
+<td>否</td>
+<td>判定明细（期望/实际/容差/命中规则）</td>
+<td>「依据」折叠区明细</td>
+</tr>
+<tr>
+<td><code>explain</code></td>
+<td>object</td>
+<td>否</td>
+<td><code>{type, text}</code> 或 <code>{type, sections[]}</code></td>
+<td>解析区内容</td>
+</tr>
+<tr>
+<td><code>explainStatus</code></td>
+<td>string</td>
+<td>是</td>
+<td><code>OK</code> / <code>TIMEOUT</code> / <code>UNAVAILABLE</code> / <code>SKIPPED</code></td>
+<td>解析区降级提示</td>
+</tr>
+<tr>
+<td><code>errorId</code></td>
+<td>string</td>
+<td>答错时</td>
+<td>错题业务 ID</td>
+<td>错题池引用</td>
+</tr>
+<tr>
+<td><code>nextReviewAt</code></td>
+<td>string</td>
+<td>答错时</td>
+<td><code>yyyy-MM-dd</code></td>
+<td>「明天再见」提示</td>
+</tr>
+<tr>
+<td><code>masteryState</code></td>
+<td>number</td>
+<td>是</td>
+<td>1–4</td>
+<td>掌握度可视化</td>
+</tr>
+</tbody>
+</table></div>
+<h3>11.2 三条不可违反的规则</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>规则</th>
+<th>校验方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>source</code> <strong>不可能</strong>等于 <code>model</code></td>
+<td>服务端枚举约束 + 数据库 CHECK + 单元测试断言</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>correct</code> 与 <code>basis</code> 必须同源</td>
+<td><code>correct</code> 由 <code>JudgeStrategy</code> 产出，<code>basis</code> 由同一策略产出</td>
+</tr>
+<tr>
+<td>3</td>
+<td>解析内容<strong>只能</strong>在作答后出现</td>
+<td><code>/practice/{type}/next</code> 不返回答案与解析；<code>/explanation</code> 未作答返回 4003</td>
+</tr>
+</tbody>
+</table></div>
+<h3>11.3 前端消费规则</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>前端行为</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>答对</td>
+<td>显示成功反馈；<strong>不</strong>自动展开解析（让孩子自己点「看解析」）</td>
+</tr>
+<tr>
+<td>答错</td>
+<td>先显示「错在哪一步」（来自 <code>basis</code> + <code>detail</code>），再提供「看完整解析」入口</td>
+</tr>
+<tr>
+<td><code>source == "rule+model"</code></td>
+<td>解析区顶部显示「AI 辅助讲解，判定以规则为准」</td>
+</tr>
+<tr>
+<td><code>explainStatus != "OK"</code></td>
+<td>显示降级文案「讲解暂时不可用，先看看思路」；<strong>不显示错误弹窗</strong></td>
+</tr>
+<tr>
+<td>申诉</td>
+<td>任何判定都提供「我不同意」入口，提交后返回 <code>basis</code> 全文</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="idemp">
+  <div class="sec-head"><span class="sec-num">12</span><h3>幂等与并发</h3><span class="tag">工程约定</span></div>
+  <p>幂等与并发</p>
+<h3>12.1 幂等约定</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>接口</th>
+<th>幂等方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>POST /practice/answer</code></td>
+<td>携带 <code>sessionId</code> + <code>contentId</code>；服务端对同一会话的同一内容<strong>只判一次</strong>，重复提交返回首次结果</td>
+</tr>
+<tr>
+<td><code>POST /review/queue/{code}/complete</code></td>
+<td>同一 <code>errorCode</code> + 同一 <code>scheduleDate</code> 重复提交，<strong>不重复推进排期</strong></td>
+</tr>
+<tr>
+<td><code>POST /word/feedback</code></td>
+<td>同一词 10 秒内的重复反馈只生效一次</td>
+</tr>
+<tr>
+<td><code>POST /context</code></td>
+<td>重复提交相同上下文不产生新记录</td>
+</tr>
+<tr>
+<td><code>POST /eye/session/{id}/heartbeat</code></td>
+<td>按 <code>sessionId</code> 累加，天然幂等</td>
+</tr>
+</tbody>
+</table></div>
+<h3>12.2 并发约定</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>策略</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>同一错题被多端同时复习</td>
+<td>排期推进用 <code>SELECT ... FOR UPDATE</code> 锁定该错题行，保证 <code>correct_streak</code> 不重复累加</td>
+</tr>
+<tr>
+<td>队列物化并发</td>
+<td>以 <code>queue_date</code> 为键做唯一索引，插入冲突则跳过（<code>INSERT IGNORE</code>）</td>
+</tr>
+<tr>
+<td>错因更新与掌握度更新</td>
+<td><strong>同一事务</strong>（N-04）</td>
+</tr>
+<tr>
+<td>上下文切换</td>
+<td>切换时对 <code>study_context</code> 加行锁，保证只有一行 <code>is_current=1</code></td>
+</tr>
+<tr>
+<td>坐标树版本切换</td>
+<td>插入新版本节点与失效旧节点在同一事务</td>
+</tr>
+</tbody>
+</table></div>
+<h3>12.3 事务边界</h3>
+<pre class="cmd"><code>事务开始
+  ├─ 判定（纯计算，无 IO）
+  ├─ 写 study_practice_record
+  ├─ 答错时：写 study_error_pool + 写 study_review_schedule + 更新掌握度
+  └─ 事务提交
+  ↓
+事务外（可失败，不影响上面）
+  └─ AI 讲解生成 → 异步补写 explain 字段
+</code></pre>
+<blockquote>
+<p><strong>重要</strong>：AI 调用<strong>不在事务内</strong>。解析内容先返回「生成中」占位，或由前端在 <code>explainStatus=SKIPPED</code> 时重试一次 <code>GET /explanation</code>。</p>
+</blockquote>
+<h3>12.4 既有接口的数据范围改造</h3>
+<p>系统改为多家庭多用户后，<strong>既有接口路径一律不改</strong>（避免大面积破坏），只加过滤维度。三条硬规则：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>规则</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>学习端接口强制按 <code>child_id</code> 过滤</strong></td>
+<td>练习、错题、排期、背单词、母题、语法、写作、护眼等<strong>全部学习端接口</strong>，在 <strong>Service 层强制</strong>拼 <code>child_id</code> 条件，不依赖前端传参</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>家长端只读接口接受 <code>childCode</code>，但必须与关系表求交集</strong></td>
+<td>前端传的 <code>childCode</code> 只作为<strong>候选</strong>，必须与 <code>study_parent_child_rel</code> 的关联集合<strong>求交集</strong>后才能进 where，<strong>不得直接信任前端参数</strong></td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>越权统一返回 4010</strong></td>
+<td>不返回 404，避免资源探测（见 2.1）</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>改造清单</strong>（下列均为<strong>既有接口</strong>，接口本身已在第 3 章总表登记，此处不重复计数）：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>方法</th>
+<th>路径</th>
+<th>改造</th>
+<th>需求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/mastery/weak-points</code></td>
+<td>接受 <code>childCode</code>，与关系表求交集</td>
+<td>F-PAR-01、F-FAM-07</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/practice/records</code></td>
+<td>接受 <code>childCode</code>，与关系表求交集</td>
+<td>F-PAR-01、F-FAM-07</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/practice/stats/today</code></td>
+<td>接受 <code>childCode</code>，与关系表求交集</td>
+<td>F-PAR-01、F-FAM-07</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/error-pool/statistics</code></td>
+<td>接受 <code>childCode</code>，与关系表求交集</td>
+<td>F-PAR-01、F-FAM-07</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/practice/{contentId}/explanation/feedback</code></td>
+<td>申诉反馈增加 child 维度</td>
+<td>R-02、F-FAM-08</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/parent/feedback</code></td>
+<td>一句话反馈增加 child 维度</td>
+<td>F-PAR-02、F-FAM-08</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>过滤维度落在 Service 层</strong>：Controller 不接受前端传来的 <code>childId</code> 作为唯一依据（见 10.7）。孩子的 <code>child_id</code> 取自 JWT 附加 claim，家长的 <code>child_id</code> 集合取自 <code>ChildScopeHelper.childIdsOf(currentUserId)</code>。
+<strong><code>child_id</code> 可空的历史数据</strong>：<code>study_child</code> 等表的新增 <code>child_id</code> 列允许存量为 NULL（未归属），但应用层对已登录用户<strong>强制补 <code>child_id</code> 条件</strong>，未归属的数据对任何登录用户不可见。</p>
+</blockquote>
+</section>
+<section id="auth">
+  <div class="sec-head"><span class="sec-num">13</span><h3>权限码设计</h3><span class="tag">细粒度</span></div>
+  <p>权限码设计</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>资源</th>
+<th>权限码示例</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>上下文</td>
+<td><code>study:context:view</code> / <code>study:context:edit</code></td>
+<td></td>
+</tr>
+<tr>
+<td>坐标树</td>
+<td><code>study:kp:view</code> / <code>study:kp:edit</code> / <code>study:kp:import</code></td>
+<td></td>
+</tr>
+<tr>
+<td>练习</td>
+<td><code>study:practice:do</code> / <code>study:practice:explain</code></td>
+<td><code>explain</code> 独立成码，便于审计</td>
+</tr>
+<tr>
+<td>错题</td>
+<td><code>study:error:view</code> / <code>study:error:add</code> / <code>study:error:edit</code> / <code>study:error:export</code></td>
+<td></td>
+</tr>
+<tr>
+<td>复习</td>
+<td><code>study:review:view</code> / <code>study:review:complete</code></td>
+<td></td>
+</tr>
+<tr>
+<td>母题</td>
+<td><code>study:math:view</code> / <code>study:math:edit</code> / <code>study:math:pass</code></td>
+<td></td>
+</tr>
+<tr>
+<td>单词</td>
+<td><code>study:word:view</code> / <code>study:word:practice</code> / <code>study:word:manage</code></td>
+<td></td>
+</tr>
+<tr>
+<td>语法</td>
+<td><code>study:kid:grammar:view</code> / <code>study:kid:grammar:practice</code></td>
+<td>语境库与趣味玩法并入同一对口径</td>
+</tr>
+<tr>
+<td>写作</td>
+<td><code>study:writing:view</code> / <code>study:writing:train</code></td>
+<td></td>
+</tr>
+<tr>
+<td>家长端</td>
+<td><code>study:parent:view</code> / <code>study:parent:feedback</code> / <code>study:parent:pref</code></td>
+<td></td>
+</tr>
+<tr>
+<td>家庭</td>
+<td><code>study:parent:family:add</code> / <code>study:parent:family:query</code> / <code>study:parent:family:edit</code> / <code>study:parent:family:member</code></td>
+<td>家庭与成员管理</td>
+</tr>
+<tr>
+<td>孩子档案</td>
+<td><code>study:parent:child:query</code> / <code>study:parent:child:add</code> / <code>study:parent:child:edit</code> / <code>study:parent:child:pin</code> / <code>study:parent:child:relation</code></td>
+<td>档案、关联与 PIN 重置</td>
+</tr>
+<tr>
+<td>孩子端</td>
+<td><code>study:kid:me</code> / <code>study:kid:logout</code></td>
+<td><code>lookup</code> / <code>login</code> 免认证，<strong>不持权限码</strong></td>
+</tr>
+</tbody>
+</table></div>
+<!--update-begin---author:mavis ---date:2026-10-31  for：【F-GRM-05 / F-GRM-04】语法域权限码并入既有口径（取消新增两码）----------- -->
+
+<blockquote>
+<p><strong>语法域权限码口径已统一</strong>（本轮收敛，不再分叉）：
+全部语法端点（既有 <code>/grammar/points</code>、<code>/grammar/points/{code}</code>、<code>/grammar/transform</code>、
+<code>/grammar/detect</code>、<code>/grammar/error-detail</code>、<code>/grammar/collection</code>，
+以及本轮新增的 <code>/grammar/context</code> 与 <code>/grammar/game/*</code>）统一用<strong>孩子端前缀</strong>
+<code>study:kid:grammar:view</code> / <code>study:kid:grammar:practice</code>：
+语境库是<strong>只读</strong>（→ <code>view</code>），趣味玩法要提交作答（→ <code>practice</code>）。
+好处是同一域不再出现两套前缀，也<strong>不必新增权限行与角色授权</strong>——
+<code>07-seed-role-menu.sql</code> 已把这两个码授给 <code>study_kid</code>，家长角色两个都不持有。</p>
+</blockquote>
+<!--update-end---author:mavis ---date:2026-10-31  for：【F-GRM-05 / F-GRM-04】语法域权限码并入既有口径（取消新增两码）----------- -->
+
+<p><strong>角色映射</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>角色</th>
+<th>权限码前缀</th>
+<th>覆盖</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>study_kid</code></td>
+<td><code>study:kid:*</code> + <code>study:*:view</code> + <code>study:*:do/practice/train/complete/play</code></td>
+<td>做题、错题录入、复习、错句收藏、语法玩法；仅能读<strong>自己的</strong>数据</td>
+</tr>
+<tr>
+<td><code>study_parent</code></td>
+<td><code>study:parent:*</code> + <code>study:error:view</code> + <code>study:kp:view</code></td>
+<td>只读报表 + 一句话反馈 + 提醒偏好 + 家庭与孩子档案管理</td>
+</tr>
+<tr>
+<td><code>admin</code></td>
+<td>全部</td>
+<td>含内容维护与坐标树导入</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>家长角色<strong>不持有</strong> <code>study:practice:do</code>，因此在服务端就无法作答——这是 R-03 与「家长端只读」的技术保证，不依赖前端隐藏按钮。</p>
+</blockquote>
+<h3>13.1 家长侧 <code>study:parent:*</code> 与孩子侧 <code>study:kid:*</code> 的划分</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>家长侧 <code>study:parent:*</code></th>
+<th>孩子侧 <code>study:kid:*</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>承载角色</td>
+<td><code>study_parent</code>（家长账号，密码登录）</td>
+<td><code>study_kid</code>（孩子账号，PIN 登录）</td>
+</tr>
+<tr>
+<td>能做什么</td>
+<td>家庭与成员管理、孩子档案管理与 PIN 重置、家长↔孩子关联、只读查看关联孩子的数据、提交反馈与申诉</td>
+<td>查看自己的信息、退出登录</td>
+</tr>
+<tr>
+<td>不能做什么</td>
+<td><strong>不得</strong>作答、不得改错因、不得查看未关联孩子的数据</td>
+<td><strong>不得</strong>查看其他孩子的数据、不得管理家庭成员</td>
+</tr>
+<tr>
+<td>数据范围</td>
+<td>仅 <code>study_parent_child_rel</code> 中关联的 <code>child_id</code></td>
+<td>仅 JWT 携带的<strong>自己的</strong> <code>child_id</code></td>
+</tr>
+<tr>
+<td>免认证接口</td>
+<td>无</td>
+<td><code>POST /kid/lookup</code>、<code>POST /kid/login</code>（不持权限码）</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>权限码 ≠ 数据范围</strong>：权限码回答「能不能调这个接口」，数据范围回答「能看到哪些行」。两者<strong>都要过</strong>——持有 <code>study:parent:child:query</code> 但请求非关联孩子的 <code>childCode</code>，仍然返回 <strong>4010</strong>。
+<strong>家长端权限码不代表「能看所有孩子」</strong>：家长 A 持有完整的 <code>study:parent:*</code>，也只能看到自己关联的孩子。</p>
+</blockquote>
+</section>
+<section id="ai">
+  <div class="sec-head"><span class="sec-num">14</span><h3>AI 降级契约</h3><span class="tag">超时怎么办</span></div>
+  <p>AI 降级契约</p>
+<h3>14.1 降级矩阵</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>接口</th>
+<th>AI 不可用时</th>
+<th>返回</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>POST /practice/answer</code></td>
+<td>判定照常，解析降级</td>
+<td><code>explain: null</code>, <code>explainStatus: "UNAVAILABLE"</code></td>
+</tr>
+<tr>
+<td><code>GET /practice/{id}/explanation</code></td>
+<td>返回静态讲解（题干→思路→步骤→答案的模板）</td>
+<td><code>explainStatus: "SKIPPED"</code></td>
+</tr>
+<tr>
+<td><code>POST /grammar/transform</code></td>
+<td>语料库命中则正常；未命中返回提示</td>
+<td><code>source: "library"</code> 或 <code>variants: []</code> + 提示文案</td>
+</tr>
+<tr>
+<td><code>POST /grammar/detect</code></td>
+<td>规则命中则正常；未命中返回「暂未识别」</td>
+<td><code>errors: []</code> + <code>explainStatus: "UNAVAILABLE"</code></td>
+</tr>
+<tr>
+<td><code>POST /writing/train/draft</code></td>
+<td>返回可规则化的差异维度（字数、句长、连接词覆盖）</td>
+<td><code>source: "rule"</code>, <code>diffList</code> 最多 3 条</td>
+</tr>
+<tr>
+<td><code>POST /math/mother/{code}/variants</code></td>
+<td>结构与答案照常生成，仅表述用模板文案</td>
+<td><code>generatedBy: "RULE"</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3>14.2 约定</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>约定</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>超时</td>
+<td>3 秒</td>
+</tr>
+<tr>
+<td>重试</td>
+<td>服务端不重试；前端对 <code>explainStatus != OK</code> 最多重试 1 次</td>
+</tr>
+<tr>
+<td>熔断</td>
+<td>连续 10 次调用失败后熔断 60 秒，期间直接走降级路径</td>
+</tr>
+<tr>
+<td>观测</td>
+<td>记录调用耗时、成功率、降级次数；降级率 &gt; 20% 告警</td>
+</tr>
+<tr>
+<td>用户可见</td>
+<td>降级<strong>不弹错误</strong>。用中性文案「讲解暂时不可用，先看看思路」代替技术错误</td>
+</tr>
+<tr>
+<td>隐私</td>
+<td>不发送真实姓名、学校、年级等身份信息到模型；只发题干、选项、知识点 ID</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>隐私补充</strong>：本项目全部数据留在本地（N-06）。若后续接入外部模型 API，须在《部署方案》中同步更新数据边界说明，并取得明确同意。</p>
+</blockquote>
+</section>
+
+    <div id="bottom"></div>
+    <footer class="foot"><span>jeecg-study · 接口设计说明书 V1.1</span><span>2026-10-30</span><span>上游：系统设计说明书 · 数据库设计说明书</span><span>下游：前端页面清单 · 测试大纲 · 测试用例</span></footer>
+  </main>
+
+</div>
+
+<button class="m-fab" id="fab" type="button">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/></svg>
+  目录
+</button>
+
+
+<script>
+(function(){
+  var BRAND = (document.getElementById('mTitle')||{}).textContent || '文档';
+  var links   = Array.prototype.slice.call(document.querySelectorAll('.nav-link'));
+  var pairs   = links.map(function(l){
+    var id = l.getAttribute('href').replace('#','');
+    var isJump = (id === 'top' || id === 'bottom');
+    return { link:l, sec: isJump ? null : document.getElementById(id) };
+  });
+  var sidebar = document.querySelector('.sidebar');
+  var scrim   = document.getElementById('scrim');
+  var fab     = document.getElementById('fab');
+  var mTitle  = document.getElementById('mTitle');
+  var panelOpen = false;
+
+  function isMobile(){ return window.matchMedia('(max-width:1000px)').matches; }
+  function openPanel(){
+    panelOpen = true;
+    if (sidebar) sidebar.classList.add('open');
+    if (scrim)   scrim.classList.add('show');
+  }
+  function closePanel(){
+    panelOpen = false;
+    if (sidebar) sidebar.classList.remove('open');
+    if (scrim)   scrim.classList.remove('show');
+  }
+  function togglePanel(){ panelOpen ? closePanel() : openPanel(); }
+
+  function onScroll(){
+    var y = window.scrollY + 140, idx = -1;
+    for (var i=0;i<pairs.length;i++){
+      if (pairs[i].sec && pairs[i].sec.offsetTop <= y) { idx = i; }
+    }
+    if (idx < 0) { idx = 0; for (var j=0;j<pairs.length;j++){ if (pairs[j].sec){ idx = j; break; } } }
+
+    pairs.forEach(function(p,i){ if (p.sec) p.link.classList.toggle('active', i === idx); });
+
+    if (mTitle) {
+      mTitle.textContent = window.scrollY < 40
+        ? BRAND
+        : pairs[idx].link.textContent.replace(/[↑↓]\s*/g,'').trim();
+    }
+    // 下滑后导航不可见 → 收起来为悬浮按钮
+    if (fab) fab.classList.toggle('show', window.scrollY > 80);
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', onScroll);
+  onScroll();
+
+  // 导航点击：顶/底跳转 或 锚点定位
+  pairs.forEach(function(p){
+    p.link.addEventListener('click', function(e){
+      e.preventDefault();
+      var href = p.link.getAttribute('href');
+      if (href === '#top') {
+        window.scrollTo({top:0, behavior:'smooth'});
+      } else if (href === '#bottom') {
+        window.scrollTo({top:document.documentElement.scrollHeight, behavior:'smooth'});
+      } else if (p.sec) {
+        window.scrollTo({top: p.sec.getBoundingClientRect().top + window.scrollY - 18, behavior:'smooth'});
+        history.replaceState(null,'',href);
+      }
+      closePanel();
+    });
+  });
+
+  var menuBtn  = document.getElementById('menuBtn');
+  var closeBtn = document.getElementById('closeBtn');
+  var topBtn   = document.getElementById('topBtn');
+  if (menuBtn)  menuBtn.addEventListener('click', togglePanel);
+  if (closeBtn) closeBtn.addEventListener('click', closePanel);
+  if (fab)      fab.addEventListener('click', togglePanel);
+  if (scrim)    scrim.addEventListener('click', closePanel);
+  if (topBtn)   topBtn.addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closePanel(); });
+
+  // 移动端表格卡片：为每个单元格补列名标签
+  Array.prototype.forEach.call(document.querySelectorAll('table'), function(t){
+    var heads = Array.prototype.map.call(t.querySelectorAll('thead th'), function(th){
+      return th.textContent.trim();
+    });
+    Array.prototype.forEach.call(t.querySelectorAll('tbody tr'), function(tr){
+      Array.prototype.forEach.call(tr.children, function(td,i){
+        if (heads[i]) td.setAttribute('data-label', heads[i]);
+      });
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

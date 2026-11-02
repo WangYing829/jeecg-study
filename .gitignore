@@ -1,0 +1,45 @@
+# ============================================================
+# jeecg-study 顶层 .gitignore
+#
+# 设计要点（改动前先读 02-代码开发/05-源码/README.md §4「基座入库策略」）：
+#   1. 基座目录**整棵排除**，入库的只有相对上游 JeecgBoot v3.9.2 的改动文件
+#      （overlay），用 `git add -f --pathspec-from-file=...` 精确加入；
+#      清单见 02-代码开发/05-源码/01-JeecgBoot基座/基座overlay-files.txt。
+#   2. 上游历史留在基座自己的 .git 里，**不**进本仓库历史。
+#   3. 任何真实口令都不入库 —— 见 05-公共资源/2026103023-凭据扫描.py。
+# ============================================================
+
+# ── 构建产物（可重建，不入库）─────────────────────────────
+target/
+node_modules/
+dist/
+build/
+__pycache__/
+*.pyc
+*.class
+*.jar
+*.war
+*.log
+*.tmp
+*.bak
+
+# ── IDE / 本地工具 ────────────────────────────────────────
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# ── 基座目录：只跟踪相对上游 v3.9.2 的 overlay ─────────────
+# 本地这份是完整上游源码（含 node_modules、target、上游自己的 .git），
+# 体积大且与上游仓库重复；上游历史由基座自己的 .git 保管。
+# 精确加入 overlay 的命令见 02-代码开发/05-源码/README.md §4。
+02-代码开发/05-源码/01-JeecgBoot基座/
+
+# ── 本地机密：口令、密钥、私有配置一律不入库 ───────────────
+# 生产口令走环境变量 DB_PASSWORD / STUDY_FAMILY_CODE_PEPPER，不落文件。
+*.local
+.env.local
+.env.*.local
+secrets.yml
+secrets.yaml

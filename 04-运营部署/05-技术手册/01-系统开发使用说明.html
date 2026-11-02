@@ -1,0 +1,2275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jeecg-study · 技术手册 · 系统开发使用说明</title>
+<style>
+
+  :root{
+    --bg:#fafaf9; --surface:#ffffff; --chrome:#f7f7f5; --line:#e6e6e1; --line-soft:#eeeeea;
+    --ink:#15171c; --ink-2:#454b58; --muted:#8b8f98;
+    --accent:#10b981; --accent-ink:#047857; --accent-soft:rgba(16,185,129,.10); --accent-line:rgba(16,185,129,.28);
+    --up:#d93a2b; --up-soft:rgba(217,58,43,.10); --up-line:rgba(217,58,43,.28);
+    --down:#0f8a6d; --down-soft:rgba(15,138,109,.10); --down-line:rgba(15,138,109,.28);
+    --amber:#b07d12; --amber-soft:rgba(176,125,18,.10); --amber-line:rgba(176,125,18,.28);
+    --sans:'Outfit','PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif;
+    --mono:'JetBrains Mono','SFMono-Regular',Consolas,monospace;
+    --nav-w:272px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:var(--sans);font-size:15px;line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(720px 300px at 10% -8%, rgba(16,185,129,.06), transparent 62%),
+      radial-gradient(620px 280px at 94% -6%, rgba(21,94,117,.05), transparent 60%);
+    background-repeat:no-repeat;
+  }
+  a{color:inherit;}
+  code{font-family:var(--mono);font-size:.88em;background:#f4f4f1;border:1px solid var(--line-soft);border-radius:4px;padding:1px 5px;overflow-wrap:anywhere;}
+
+  /* ============ 布局：侧边导航 + 章节正文 ============ */
+  .shell{display:flex;align-items:flex-start;max-width:1280px;margin:0 auto;gap:0;}
+  .sidebar{
+    width:var(--nav-w);flex:none;position:sticky;top:0;align-self:flex-start;
+    height:100vh;overflow-y:auto;padding:26px 20px 40px 24px;border-right:1px solid var(--line);
+  }
+  .sidebar::-webkit-scrollbar{width:8px;}
+  .sidebar::-webkit-scrollbar-thumb{background:#dcdcd6;border-radius:6px;}
+  .brand{display:flex;align-items:center;gap:9px;margin-bottom:6px;}
+  .brand-mark{width:26px;height:26px;flex:none;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--accent-line);}
+  .brand-mark svg{width:14px;height:14px;}
+  .brand h1{font-size:15px;font-weight:600;margin:0;letter-spacing:-.01em;}
+  .meta-line{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-bottom:18px;}
+  .nav-title{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;padding-left:11px;}
+  .nav-link{
+    display:flex;align-items:center;gap:8px;padding:7px 11px;border-radius:9px;
+    font-size:13.5px;color:var(--ink-2);text-decoration:none;border-left:2px solid transparent;
+    transition:background .15s,color .15s,border-color .15s;
+  }
+  .nav-link:hover{background:#f0f0ec;color:var(--ink);}
+  .nav-link.active{background:var(--accent-soft);color:var(--accent-ink);border-left-color:var(--accent);font-weight:500;}
+  .nav-link .lv{
+    margin-left:auto;font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:999px;
+    border:1px solid var(--line);background:var(--surface);color:var(--muted);white-space:nowrap;
+  }
+  .nav-link.active .lv{border-color:var(--accent-line);background:var(--surface);}
+  .mini-rate{margin-top:14px;border-top:1px solid var(--line);padding-top:14px;}
+  .mini-row{display:flex;align-items:center;gap:8px;margin-bottom:9px;font-size:12px;color:var(--ink-2);}
+  .mini-row .bar{flex:1;height:6px;background:#eeeeea;border-radius:4px;overflow:hidden;}
+  .mini-row .bar i{display:block;height:100%;border-radius:4px;}
+  .mini-row .n{font-family:var(--mono);font-size:10.5px;color:var(--muted);width:58px;text-align:right;}
+
+  .main{flex:1;min-width:0;padding:34px 40px 80px;}
+
+  /* ============ 标题区 ============ */
+  .kicker{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink);background:var(--accent-soft);border:1px solid var(--accent-line);padding:5px 11px;border-radius:999px;}
+  .kicker i{width:6px;height:6px;border-radius:50%;background:var(--accent);}
+  h2.title{font-size:32px;line-height:1.25;font-weight:600;letter-spacing:-.018em;margin:16px 0 0;}
+  .sub{color:var(--ink-2);font-size:15px;margin:10px 0 0;max-width:74ch;}
+  .facts{display:flex;flex-wrap:wrap;gap:9px;margin-top:20px;}
+  .fact{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:9px 13px;box-shadow:0 2px 8px rgba(0,0,0,.03);}
+  .fact b{display:block;font-family:var(--mono);font-size:15px;font-weight:600;letter-spacing:-.01em;}
+  .fact span{font-size:11.5px;color:var(--muted);}
+
+  /* 语义色工具类 */
+  .up{color:var(--up);} .down{color:var(--down);} .flat{color:var(--muted);} .amber{color:var(--amber);}
+
+  /* ============ 章节 ============ */
+  section{margin-top:52px;scroll-margin-top:24px;}
+  .sec-head{display:flex;align-items:baseline;gap:11px;padding-bottom:11px;border-bottom:1px solid var(--line);margin-bottom:20px;}
+  .sec-num{font-family:var(--mono);font-size:12px;color:var(--accent-ink);font-weight:600;}
+  .sec-head h3{font-size:21px;font-weight:600;letter-spacing:-.012em;margin:0;}
+  .sec-head .tag{margin-left:auto;font-size:11.5px;color:var(--muted);font-family:var(--mono);}
+  p{margin:0 0 11px;}
+  .lead-p{font-size:15.5px;color:var(--ink-2);max-width:78ch;margin-bottom:18px;}
+  h4.sub-h{font-size:15px;font-weight:600;margin:26px 0 10px;letter-spacing:-.008em;}
+  h5.sub-h5{font-size:13.5px;font-weight:600;margin:18px 0 7px;color:var(--ink-2);}
+  ul.plain{margin:6px 0 12px;padding-left:20px;}
+  ul.plain li{margin:5px 0;font-size:13.5px;color:var(--ink-2);}
+  ol.plain{margin:6px 0 12px;padding-left:20px;}
+  ol.plain li{margin:5px 0;font-size:13.5px;color:var(--ink-2);}
+  .cite-src{display:inline-block;margin-top:5px;font-family:var(--mono);font-size:10.5px;color:var(--muted);
+    border:1px solid var(--line);border-radius:5px;padding:1px 6px;background:var(--surface);}
+  .cite-src a{color:var(--accent-ink);text-decoration:none;}
+
+  /* ============ 核心信息 ============ */
+  .core-list{list-style:none;padding:0;margin:0;}
+  .core-item{display:flex;gap:13px;padding:13px 0;border-bottom:1px solid var(--line-soft);}
+  .core-item:last-child{border-bottom:0;}
+  .core-dot{width:9px;height:9px;border-radius:50%;flex:none;margin-top:7px;background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .core-dot.r{background:var(--up);box-shadow:0 0 0 3px var(--up-soft);}
+  .core-dot.a{background:var(--amber);box-shadow:0 0 0 3px var(--amber-soft);}
+  .core-body{min-width:0;}
+  .core-body h4{margin:0 0 3px;font-size:14.5px;font-weight:600;}
+  .core-body p{margin:0;font-size:13.5px;color:var(--ink-2);}
+
+  /* ============ 数据卡 ============ */
+  .grid4{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));margin:18px 0 4px;}
+  .dcard{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:14px 15px;box-shadow:0 2px 8px rgba(0,0,0,.03);}
+  .dcard .k{font-size:11.5px;color:var(--muted);margin-bottom:5px;}
+  .dcard .v{font-family:var(--mono);font-size:19px;font-weight:600;letter-spacing:-.02em;line-height:1.2;}
+  .dcard .d{font-family:var(--mono);font-size:11.5px;margin-top:3px;}
+
+  /* ============ 表格 ============ */
+  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13.5px;}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line-soft);vertical-align:top;}
+  th{font-size:11.5px;color:var(--muted);font-weight:500;letter-spacing:.04em;background:#f7f7f4;border-bottom:1px solid var(--line);}
+  td:first-child{font-weight:500;white-space:normal;min-width:72px;}
+  td.mono{font-family:var(--mono);font-size:12px;white-space:nowrap;}
+  .pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap;}
+  .p-ok{background:var(--down-soft);color:var(--down);border:1px solid var(--down-line);}
+  .p-warn{background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber-line);}
+  .p-bad{background:var(--up-soft);color:var(--up);border:1px solid var(--up-line);}
+  .p-info{background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--accent-line);}
+  .p-gray{background:#f2f2ef;color:var(--muted);border:1px solid var(--line);}
+
+  /* ============ 来源表：长名称不撑破表格 + 可点链接 ============ */
+  .tbl-src td:first-child{white-space:normal;min-width:150px;}
+  .tbl-src .u-cell{font-family:var(--mono);font-size:11.5px;line-height:1.5;word-break:break-all;overflow-wrap:anywhere;}
+  .src-link{color:var(--accent-ink);text-decoration:none;border-bottom:1px solid var(--accent-line);word-break:break-all;}
+  .src-link:hover{color:var(--accent);border-bottom-color:var(--accent);}
+
+  /* ============ 流程/命令块：宽内容内部滚动，不撑破页面 ============ */
+  pre.cmd{background:#15171c;color:#e6e8ec;border-radius:12px;padding:14px 16px;overflow-x:auto;
+    font-family:var(--mono);font-size:12px;line-height:1.7;margin:10px 0 14px;
+    -webkit-overflow-scrolling:touch;}
+  pre.cmd code{background:transparent;border:0;padding:0;color:inherit;font-size:inherit;overflow-wrap:normal;white-space:pre;}
+  pre.cmd .c{color:#8b8f98;}
+  pre.cmd .ok{color:#34d399;font-weight:600;}
+  pre.cmd .bad{color:#f87171;font-weight:600;}
+  pre.cmd .warn{color:#fbbf24;font-weight:600;}
+
+  /* ============ 双栏 ============ */
+  .cols{display:grid;gap:14px;grid-template-columns:1fr 1fr;margin-top:14px;}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 17px;box-shadow:0 2px 8px rgba(0,0,0,.03);}
+  .panel h4{margin:0 0 10px;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:7px;}
+  .panel h4 svg{width:15px;height:15px;}
+  .panel.bad h4{color:var(--up);}
+  .panel.good h4{color:var(--down);}
+  .panel.info h4{color:var(--accent-ink);}
+  .panel.warn h4{color:var(--amber);}
+  .panel ul{margin:0;padding-left:0;list-style:none;}
+  .panel li{position:relative;padding-left:15px;margin-bottom:9px;font-size:13.5px;color:var(--ink-2);line-height:1.6;}
+  .panel li:last-child{margin-bottom:0;}
+  .panel li::before{content:"";position:absolute;left:0;top:9px;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.45;}
+  .panel p{font-size:13.5px;color:var(--ink-2);}
+
+  /* ============ 结论条 ============ */
+  .callout{border:1px solid var(--accent-line);background:var(--accent-soft);border-radius:14px;padding:16px 18px;margin-top:18px;}
+  .callout h4{margin:0 0 7px;font-size:14px;font-weight:600;color:var(--accent-ink);display:flex;align-items:center;gap:8px;}
+  .callout h4 svg{width:15px;height:15px;}
+  .callout p{margin:0;font-size:13.5px;color:#2c4a3e;}
+  .callout p+p{margin-top:7px;}
+  .callout.warn{border-color:var(--amber-line);background:var(--amber-soft);}
+  .callout.warn h4{color:var(--amber);} .callout.warn p{color:#5c4413;}
+  .callout.bad{border-color:var(--up-line);background:var(--up-soft);}
+  .callout.bad h4{color:var(--up);} .callout.bad p{color:#6b2018;}
+  .note{border:1px solid var(--line);background:var(--surface);border-radius:13px;padding:14px 16px;margin-top:14px;font-size:12.5px;color:var(--muted);}
+  .note b{color:var(--ink-2);}
+
+  /* ============ 风险条 ============ */
+  .risk{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px dashed var(--line);}
+  .risk:last-child{border-bottom:0;}
+  .risk .lv-badge{flex:none;font-family:var(--mono);font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;}
+  .risk .rb{min-width:0;}
+  .risk .rb b{display:block;font-size:13.5px;margin-bottom:2px;}
+  .risk .rb span{font-size:13px;color:var(--ink-2);}
+
+  /* 正文 markdown 渲染补充 */
+  .main h4{font-size:15px;font-weight:600;margin:26px 0 10px;letter-spacing:-.008em;}
+  .main h5{font-size:13.5px;font-weight:600;margin:18px 0 7px;color:var(--ink-2);}
+  .main ul,.main ol{margin:6px 0 12px;padding-left:20px;}
+  .main li{margin:5px 0;font-size:13.5px;color:var(--ink-2);}
+  .main strong{color:var(--ink);font-weight:600;}
+  .main blockquote{border-left:3px solid var(--accent-line);background:var(--accent-soft);
+    border-radius:0 12px 12px 0;padding:11px 15px;margin:12px 0;font-size:13.5px;color:#2c4a3e;}
+  .main blockquote p{margin:0;}
+  .main hr{border:0;border-top:1px solid var(--line);margin:26px 0;}
+  .main img{max-width:100%;}
+
+  .foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px 20px;}
+  .foot code{background:transparent;border:0;padding:0;color:var(--muted);}
+
+  /* ============ 移动端：悬浮导航面板 ============ */
+  .m-topbar,.m-fab,.scrim,.m-close{display:none;}
+
+  @media (max-width:1000px){
+    .shell{display:block;}
+    body{padding-top:48px;}
+
+    .m-topbar{
+      display:flex;align-items:center;gap:9px;
+      position:fixed;top:0;left:0;right:0;height:48px;z-index:45;
+      padding:0 12px;background:rgba(250,250,249,.94);backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--line);
+    }
+    .m-topbar .t-btn{
+      display:inline-flex;align-items:center;gap:5px;flex:none;
+      font-family:var(--sans);font-size:12.5px;color:var(--ink-2);
+      background:var(--surface);border:1px solid var(--line);border-radius:8px;
+      padding:6px 10px;cursor:pointer;transition:all .16s;
+    }
+    .m-topbar .t-btn:hover{border-color:#d3d3cd;color:var(--ink);}
+    .m-topbar .t-btn svg{width:14px;height:14px;color:var(--muted);}
+    .m-topbar .t-title{
+      flex:1;min-width:0;font-size:13px;color:var(--ink-2);font-weight:500;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+
+    .sidebar{
+      position:fixed;left:auto;right:14px;top:auto;bottom:78px;
+      width:min(80vw,320px);height:auto;max-height:min(64vh,580px);
+      z-index:70;border:1px solid var(--line);border-radius:18px;
+      background:var(--chrome);padding:16px 16px 22px;
+      box-shadow:0 20px 56px -14px rgba(0,0,0,.32);
+      opacity:0;transform:translateY(18px) scale(.97);pointer-events:none;
+      transition:opacity .26s ease,transform .26s cubic-bezier(.2,.8,.3,1);
+    }
+    .sidebar.open{opacity:1;transform:none;pointer-events:auto;}
+    .m-close{
+      display:inline-flex;align-items:center;justify-content:center;margin-left:auto;flex:none;
+      width:30px;height:30px;border-radius:8px;border:1px solid var(--line);
+      background:var(--surface);color:var(--muted);cursor:pointer;padding:0;
+    }
+    .m-close svg{width:14px;height:14px;}
+    .m-close:hover{color:var(--ink);border-color:#d3d3cd;}
+
+    .scrim{
+      display:block;position:fixed;inset:0;z-index:65;
+      background:rgba(21,23,28,.34);opacity:0;pointer-events:none;transition:opacity .26s;
+    }
+    .scrim.show{opacity:1;pointer-events:auto;}
+
+    .m-fab{
+      display:inline-flex;align-items:center;gap:7px;
+      position:fixed;right:14px;bottom:16px;z-index:60;
+      font-family:var(--sans);font-size:13px;color:#fff;
+      background:var(--ink);border:1px solid var(--ink);border-radius:999px;
+      padding:11px 16px;cursor:pointer;
+      box-shadow:0 10px 26px -6px rgba(0,0,0,.45);
+      opacity:0;transform:translateY(14px) scale(.9);pointer-events:none;
+      transition:opacity .24s,transform .24s,background .16s;
+    }
+    .m-fab.show{opacity:1;transform:none;pointer-events:auto;}
+    .m-fab:hover{background:#2b2f38;}
+    .m-fab svg{width:15px;height:15px;}
+
+    .main{padding:26px 22px 96px;}
+    .cols{grid-template-columns:1fr;}
+  }
+
+  /* 手机小屏：表格转卡片 */
+  @media (max-width:820px){
+    table,tbody,tr,td{display:block;width:100%;}
+    thead{display:none;}
+    table{font-size:12.5px;}
+    tr{
+      background:var(--surface);border:1px solid var(--line);border-radius:12px;
+      padding:11px 14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.03);
+    }
+    td{border:0;padding:3px 0;}
+    td:first-child{font-weight:600;font-size:13.5px;padding-bottom:6px;white-space:normal;}
+    td:not(:first-child){
+      position:relative;padding:3px 0 3px 76px;font-size:12.5px;color:var(--ink-2);
+    }
+    td:not(:first-child)::before{
+      content:attr(data-label);position:absolute;left:0;top:3px;width:68px;
+      font-size:11px;color:var(--muted);
+    }
+  }
+
+  @media (max-width:680px){
+    body{font-size:14px;line-height:1.72;overflow-wrap:anywhere;}
+    h2.title{font-size:23px;letter-spacing:-.015em;}
+    .sub{font-size:14px;}
+    .kicker{font-size:10px;padding:4px 9px;}
+    .facts{gap:7px;}
+    .fact{flex:1 1 calc(50% - 4px);min-width:0;padding:9px 11px;}
+    .fact b{font-size:14px;}
+    .fact span{font-size:10.5px;}
+    .grid4{grid-template-columns:1fr 1fr;gap:9px;}
+    .dcard{padding:12px 13px;}
+    .dcard .v{font-size:16px;}
+    .main{padding:22px 15px 92px;}
+    section{margin-top:38px;}
+    .sec-head{flex-wrap:wrap;gap:8px;}
+    .sec-head h3{font-size:18px;}
+    .sec-head .tag{margin-left:0;width:100%;}
+    .core-body h4{font-size:14px;}
+    .core-body p{font-size:13px;}
+    .panel{padding:14px 15px;}
+    .panel li{font-size:13px;}
+    .panel h4{font-size:13px;}
+    .callout{padding:14px 15px;}
+    .callout p{font-size:13px;}
+    .foot{gap:6px 14px;font-size:11.5px;}
+    .note{font-size:12px;}
+  }
+
+  :root{--accent:#722ed1;--accent-ink:#18009f;--accent-soft:rgba(114,46,209,.10);--accent-line:rgba(114,46,209,.28);}
+  .tbl-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .tbl-wrap table{margin-top:0;}
+  @media (max-width:820px){ .tbl-wrap{overflow-x:visible;} }
+</style>
+</head>
+<body id="top">
+<div class="scrim" id="scrim"></div>
+
+<div class="m-topbar">
+  <button class="t-btn" id="menuBtn" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+    目录
+  </button>
+  <span class="m-title" id="mTitle">jeecg-study</span>
+  <button class="t-btn" id="topBtn" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/></svg>
+    顶部
+  </button>
+</div>
+
+<div class="shell">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg></span>
+      <h1>jeecg-study</h1>
+      <button class="m-close" id="closeBtn" type="button" aria-label="关闭导航">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="meta-line">20261031 · V1.0 · 技术手册</div>
+
+    <div class="nav-title">快速跳转</div>
+    <a class="nav-link" href="#top"><span>↑ 页面顶部</span></a>
+    <a class="nav-link" href="#bottom"><span>↓ 页面底部</span></a>
+
+    <div class="nav-title">章节</div>
+    <a class="nav-link" href="#intro">手册说明与阅读路径</a>
+    <a class="nav-link" href="#stack">技术栈与工程坐标</a>
+    <a class="nav-link" href="#setup">本地环境与拉起</a>
+    <a class="nav-link" href="#layout">工程结构与代码坐标</a>
+    <a class="nav-link" href="#backend">后端开发规范</a>
+    <a class="nav-link" href="#frontend">前端开发规范</a>
+    <a class="nav-link" href="#db">数据库变更规范</a>
+    <a class="nav-link" href="#api">接口开发与联调</a>
+    <a class="nav-link" href="#qa">测试与质量闸门</a>
+    <a class="nav-link" href="#release">构建发布与回滚</a>
+    <a class="nav-link" href="#trouble">排障速查</a>
+    <a class="nav-link" href="#docs">文档流水线</a>
+
+    <div class="nav-title">手册导航</div><div class="mini-rate"><div class="mini-row"><span>手册说明</span><span class="bar"><i style="width:100%;background:#722ed1"></i></span><span class="n">必读</span></div><div class="mini-row"><span>环境与拉起</span><span class="bar"><i style="width:100%;background:#722ed1"></i></span><span class="n">6 步</span></div><div class="mini-row"><span>工程结构</span><span class="bar"><i style="width:100%;background:#722ed1"></i></span><span class="n">坐标</span></div><div class="mini-row"><span>后端规范</span><span class="bar"><i style="width:100%;background:#722ed1"></i></span><span class="n">8 步</span></div><div class="mini-row"><span>前端规范</span><span class="bar"><i style="width:100%;background:#722ed1"></i></span><span class="n">6 条</span></div><div class="mini-row"><span>数据库变更</span><span class="bar"><i style="width:100%;background:#722ed1"></i></span><span class="n">真源</span></div><div class="mini-row"><span>测试与闸门</span><span class="bar"><i style="width:100%;background:#722ed1"></i></span><span class="n">5 脚本</span></div><div class="mini-row"><span>发布与排障</span><span class="bar"><i style="width:100%;background:#722ed1"></i></span><span class="n">必读</span></div></div>
+  </aside>
+
+  <main class="main">
+    <div class="kicker"><i></i>面向开发与运维的工程手册</div>
+    <h2 class="title">技术手册 · 系统开发使用说明</h2>
+    <p class="sub">jeecg-study 技术手册。覆盖本地环境拉起、工程结构坐标、后端与前端开发规范、数据库变更流程、接口联调约定、测试与质量闸门、构建发布回滚，以及 2026-10-31 全量落地过程中沉淀的排障要点。所有命令与路径均以本仓库真实布局为准。</p>
+    <div class="facts"><div class="fact"><b>16</b><span>后端域包</span></div><div class="fact"><b>106</b><span>后端接口</span></div><div class="fact"><b>24</b><span>业务表</span></div><div class="fact"><b>300</b><span>自动化用例</span></div><div class="fact"><b>5</b><span>质量闸门</span></div><div class="fact"><b>3.9.2</b><span>底座版本</span></div></div>
+
+<section id="intro">
+  <div class="sec-head"><span class="sec-num">01</span><h3>手册说明与阅读路径</h3><span class="tag">怎么读</span></div>
+  <p>手册说明与阅读路径</p>
+<p>手册说明与阅读路径：写给接手 jeecg-study 的开发与运维，说明「代码在哪、怎么改、改完怎么验」。</p>
+<h3>1.1 三条不可绕过的前提</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>前提</th>
+<th>后果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>底座锁定 JeecgBoot v3.9.2</strong></td>
+<td>禁止无 tag 的 3.9.3；基座已拉取到 <code>02-代码开发/05-源码/01-JeecgBoot基座/</code>，分支 <code>feature/jeecg-study</code>（tag <code>v3.9.2</code>，commit <code>7df07a8</code>）</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>SQL 真源唯一</strong></td>
+<td>全部 SQL 变更只改 <code>02-代码开发/02-数据库/03-脚本/</code> 下的<strong>新增量脚本</strong>；<code>02-schema.sql</code> 等由脚本生成，<strong>不手改</strong></td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>上游基座零改动</strong></td>
+<td>改基座文件必须留 <code>update-begin</code> / <code>update-end</code> 痕迹（yml 用 <code>#</code> 注释）；<strong>新增文件不需要留痕</strong></td>
+</tr>
+</tbody>
+</table></div>
+<h3>1.2 按角色的阅读路径</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>你是</th>
+<th>必读</th>
+<th>按需读</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>后端开发</strong></td>
+<td>第 4、5、7、8 章</td>
+<td>第 9 章（断言纪律）、第 11 章</td>
+</tr>
+<tr>
+<td><strong>前端开发</strong></td>
+<td>第 4、6 章</td>
+<td>第 8.4 节（联调）、第 11.3 节（Vue 3 坑）</td>
+</tr>
+<tr>
+<td><strong>DBA / 数据</strong></td>
+<td>第 3、7 章</td>
+<td>第 10 章</td>
+</tr>
+<tr>
+<td><strong>测试</strong></td>
+<td>第 9 章</td>
+<td>第 8.3 节（判对错契约）</td>
+</tr>
+<tr>
+<td><strong>运维</strong></td>
+<td>第 3、10、11 章</td>
+<td>第 7 章</td>
+</tr>
+</tbody>
+</table></div>
+<h3>1.3 动手前必须知道的三处「真源」</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>要找什么</th>
+<th>去哪（唯一真源）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>需求编号与验收标准</td>
+<td><code>01-需求迭代/02-需求文档/2026103002-产品需求说明书.md</code></td>
+</tr>
+<tr>
+<td>配色 / 布局 / 尺寸 / 字体</td>
+<td><code>01-需求迭代/03-设计规范/2026103003-产品设计规范.md</code>（V1.1，基于上游实测）</td>
+</tr>
+<tr>
+<td>表结构 / DDL / 索引</td>
+<td><code>02-代码开发/02-数据库/2026103005-数据库设计说明书.md</code></td>
+</tr>
+<tr>
+<td>接口路径 / 错误码 / 幂等</td>
+<td><code>02-代码开发/03-接口文档/2026103006-接口设计说明书.md</code></td>
+</tr>
+<tr>
+<td>写码前的底座写法</td>
+<td><code>06-AI协作/04-知识库/01-JeecgBoot底座速查.md</code>（带 file:line）</td>
+</tr>
+<tr>
+<td>当前进度与已知缺口</td>
+<td><code>06-AI协作/01-任务台账/01-任务台账总表.md</code></td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="stack">
+  <div class="sec-head"><span class="sec-num">02</span><h3>技术栈与工程坐标</h3><span class="tag">底座锁定</span></div>
+  <p>技术栈与工程坐标</p>
+<p>技术栈与工程坐标：底座版本、运行时与两个坐标。</p>
+<h3>2.1 技术栈</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>层</th>
+<th>选型</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>底座</td>
+<td><strong>JeecgBoot 3.9.2</strong></td>
+<td>Spring Boot <strong>3.5.5</strong> · Java <strong>17+</strong> · Shiro + JWT</td>
+</tr>
+<tr>
+<td>后端</td>
+<td><code>jeecg-module-study</code></td>
+<td><strong>单模块</strong>，域优先分包 <code>org.jeecg.modules.study.&lt;域&gt;.*</code></td>
+</tr>
+<tr>
+<td>前端</td>
+<td><code>jeecgboot-vue3</code></td>
+<td>Vue 3 + Vite + Ant Design Vue 4.2.6，<strong>Node ^18 或 &gt;=20</strong></td>
+</tr>
+<tr>
+<td>DB</td>
+<td>MySQL 8.x</td>
+<td><strong>单库 <code>jeecg-study</code></strong>（平台表 133 + 业务表 24）</td>
+</tr>
+<tr>
+<td>缓存</td>
+<td>Redis 6379</td>
+<td>复用本地实例，库索引独立</td>
+</tr>
+<tr>
+<td>ORM</td>
+<td>MyBatis-Plus</td>
+<td>实体继承 <code>JeecgEntity</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3>2.2 两个坐标</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>坐标</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>代码根</strong></td>
+<td><code>02-代码开发/05-源码/01-JeecgBoot基座/</code></td>
+</tr>
+<tr>
+<td><strong>后端模块</strong></td>
+<td><code>…/jeecg-boot/jeecg-boot-module/jeecg-module-study</code></td>
+</tr>
+<tr>
+<td><strong>前端工程</strong></td>
+<td><code>…/jeecgboot-vue3</code></td>
+</tr>
+<tr>
+<td><strong>文档根</strong></td>
+<td><code>D:\DevProject\2-JavaPrj\20261030-jeecg-study</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3>2.3 命名与接口约定（不可自创）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>约定</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>库表前缀</td>
+<td><code>study_</code></td>
+<td><code>study_error_pool</code></td>
+</tr>
+<tr>
+<td>API 根</td>
+<td><code>/api/v1/study</code></td>
+<td><code>/api/v1/study/error-pool</code></td>
+</tr>
+<tr>
+<td>权限码</td>
+<td><code>study:&lt;资源&gt;:&lt;动作&gt;</code></td>
+<td><code>study:error:review</code></td>
+</tr>
+<tr>
+<td>功能 ID</td>
+<td><code>F-&lt;模块&gt;-&lt;简称&gt;-&lt;nn&gt;</code></td>
+<td><code>F-WRD-01</code></td>
+</tr>
+<tr>
+<td>包结构</td>
+<td><code>org.jeecg.modules.study.&lt;域&gt;.{controller,entity,mapper,service,vo}</code></td>
+<td><code>org.jeecg.modules.study.word.service</code></td>
+</tr>
+<tr>
+<td>类简单名</td>
+<td><strong>全模块唯一</strong></td>
+<td>ADR-027，见 §9.2</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="setup">
+  <div class="sec-head"><span class="sec-num">03</span><h3>本地环境与拉起</h3><span class="tag">6 步</span></div>
+  <p>本地环境与拉起</p>
+<p>本地环境与拉起：六步把系统跑起来。</p>
+<h3>3.1 前置依赖</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>依赖</th>
+<th>版本</th>
+<th>检查</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>JDK</td>
+<td>17+</td>
+<td><code>java -version</code></td>
+</tr>
+<tr>
+<td>Maven</td>
+<td>3.6+</td>
+<td><code>mvn -v</code></td>
+</tr>
+<tr>
+<td>Node</td>
+<td>^18 或 &gt;=20</td>
+<td><code>node -v</code></td>
+</tr>
+<tr>
+<td>pnpm</td>
+<td>与 <code>pnpm-lock.yaml</code> 匹配</td>
+<td><code>pnpm -v</code></td>
+</tr>
+<tr>
+<td>MySQL</td>
+<td>8.x</td>
+<td><code>mysql --version</code></td>
+</tr>
+<tr>
+<td>Redis</td>
+<td>6+</td>
+<td><code>redis-cli ping</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3>3.2 端口与数据库</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>服务</th>
+<th>端口</th>
+<th>配置位置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>后端</td>
+<td><strong>8590</strong></td>
+<td><code>jeecg-system-start/src/main/resources/application-dev.yml</code>（<code>server.port</code>，留有 <code>update-begin/end</code> 痕迹）</td>
+</tr>
+<tr>
+<td>后端 context-path</td>
+<td><code>/jeecg-boot</code></td>
+<td>同上</td>
+</tr>
+<tr>
+<td>前端（dev）</td>
+<td><strong>8589</strong></td>
+<td><code>jeecgboot-vue3/.env</code> 的 <code>VITE_PORT</code></td>
+</tr>
+<tr>
+<td>MySQL</td>
+<td>3306</td>
+<td><code>application-dev.yml</code></td>
+</tr>
+<tr>
+<td>Redis</td>
+<td>6379</td>
+<td><code>application-dev.yml</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>前端开发代理写在 <code>jeecgboot-vue3/.env.development</code>：
+<code>[["/jeecgboot","http://localhost:8590/jeecg-boot"],["/upload","http://localhost:8590/upload"]]</code>，
+配合 <code>VITE_GLOB_API_URL=/jeecgboot</code> → <strong>同源、无 CORS</strong>。</p>
+</blockquote>
+<h3>3.3 初始化数据库</h3>
+<p><strong>脚本真源目录</strong>：<code>02-代码开发/02-数据库/03-脚本/</code></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>顺序</th>
+<th>脚本</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>01-平台库初始化.sql</code></td>
+<td>平台表 133 张 + 种子（7.1 MB）</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>02-schema.sql</code></td>
+<td>建 24 张业务表</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>03-init.sql</code></td>
+<td>业务种子（规格占位）</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>04-fix.sql</code></td>
+<td>增量：行为表加 <code>child_id</code>（人工维护）</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>05-partition.sql</code></td>
+<td>创建当月分表</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>07-seed-role-menu.sql</code></td>
+<td>角色与菜单（含 10 个页面路由与权限码）</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>08-seed-account.sql</code></td>
+<td>演示账号（家长 / 孩子）</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>09-seed-content.sql</code></td>
+<td>业务内容种子</td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>12-writing-scenario.sql</code></td>
+<td>写作情境库</td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>14-grammar-context-game.sql</code></td>
+<td>语法语境库 + 玩法题库</td>
+</tr>
+<tr>
+<td>11</td>
+<td><code>16/17-seed-*-menu.sql</code></td>
+<td>情境库 / 玩法菜单</td>
+</tr>
+<tr>
+<td>12</td>
+<td><code>18-seed-grammar-point.sql</code></td>
+<td>语法点 11 个 + 五态语料</td>
+</tr>
+</tbody>
+</table></div>
+<p>执行（幂等，可重复跑）：</p>
+<pre class="cmd"><code class="language-powershell"># 把脚本写成 UTF-8 无 BOM 临时文件再 source（PS 5.1 管道会吞中文）
+[IO.File]::WriteAllText(&quot;$env:TEMP\seed.sql&quot;, (Get-Content -Raw -Encoding UTF8 $src), (New-Object Text.UTF8Encoding($false)))
+&amp; mysql -uroot '-p&lt;pwd&gt;' --default-character-set=utf8mb4 -D 'jeecg-study' -e &quot;source C:/Users/&lt;user&gt;/AppData/Local/Temp/seed.sql&quot;
+</code></pre>
+<blockquote>
+<p><strong>两个坑</strong>：① <code>mysql source</code> <strong>打不开含中文的路径</strong> → 临时文件必须放纯 ASCII 路径；② PowerShell 管道给 <code>mysql</code> 传中文会被降级成 <code>?</code> → <strong>必须走 argv 或临时文件</strong>，用 <code>HEX(列)</code> 验字节而不是看控制台。</p>
+</blockquote>
+<h3>3.4 启动后端</h3>
+<pre class="cmd"><code class="language-powershell">cd '…\jeecg-boot'
+# 数据库口令走环境变量（真实口令不入库）；未设置时回落上游默认 root
+$env:DB_PASSWORD = '&lt;本机 MySQL 口令&gt;'
+# 开发模式
+mvn -pl jeecg-module-system/jeecg-system-start -am spring-boot:run -Dspring-boot.run.profiles=dev
+# 或打包（跳过测试）
+mvn -pl jeecg-module-system/jeecg-system-start -am package '-Dmaven.test.skip=true'
+</code></pre>
+<blockquote>
+<p>⚠ <strong>两个必须加引号的参数</strong>：<code>-Dmaven.test.skip=true</code> 与 <code>-DskipTests</code> 在 PowerShell 下会被拆开；实测 <code>-DskipTests</code> <strong>仍然会跑测试</strong>，要真跳过必须用 <code>'-Dmaven.test.skip=true'</code>。</p>
+<p>⚠ <strong><code>DB_PASSWORD</code> 必须先设好</strong>：dev / test profile 的数据源口令是 <code>${DB_PASSWORD:root}</code>，
+prod 是 <code>${DB_PASSWORD}</code>（<strong>无缺省</strong>，不注入直接启动失败，这是有意的）。
+本机口令只存在于环境变量里，<strong>任何入库文件都不写明文</strong>——入库前跑
+<code>python -X utf8 .\05-公共资源\2026103023-凭据扫描.py</code> 确认。</p>
+</blockquote>
+<h3>3.5 启动前端</h3>
+<pre class="cmd"><code class="language-powershell">cd '…\jeecgboot-vue3'
+pnpm install
+pnpm dev          # → http://127.0.0.1:8589
+pnpm build        # 生产构建
+</code></pre>
+<h3>3.6 拉起后的验证</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>验证</th>
+<th>期望</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>打开 <code>http://127.0.0.1:8589</code></td>
+<td>出现 JeecgBoot 登录页</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>mvn test</code>（模块目录）</td>
+<td><code>Tests run: 300, Failures: 0</code> → <code>BUILD SUCCESS</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>6 个闸门脚本</td>
+<td>全部 exit=0（见 §9.2）</td>
+</tr>
+<tr>
+<td>4</td>
+<td>浏览器打开 10 个页面路由</td>
+<td>三视口无横向溢出</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="layout">
+  <div class="sec-head"><span class="sec-num">04</span><h3>工程结构与代码坐标</h3><span class="tag">16 域</span></div>
+  <p>工程结构与代码坐标</p>
+<p>工程结构与代码坐标：后端 16 个域包 + 前端三个 study 目录。</p>
+<h3>4.1 后端：16 个域包</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>域</th>
+<th>类数</th>
+<th>子包</th>
+<th>职责</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>common</code></td>
+<td>7</td>
+<td>config / constant / enums / exception / util</td>
+<td>统一异常、错误码出口</td>
+</tr>
+<tr>
+<td><code>context</code></td>
+<td>15</td>
+<td>constant / controller / entity / mapper / service / vo</td>
+<td>全局上下文（配置 / 切换 / 历史）</td>
+</tr>
+<tr>
+<td><code>registry</code></td>
+<td>15</td>
+<td>controller / entity / mapper / service / vo</td>
+<td>坐标树、教材版本、考点</td>
+</tr>
+<tr>
+<td><code>idseq</code></td>
+<td>4</td>
+<td>entity / mapper / service</td>
+<td>统一业务 ID 分配器</td>
+</tr>
+<tr>
+<td><code>judge</code></td>
+<td>8</td>
+<td>engine / service</td>
+<td>判对错策略（<strong>零 AI 依赖</strong>）</td>
+</tr>
+<tr>
+<td><code>practice</code></td>
+<td>19</td>
+<td>controller / entity / mapper / service / vo</td>
+<td>练习作答、会话、解析</td>
+</tr>
+<tr>
+<td><code>error</code></td>
+<td>24</td>
+<td>constant / controller / entity / mapper / service / vo</td>
+<td>统一错题池、变式</td>
+</tr>
+<tr>
+<td><code>scope</code></td>
+<td>2</td>
+<td>service</td>
+<td><code>child_id</code> 数据范围强制过滤</td>
+</tr>
+<tr>
+<td><code>word</code></td>
+<td>25</td>
+<td>constant / controller / entity / enums / mapper / service / vo</td>
+<td>背单词</td>
+</tr>
+<tr>
+<td><code>math</code></td>
+<td>36</td>
+<td>constant / controller / engine / entity / enums / mapper / service / vo</td>
+<td>数学母题与变式</td>
+</tr>
+<tr>
+<td><code>grammar</code></td>
+<td>65</td>
+<td>constant / controller / engine / entity / <strong>gameplay</strong> / mapper / service / vo</td>
+<td>语法变形、检测、语境库、玩法</td>
+</tr>
+<tr>
+<td><code>writing</code></td>
+<td>38</td>
+<td>constant / controller / entity / enums / mapper / service / vo</td>
+<td>写作拆解、训练流、情境库</td>
+</tr>
+<tr>
+<td><code>eye</code></td>
+<td>8</td>
+<td>constant / controller / entity / mapper / service / vo</td>
+<td>护眼会话与统计</td>
+</tr>
+<tr>
+<td><code>parent</code></td>
+<td>14</td>
+<td>controller / mapper / service / vo</td>
+<td>家长端只读视图</td>
+</tr>
+<tr>
+<td><code>family</code></td>
+<td>24</td>
+<td>controller / entity / mapper / service / vo</td>
+<td>家庭、成员、孩子档案、关联</td>
+</tr>
+<tr>
+<td><code>kid</code></td>
+<td>8</td>
+<td>controller / service / vo</td>
+<td>孩子两步登录、身份</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong><code>grammar</code> 最大（65 类）</strong>因为它同时承载了变形引擎、确定性检测、语境库与四个玩法。</p>
+</blockquote>
+<h3>4.2 前端：三个 study 目录</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>目录</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/views/study/</code></td>
+<td>10 个页面（学习端 7 + 家长端 3）+ <code>api.ts</code> + <code>net.ts</code></td>
+</tr>
+<tr>
+<td><code>src/layouts/study/</code></td>
+<td>学习端独立全屏布局（48px 顶栏 + 64px 底部主操作条 + 护眼护罩）</td>
+</tr>
+<tr>
+<td><code>src/components/study/</code></td>
+<td><code>StudyParentShell</code> / <code>StudyEyeState</code> / <code>StudyEyeShield</code> / <code>StudyBlueLightSwitch</code> / <code>StudyBlueLightState</code> / <code>StudyThemeLock</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>⚠ <strong>新增前端目录必须同步登记</strong>到 <code>RedLineScanner.PROJECT_FRONTEND_DIRS</code>，否则该目录<strong>不受红线约束</strong>（ADR-028）。</p>
+</blockquote>
+<h3>4.3 页面路由以菜单种子为准</h3>
+<p>路由定义在 <code>sys_permission</code> 菜单种子（<code>03-脚本/07/16/17-*.sql</code>）里，<strong>不在</strong>前端路由文件中：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>页面</th>
+<th>路由</th>
+<th>菜单组件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>练习</td>
+<td><code>/study/practice</code></td>
+<td><code>study/practice/index</code></td>
+</tr>
+<tr>
+<td>背单词</td>
+<td><code>/study/word</code></td>
+<td><code>study/word/index</code></td>
+</tr>
+<tr>
+<td>英语语法</td>
+<td><code>/study/grammar</code></td>
+<td><code>study/grammar/index</code></td>
+</tr>
+<tr>
+<td>语法玩法</td>
+<td><code>/study/grammar/game</code></td>
+<td><code>study/grammar/game/index</code></td>
+</tr>
+<tr>
+<td>语文写作</td>
+<td><code>/study/writing</code></td>
+<td><code>study/writing/index</code></td>
+</tr>
+<tr>
+<td>写作情境</td>
+<td><code>/study/writing/scenario</code></td>
+<td><code>study/writing/scenario/index</code></td>
+</tr>
+<tr>
+<td>护眼设置</td>
+<td><code>/study/eye</code></td>
+<td><code>study/eye/index</code></td>
+</tr>
+<tr>
+<td>学习报告</td>
+<td><code>/study-parent/report</code></td>
+<td><code>study/parent/report/index</code></td>
+</tr>
+<tr>
+<td>错题分析</td>
+<td><code>/study-parent/error</code></td>
+<td><code>study/parent/error/index</code></td>
+</tr>
+<tr>
+<td>作文反馈</td>
+<td><code>/study-parent/feedback</code></td>
+<td><code>study/parent/feedback/index</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>为什么路由不在前端路由文件</strong>：上游 <code>transformObjToRoute</code>（<code>src/router/helper/routeHelper.ts:139-162</code>）对 DB 菜单一律挂 <code>LAYOUT</code>（管理端布局）—— <strong>动态菜单永远无法用自定义布局</strong>。家长端因此用「全屏固定层」方案（ADR-033）而不是新建 <code>layouts/parent</code>。</p>
+</blockquote>
+</section>
+<section id="backend">
+  <div class="sec-head"><span class="sec-num">05</span><h3>后端开发规范</h3><span class="tag">新增域</span></div>
+  <p>后端开发规范</p>
+<p>后端开发规范：新增一个域或一个端点的完整步骤。</p>
+<h3>5.1 分层职责与红线</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>层</th>
+<th>允许</th>
+<th>禁止</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>controller</code></td>
+<td>只依赖 <strong>Service 接口</strong>；返回 <code>Result&lt;T&gt;</code></td>
+<td>❌ 注入 Mapper；❌ 接受前端传来的 <code>childId</code> 作为唯一依据</td>
+</tr>
+<tr>
+<td><code>service</code></td>
+<td>业务编排；<strong>拼 <code>child_id</code> 过滤</strong>；事务边界</td>
+<td>❌ 跨域直接访问别的域的 Mapper（跨域只读点要有显式白名单）</td>
+</tr>
+<tr>
+<td><code>mapper</code></td>
+<td>继承 <code>BaseMapper</code> 或写注解式 <code>@Select</code></td>
+<td>❌ 在 Mapper 里做业务判断</td>
+</tr>
+<tr>
+<td><code>entity</code></td>
+<td>继承 <code>JeecgEntity</code>；表名加 <code>study_</code> 前缀</td>
+<td>❌ 业务表混入平台表命名</td>
+</tr>
+<tr>
+<td><code>vo</code></td>
+<td>面向前端出参；<strong>字段口径统一用 <code>items</code></strong></td>
+<td>❌ 直接返回 Entity</td>
+</tr>
+</tbody>
+</table></div>
+<h3>5.2 新增一个域的八步</h3>
+<ol>
+<li><strong>建包</strong>：<code>org.jeecg.modules.study.&lt;域&gt;.{controller,entity,mapper,service,vo}</code>。</li>
+<li><strong>写实体</strong>：继承 <code>JeecgEntity</code>，<code>@TableName("study_xxx")</code>。</li>
+<li><strong>写 Mapper</strong>：继承 <code>BaseMapper</code>；注解式 SQL 必须满足<strong>排序确定性</strong>（见 §7.5）。</li>
+<li><strong>写 Service</strong>：业务逻辑 + <strong><code>child_id</code> 强制过滤</strong>（用 <code>ChildScopeHelper</code> / <code>scope</code> 包）。</li>
+<li><strong>写 Controller</strong>：返回 <code>Result&lt;T&gt;</code>；权限码 <code>study:&lt;资源&gt;:&lt;动作&gt;</code>；<strong>不接收前端 <code>childId</code> 作为唯一依据</strong>。</li>
+<li><strong>建表</strong>：在 <code>03-脚本/</code> 下<strong>新增增量脚本</strong>（不改历史脚本），并在《数据库设计说明书》登记字段表。</li>
+<li><strong>灌种子</strong>：同样走新增量脚本，<strong>幂等</strong>。</li>
+<li><strong>补菜单与权限</strong>：在菜单种子脚本里加 <code>sys_permission</code> 行（路由 + 组件 + 权限码）。</li>
+</ol>
+<h3>5.3 数据范围隔离：不可省的强制过滤</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>身份</th>
+<th>可读范围</th>
+<th>实现落点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>管理员</td>
+<td>全部</td>
+<td>—</td>
+</tr>
+<tr>
+<td>家长</td>
+<td>仅 <code>study_parent_child_rel</code> 中与自己关联的 <code>child_id</code></td>
+<td>Service 层强制拼 where</td>
+</tr>
+<tr>
+<td>孩子</td>
+<td>仅自己的 <code>child_id</code></td>
+<td>由服务端按 <code>sys_user</code> 实时反查</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>家长侧<strong>必须与关系表求交集</strong>，不能直接用前端传的 <code>childCode</code>。</li>
+<li>越权一律返回 <strong>4010</strong>（<strong>不用 404</strong>，避免资源探测）。</li>
+<li><strong>内容表不加 <code>child_id</code></strong>（7 张内容表全局共享），<strong>行为表必须加</strong>（按孩子隔离）—— 改表时别把内容表也加了。</li>
+</ul>
+<h3>5.4 错误码与统一异常出口</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>码</th>
+<th>含义</th>
+<th>触发场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4001</td>
+<td>缺少错因</td>
+<td>提交练习未选错因</td>
+</tr>
+<tr>
+<td>4002</td>
+<td>前置步骤未完成</td>
+<td>写作未过提纲提交初稿</td>
+</tr>
+<tr>
+<td>4003</td>
+<td>违反练习顺序</td>
+<td>未作答就请求解析</td>
+</tr>
+<tr>
+<td>4004</td>
+<td>上下文未配置</td>
+<td>首次使用未配置地区 / 教材</td>
+</tr>
+<tr>
+<td>4007</td>
+<td>母题结构不完整</td>
+<td>母题五段缺任一段</td>
+</tr>
+<tr>
+<td>4009</td>
+<td>家庭码不正确</td>
+<td>孩子端家庭码校验失败</td>
+</tr>
+<tr>
+<td><strong>4010</strong></td>
+<td><strong>越权</strong></td>
+<td>家长访问非关联孩子的数据 / 孩子访问他人数据</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>业务错误码一律 <strong>HTTP 200 + <code>code != 0</code></strong>。
+study 域的错误码出口由 <code>@RestControllerAdvice</code>（<code>StudyExceptionAdvice</code>）统一承接：<code>HIGHEST_PRECEDENCE</code> + <code>basePackages</code> 限定到 study 域，<strong>抢回</strong> 4001 / 4009 / 4010 —— 否则会被上游全局异常处理器改写掉。</p>
+</blockquote>
+<h3>5.5 类简单名必须全局唯一</h3>
+<p>MyBatis-Spring 用「类名去首字母小写」当 bean 名 → <strong>同名直接 <code>ConflictingBeanDefinitionException</code>，整个 Spring 上下文起不来</strong>。</p>
+<ul>
+<li>规范：同域内 <code>StudyXxxService</code> / <code>StudyXxxServiceImpl</code>；跨域重复的 Mapper 按域加前缀（如 <code>StudyErrorQuestionMapper</code>）。</li>
+<li>闸门：<code>python 05-公共资源\2026103020-类名唯一性检查.py</code>（退出码 2 = 有启动级冲突）。</li>
+</ul>
+<h3>5.6 测试里的一个硬约定</h3>
+<p>一个类实现<strong>多个</strong> Service 契约时，测试的 <code>@MockBean</code> <strong>必须指向具体实现类</strong>，不能指向其中任一接口 —— 否则 <code>@MockBean</code> 按类型替换会把唯一的 Bean 整体顶掉，另一个契约无人实现，<strong>整个 Spring 上下文起不来</strong>。见 ADR-029。</p>
+</section>
+<section id="frontend">
+  <div class="sec-head"><span class="sec-num">06</span><h3>前端开发规范</h3><span class="tag">设计规范</span></div>
+  <p>前端开发规范</p>
+<p>前端开发规范：设计规范、布局、列表页与两条不可破的红线实现。</p>
+<h3>6.1 一切以设计规范为准</h3>
+<p>新增页面<strong>必须</strong>对照 <code>01-需求迭代/03-设计规范/2026103003-产品设计规范.md</code>（V1.1，基于上游 v3.9.2 实测，每个数值带 file:line）。</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>约定</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>配色</td>
+<td>沿用基座既有变量（主色 <code>#1890ff</code>）</td>
+</tr>
+<tr>
+<td>列表页</td>
+<td>走 <code>useListPage</code> + <code>BasicTable</code>；<strong>不手写 <code>a-table</code></strong>、<strong>不另做分页组件</strong></td>
+</tr>
+<tr>
+<td>表格首列</td>
+<td>只放<strong>短标签</strong>；长描述放第二列或用可折行 span 包裹</td>
+</tr>
+<tr>
+<td>窄屏</td>
+<td><strong>≤992px</strong>（对齐上游 <code>AppProvider.vue:28-31</code>）表格转卡片，由统一壳子处理</td>
+</tr>
+<tr>
+<td>间距</td>
+<td>只允许 <code>0 / 4 / 8 / 10 / 12 / 16 / 24 / 32</code> px</td>
+</tr>
+</tbody>
+</table></div>
+<h3>6.2 两套布局：学习端与家长端</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>端</th>
+<th>布局</th>
+<th>关键点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>学习端</td>
+<td><code>layouts/study/index.vue</code></td>
+<td><code>position: fixed; inset: 0; z-index: 1100</code>；顶栏 48px；<strong>底部主操作条 64px，一屏只允许一个主按钮</strong>；<strong>主题锁定浅色</strong>（<code>data-theme="light"</code>）且<strong>不提供</strong>深色切换入口；挂载护眼护罩</td>
+</tr>
+<tr>
+<td>家长端</td>
+<td><code>components/study/StudyParentShell.vue</code></td>
+<td>同样是全屏固定层（盖住管理端抽屉 + 遮罩）；<strong>自带 3 项页面导航 + 登出</strong>（盖掉管理端顶栏后的必要补偿）；主题跟随全局暗色；<strong>只读</strong></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>家长端窄屏曾被整个盖住</strong>：上游 <code>layouts/default/sider/index.vue:2-12</code> 在 <code>&lt;992px</code> 把侧栏渲染成<strong>常开抽屉 + 遮罩</strong>（<code>:open="!getCollapsed"</code>）。家长端菜单独挂在管理端布局，所以必须用固定层压住它。</p>
+</blockquote>
+<h3>6.3 护眼状态的跨组件传递：只准用共享单例</h3>
+<p><code>components/study/StudyEyeState.ts</code>：</p>
+<pre class="cmd"><code class="language-ts">// 工厂：只造状态，❌ 不得注册任何 onMounted / onBeforeUnmount
+export function useStudyEyeState(): StudyEyeState { … }
+
+// 单例入口：模块级缓存，首调创建，之后复用同一实例
+export function useSharedEyeState(): StudyEyeState { … }
+</code></pre>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>规则</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>状态工厂<strong>不得注册生命周期钩子</strong></td>
+<td><code>onMounted</code> 绑定的是「当前正在 setup 的组件实例」→ 钩子会归<strong>第一个调用者</strong>，路由切换后静默停摆</td>
+</tr>
+<tr>
+<td>会话生命周期归<strong>学习端布局</strong></td>
+<td>布局 <code>onMounted(() =&gt; eye.start())</code> / <code>onBeforeUnmount(() =&gt; eye.stop())</code></td>
+</tr>
+<tr>
+<td><strong>禁用 <code>provide/inject</code></strong></td>
+<td>方向是「父 provide → 子 inject」，而布局是页面的<strong>子</strong>组件 → 页面永远 inject 不到</td>
+</tr>
+<tr>
+<td><strong>禁用 <code>defineExpose</code> + 模板 ref</strong></td>
+<td>模板 ref 拿到深层 reactive 代理，会<strong>自动解包嵌套 ref</strong> → <code>.value</code> 恒 <code>undefined</code></td>
+</tr>
+<tr>
+<td>模板里的 ref 必须挂在 setup 返回值<strong>顶层</strong></td>
+<td>Vue 只解包顶层 ref；嵌套普通对象属性拿到的是 <code>Ref</code> 实例本身 → 恒为真</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>固化断言：<code>StudyEyeSharedStateTest</code>（4 条）。</p>
+</blockquote>
+<h3>6.4 答案区不渲染到 DOM（红线 R-01）</h3>
+<p>练习页的解析/答案区在<strong>初始态不进入 DOM</strong>（不是 <code>display:none</code>、不是 <code>v-show</code>），使 R-01 可以用 DOM 查询直接验收。</p>
+<pre class="cmd"><code class="language-html">&lt;!-- ✅ 初始态不在 DOM --&gt;
+&lt;p v-if=&quot;explainText&quot; class=&quot;study-practice__explain-text&quot;&gt;{{ explainText }}&lt;/p&gt;
+</code></pre>
+<blockquote>
+<p>这条是<strong>发布否决项</strong>，由 <code>RedLineAssertionTest</code> 的 R01-3 静态扫描 + 浏览器实测双重把关。</p>
+</blockquote>
+<h3>6.5 断网提示与重试（F-BASE-08）</h3>
+<p>学习端任一页面加载失败时，给出可读提示并渲染「重试」入口，<strong>不静默失败</strong>；重试重放上一次失败的服务端请求。</p>
+<ul>
+<li>统一封装：<code>src/views/study/net.ts</code>（<code>describeNetError</code> / <code>OFFLINE_HINT</code> / <code>RETRY_LABEL</code>）。</li>
+<li><strong>不做</strong>离线补交（V0 范围决策），也<strong>不引入</strong> localStorage / sessionStorage / indexedDB / serviceWorker（由 <code>StudyOfflinePolicyTest</code> 断言）。</li>
+</ul>
+</section>
+<section id="db">
+  <div class="sec-head"><span class="sec-num">07</span><h3>数据库变更规范</h3><span class="tag">真源唯一</span></div>
+  <p>数据库变更规范</p>
+<p>数据库变更规范：真源唯一、增量幂等、索引与排序都要可判定。</p>
+<h3>7.1 铁律</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>铁律</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>SQL 真源唯一</strong>在 <code>02-代码开发/02-数据库/03-脚本/</code>；<code>02-schema.sql</code> / <code>03-init.sql</code> / <code>05-partition.sql</code> / <code>06-cleanup.sql</code> 由 <code>05-公共资源/2026103017-DDL提取.py</code> 从《数据库设计说明书》生成，<strong>不手改</strong></td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>只新增量脚本，绝不改历史脚本</strong> —— 已执行脚本在 <code>study_schema_migration</code> 登记了 SHA-256 校验和，改了就对不上</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>幂等</strong>：<code>CREATE TABLE IF NOT EXISTS</code> / <code>INSERT … ON DUPLICATE KEY UPDATE</code> / 加列前先查 <code>information_schema</code> / 建索引前先查 <code>statistics</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>新表字段同步登记到《数据库设计说明书》</td>
+</tr>
+</tbody>
+</table></div>
+<h3>7.2 内容表与行为表的边界</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>类别</th>
+<th>表数</th>
+<th><code>child_id</code></th>
+<th>例子</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>内容 / 知识库</strong></td>
+<td>7 张内容表 + 坐标树等</td>
+<td>❌ <strong>不加</strong></td>
+<td><code>study_question</code>、<code>study_word</code>、<code>study_grammar_point</code>、<code>study_writing_scenario</code>、<code>study_sentence_context</code></td>
+</tr>
+<tr>
+<td><strong>学习行为</strong></td>
+<td>按孩子隔离</td>
+<td>✅ <strong>必须加</strong></td>
+<td><code>study_error_pool</code>、<code>study_review_schedule</code>、<code>study_eye_usage</code>、<code>study_grammar_game_record</code>、<code>study_practice_record_YYYYMM</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>内容表加 <code>child_id</code> 会导致<strong>同一道题按孩子复制多份</strong> —— 这是最容易被无意破坏的边界。</p>
+</blockquote>
+<h3>7.3 唯一索引清单要跟真实库对齐</h3>
+<pre class="cmd"><code class="language-sql">SELECT TABLE_NAME, INDEX_NAME, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX)
+FROM information_schema.STATISTICS
+WHERE TABLE_SCHEMA='jeecg-study' AND NON_UNIQUE=0
+GROUP BY TABLE_NAME, INDEX_NAME;
+</code></pre>
+<ul>
+<li>闸门：<code>python 05-公共资源\2026103021-唯一索引清单生成.py --check</code> → 期望「OK 唯一索引清单与真实库一致（24 张表）」。</li>
+<li>新表上线时<strong>必须</strong>同步补进清单，否则清单与库结构不同步会被断言显式标注。</li>
+<li>注意<strong>组合唯一索引</strong>（<code>uk_family_user(family_id,user_id)</code>、<code>uk_word_spelling_line(spelling,line_type)</code>）与<strong>分区表</strong>前缀匹配。</li>
+</ul>
+<h3>7.4 排序必须可判定（ADR-031）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>规则</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>对外可见顺序的查询必须显式 <code>ORDER BY</code></strong></td>
+<td>家长端日序列聚合原先<strong>完全无 ORDER BY</strong> → 趋势图横轴顺序随执行计划漂移</td>
+</tr>
+<tr>
+<td><strong>排序键末位必须是唯一列</strong></td>
+<td><code>ORDER BY MIN(unit_order), unit_code</code>；<code>ORDER BY cnt DESC, knowledge_point_code</code></td>
+</tr>
+<tr>
+<td><strong>「最近一条」用主键兜底</strong></td>
+<td><code>ORDER BY create_time DESC, id DESC</code>（同一秒多行不可判定）</td>
+</tr>
+<tr>
+<td><strong>截断查询必须有序</strong></td>
+<td><code>LIMIT n</code> 不排序 = 随机丢数据</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>落成断言：<code>StudySqlOrderDeterminismTest</code>（SQL-A：<code>GROUP BY</code> 必须有序 / SQL-B：截断必须有序 / SQL-C：<code>LIMIT 1</code> 末位键必须唯一）。
+<strong>判断口诀</strong>：用例偶发红绿翻转，<strong>先怀疑排序并列</strong>，别去改测试迁就。</p>
+</blockquote>
+</section>
+<section id="api">
+  <div class="sec-head"><span class="sec-num">08</span><h3>接口开发与联调</h3><span class="tag">106 端点</span></div>
+  <p>接口开发与联调</p>
+<p>接口开发与联调：106 个端点的约定与本地联调姿势。</p>
+<h3>8.1 通用约定</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>约定</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>根路径</td>
+<td><code>/api/v1/study</code>（前端 axios baseURL 统一拼接）</td>
+</tr>
+<tr>
+<td>资源命名</td>
+<td>小写复数，短横线分隔（<code>/error-pool</code>）</td>
+</tr>
+<tr>
+<td>路径参数</td>
+<td><strong>业务 ID</strong> 而非自增 ID（<code>/error-pool/ERR-00000123</code>）</td>
+</tr>
+<tr>
+<td>统一响应体</td>
+<td><code>{ "success": true, "code": 0, "message": "ok", "result": {} }</code></td>
+</tr>
+<tr>
+<td>分页</td>
+<td>请求 <code>pageNo</code> / <code>pageSize</code> / <code>order</code>；响应 <code>records</code> / <code>total</code> / <code>pageNo</code> / <code>pageSize</code> / <code>pages</code>（对齐 <code>IPage</code>）</td>
+</tr>
+<tr>
+<td>字段命名</td>
+<td>驼峰 <code>camelCase</code>（与下划线由 MyBatis-Plus 映射）</td>
+</tr>
+<tr>
+<td>枚举</td>
+<td>传<strong>字符串码</strong>（<code>CONCEPT</code>），不传数字</td>
+</tr>
+<tr>
+<td>认证头</td>
+<td><strong><code>X-Access-Token</code></strong>（不是 <code>Authorization: Bearer</code>）</td>
+</tr>
+</tbody>
+</table></div>
+<h3>8.2 接口分布（106 个）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>分组</th>
+<th>数量</th>
+<th>代表端点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>底座</td>
+<td>15</td>
+<td><code>/context/current</code>、<code>/knowledge-points/tree</code></td>
+</tr>
+<tr>
+<td>练习与判定</td>
+<td>10</td>
+<td><code>/practice/{type}/next</code>、<code>/practice/answer</code></td>
+</tr>
+<tr>
+<td>错题与排期</td>
+<td>12</td>
+<td><code>/error-pool</code>、<code>/review/queue</code></td>
+</tr>
+<tr>
+<td>业务模块</td>
+<td>36</td>
+<td><code>/word/*</code>、<code>/grammar/*</code>、<code>/writing/*</code>、<code>/math/mother/*</code></td>
+</tr>
+<tr>
+<td>家长端</td>
+<td>5</td>
+<td><code>/parent/report/overview</code>、<code>/parent/report/weekly</code></td>
+</tr>
+<tr>
+<td>家庭与成员</td>
+<td>17</td>
+<td><code>/family</code>、<code>/children</code>、<code>/children/{code}/relations</code></td>
+</tr>
+<tr>
+<td>孩子登录与身份</td>
+<td>4</td>
+<td><code>/kid/lookup</code>、<code>/kid/login</code>、<code>/kid/logout</code>、<code>/kid/me</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3>8.3 本地联调</h3>
+<pre class="cmd"><code class="language-powershell"># 家长 token（底座原生登录接口）
+$parent = (Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:8590/jeecg-boot/sys/login' `
+  -Body (@{username='&lt;家长账号&gt;';password='&lt;pwd&gt;'} | ConvertTo-Json) `
+  -ContentType 'application/json').result.token
+
+# 孩子 token（两步）
+$kid = (Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:8590/jeecg-boot/api/v1/study/kid/login' `
+  -Body (@{childCode='ST-CHILD-DEMO-01'; pin='1234'} | ConvertTo-Json) `
+  -ContentType 'application/json').result.token
+
+# 调业务接口（认证头是 X-Access-Token）
+$h = @{ 'X-Access-Token' = $kid }
+Invoke-WebRequest -Uri 'http://127.0.0.1:8590/jeecg-boot/api/v1/study/grammar/points' -Headers $h -UseBasicParsing
+</code></pre>
+<blockquote>
+<p>⚠ <strong>端到端联调不要用 Vite dev server 当被测服务</strong>：它会把任意路径导航<strong>改写成 <code>index.html</code></strong>，导致 iframe 量测失真。要同源量测就自建静态 + 反代服务（见 §11.3）。</p>
+</blockquote>
+<h3>8.4 判对错响应契约（三条不可违反）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>规则</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>响应必须带 <code>judgeSource</code>，取值只允许 <code>rule</code> / <code>rule+model</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>判定层（<code>rule</code> 包 / <code>engine.judge</code> 包）<strong>零 AI 依赖</strong>（ArchUnit 断言）</td>
+</tr>
+<tr>
+<td>3</td>
+<td>前端<strong>不自己算对错</strong>，只渲染服务端下发的 <code>result.correct</code></td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="qa">
+  <div class="sec-head"><span class="sec-num">09</span><h3>测试与质量闸门</h3><span class="tag">300 用例</span></div>
+  <p>测试与质量闸门</p>
+<p>测试与质量闸门：300 条用例、6 个闸门脚本、两条断言纪律。</p>
+<h3>9.1 回归闸门</h3>
+<pre class="cmd"><code class="language-powershell">cd '…\jeecg-boot-module\jeecg-module-study'
+mvn test
+# 期望：Tests run: 300, Failures: 0, Errors: 0, Skipped: 0 → BUILD SUCCESS
+</code></pre>
+<p>测试类分布（33 个）：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>域</th>
+<th>测试类</th>
+<th>用例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>context</code></td>
+<td><code>StudyContextServiceTest</code></td>
+<td>8</td>
+</tr>
+<tr>
+<td><code>error</code></td>
+<td><code>StudyErrorPoolServiceTest</code> / <code>StudyErrorPoolAtomicityTest</code></td>
+<td>22 + 1</td>
+</tr>
+<tr>
+<td><code>family</code></td>
+<td><code>StudyChildServiceTest</code> / <code>StudyFamilyServiceTest</code></td>
+<td>15 + 7</td>
+</tr>
+<tr>
+<td><code>kid</code></td>
+<td><code>StudyKidAuthServiceTest</code></td>
+<td>8</td>
+</tr>
+<tr>
+<td><code>word</code></td>
+<td><code>StudyWordServiceTest</code></td>
+<td>11</td>
+</tr>
+<tr>
+<td><code>math</code></td>
+<td><code>StudyMathServiceTest</code></td>
+<td>16</td>
+</tr>
+<tr>
+<td><code>grammar</code></td>
+<td><code>StudyGrammarServiceTest</code> / <code>…ContextServiceTest</code> / <code>…GameServiceTest</code></td>
+<td>6 + 2 + 4</td>
+</tr>
+<tr>
+<td><code>writing</code></td>
+<td><code>StudyWritingServiceTest</code> / <code>…ParentServiceTest</code> / <code>…RedLineTest</code> / <code>…ScenarioServiceTest</code></td>
+<td>9 + 6 + 5 + 8</td>
+</tr>
+<tr>
+<td><code>practice</code></td>
+<td><code>StudyPracticeServiceTest</code> / <code>…AtomicityTest</code></td>
+<td>10 + 1</td>
+</tr>
+<tr>
+<td><code>eye</code></td>
+<td><code>StudyEyeServiceTest</code></td>
+<td>8</td>
+</tr>
+<tr>
+<td><code>parent</code></td>
+<td><code>StudyParentReportServiceTest</code></td>
+<td>8</td>
+</tr>
+<tr>
+<td><code>registry</code></td>
+<td><code>StudyKnowledgePointServiceTest</code></td>
+<td>8</td>
+</tr>
+<tr>
+<td><code>judge</code></td>
+<td>判定层（由 <code>StudyMathServiceTest</code> 等覆盖）</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>common</code></td>
+<td><code>StudyExceptionAdviceTest</code></td>
+<td>5</td>
+</tr>
+<tr>
+<td><code>redline</code></td>
+<td><code>RedLineAssertionTest</code></td>
+<td>24</td>
+</tr>
+<tr>
+<td><code>sql</code></td>
+<td><code>StudySqlOrderDeterminismTest</code> / <code>StudyGrammarSeedTest</code></td>
+<td>6 + 6</td>
+</tr>
+<tr>
+<td><code>ui</code></td>
+<td>8 个断言类</td>
+<td>46</td>
+</tr>
+</tbody>
+</table></div>
+<h3>9.2 闸门脚本</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>脚本</th>
+<th>期望输出</th>
+<th>退出码</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>05-公共资源\2026103013-交付物校验.py</code></td>
+<td><code>ALL PASS (11 files)</code></td>
+<td>0</td>
+</tr>
+<tr>
+<td><code>05-公共资源\2026103020-类名唯一性检查.py</code></td>
+<td><code>OK 无重复简单名（扫描 254 个类）</code></td>
+<td>0（冲突时 2）</td>
+</tr>
+<tr>
+<td><code>05-公共资源\2026103015-追溯矩阵生成.py</code></td>
+<td><code>69/69 已定义需求均有接口或用例引用</code></td>
+<td>0（缺口时 2）</td>
+</tr>
+<tr>
+<td><code>05-公共资源\2026103016-红线断言检查.py</code></td>
+<td><code>ALL PASS — 红线齐全、追溯闭合</code></td>
+<td>0（缺口时 2）</td>
+</tr>
+<tr>
+<td><code>05-公共资源\2026103021-唯一索引清单生成.py --check</code></td>
+<td><code>OK 唯一索引清单与真实库一致（24 张表）</code></td>
+<td>0</td>
+</tr>
+<tr>
+<td><code>05-公共资源\2026103023-凭据扫描.py</code></td>
+<td><code>ALL PASS 未发现明文凭据</code></td>
+<td>0（命中时 2）</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>凭据扫描闸门</strong>是<strong>入库公开仓库前必跑</strong>的一道：它只扫<strong>会入库</strong>的文件
+（基座目录按 overlay 清单扫），判定 <code>${VAR:默认值}</code> 这类占位符的<strong>默认值</strong>、
+<code>key: 明文</code>、<code>mysql -p&lt;口令&gt;</code>、源码引号字面量、文档表格里的「密码」列。
+上游 JeecgBoot 自带的公开默认值（<code>root</code> / <code>postgres</code> / <code>123456</code>）在白名单里，
+<strong>不</strong>算本项目引入的泄漏；本机真实口令一律必须改成 <code>${DB_PASSWORD:root}</code> 形式。</p>
+</blockquote>
+<h3>9.3 写断言的两条纪律</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>纪律</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>字面量扫描类断言必须先剥注释</strong></td>
+<td>注释里出现同名字样会<strong>假绿</strong>；且裸扫词会误伤 CSS 属性名（扫 <code>white</code> 命中 <code>white-space</code>）</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>必须做故障注入验证</strong></td>
+<td>绿 → 注入违规 → <strong>变红</strong> → 还原 → 绿；否则无法证明它真能拦住回归</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>另外：扫描类断言必须配一条「<strong>扫描有效性</strong>」用例（断言真的扫到了非空集合），否则扫描集合为空时会<strong>空通过</strong>。</p>
+</blockquote>
+<h3>9.4 回归失败时的口径</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>情形</th>
+<th>处置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>生产侧确实有问题</td>
+<td><strong>改生产侧</strong></td>
+</tr>
+<tr>
+<td>断言口径过宽 / 过严</td>
+<td>按「<strong>更精确</strong>」修断言，而不是放宽</td>
+</tr>
+<tr>
+<td>用例偶发红绿翻转</td>
+<td>查生产侧排序是否有唯一兜底键（§5.15），<strong>不要改测试迁就</strong></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>2026-10-31 末轮触发既有断言 3 次，<strong>全部改生产侧，0 处改既有断言</strong>。</p>
+</blockquote>
+</section>
+<section id="release">
+  <div class="sec-head"><span class="sec-num">10</span><h3>构建发布与回滚</h3><span class="tag">可回滚</span></div>
+  <p>构建发布与回滚</p>
+<p>构建发布与回滚：构建产物、发布顺序与回滚路径。</p>
+<h3>10.1 构建产物</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>产物</th>
+<th>位置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>后端 jar</td>
+<td><code>jeecg-boot/jeecg-boot-module/jeecg-system-start/target/jeecg-system-start.jar</code></td>
+</tr>
+<tr>
+<td>前端 dist</td>
+<td><code>jeecgboot-vue3/dist/</code></td>
+</tr>
+<tr>
+<td>SQL</td>
+<td><code>02-代码开发/02-数据库/03-脚本/</code>（打包时从真源镜像）</td>
+</tr>
+</tbody>
+</table></div>
+<h3>10.2 构建命令</h3>
+<pre class="cmd"><code class="language-powershell"># 后端（必须先停后端：运行中的 java 独占 jar 文件句柄）
+mvn -pl jeecg-module-system/jeecg-system-start -am package '-Dmaven.test.skip=true'
+
+# 前端
+cd '…\jeecgboot-vue3'; pnpm build
+</code></pre>
+<blockquote>
+<p>⚠ <strong>构建输出不要经 <code>| Out-Host</code> 管道转发</strong> —— 大资源清单会压垮管道并让构建<strong>静默中断</strong>。用 <code>Tee-Object -FilePath $log | Out-Null</code>，失败时打印日志尾部。
+⚠ <code>Start-Process -ArgumentList</code> 传数组不安全（会拼成一条不加引号的命令行）→ 调原生命令优先用 <code>&amp;</code>。</p>
+</blockquote>
+<h3>10.3 发布顺序</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>动作</th>
+<th>校验</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>执行数据库迁移</td>
+<td><code>study_schema_migration</code> 全部登记</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>停止后端服务</strong></td>
+<td><code>Stop-Service study-backend</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>替换 jar 与前端 dist</td>
+<td>先比对 SHA-256 再替换</td>
+</tr>
+<tr>
+<td>4</td>
+<td>启动后端服务</td>
+<td>健康检查通过</td>
+</tr>
+<tr>
+<td>5</td>
+<td>重载 nginx</td>
+<td><code>nginx -s reload</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td>部署后验证</td>
+<td>见 §5.27</td>
+</tr>
+<tr>
+<td>7</td>
+<td>写发布记录</td>
+<td><code>CHANGELOG.md</code> + <code>04-运营部署/03-发布记录/</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>替换 jar 前必须先停服务</strong> —— 运行中的 java 独占文件句柄，覆盖写入会报「正由另一进程使用」。</p>
+</blockquote>
+<h3>10.4 部署后冒烟</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>检查</th>
+<th>期望</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>首页可打开</td>
+<td>登录页正常</td>
+</tr>
+<tr>
+<td>2</td>
+<td>家长登录 + 三个页面</td>
+<td>有数据、无报错</td>
+</tr>
+<tr>
+<td>3</td>
+<td>孩子端 7 页</td>
+<td>有内容（词库有词、语法有 11 点、护眼有间隔）</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>护眼遮罩</strong></td>
+<td>未达阈值<strong>不出现</strong>遮罩（R-03）</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>练习页答案区</strong></td>
+<td>初始态<strong>不在 DOM</strong>（R-01）</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>家长端响应</strong></td>
+<td>无 rank / percentile 字段、无「排名」文案（R-04）</td>
+</tr>
+<tr>
+<td>7</td>
+<td>越权访问</td>
+<td>返回 <strong>4010</strong>（不是 404）</td>
+</tr>
+</tbody>
+</table></div>
+<h3>10.5 回滚</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>触发</th>
+<th>动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>代码问题</td>
+<td>停服务 → 换回上一版 jar / dist → 启动 → 冒烟</td>
+</tr>
+<tr>
+<td>数据问题</td>
+<td>按 <code>study_schema_migration</code> 登记<strong>逆序</strong>执行回滚脚本（<strong>不回改已登记的历史脚本</strong>）</td>
+</tr>
+<tr>
+<td>红线被破（最严重）</td>
+<td><strong>立即停服</strong> + 记录事件 → 评估影响面 → 修复后重新走发布流程</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="trouble">
+  <div class="sec-head"><span class="sec-num">11</span><h3>排障速查</h3><span class="tag">15 条</span></div>
+  <p>排障速查</p>
+<p>排障速查：2026-10-31 全量落地过程中沉淀的 15 条高频坑。</p>
+<h3>11.1 构建与编译</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>现象</th>
+<th>根因</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>MalformedInputException</code> / 「找不到源文件」</td>
+<td>javac 的 <code>@argfile</code> 编码跟随 <code>file.encoding</code></td>
+<td>argfile 写 <strong>UTF-8 无 BOM</strong>，<code>-J-Dfile.encoding=UTF-8</code> 放<strong>命令行</strong>（不放 argfile 内部）；PowerShell 侧 <code>[Console]::OutputEncoding = [Text.Encoding]::UTF8</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>javac 真实报错看不到</td>
+<td>PS 5.1 下 <code>$ErrorActionPreference='Stop'</code> 把 native stderr 升格成终止性错误</td>
+<td>调用 native 命令前临时降级为 <code>'Continue'</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>源文件列表变空 → 「无源文件」</td>
+<td>函数参数声明成 <code>[string[]]</code>，FileInfo 被降级后 <code>.FullName</code> 为 null</td>
+<td>参数声明成 <code>[object[]]</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>编译产物被 Spring 扫到半成品</td>
+<td>私有编译目录复用，旧 class 残留</td>
+<td>每次用<strong>独立时间戳目录</strong>，不复用</td>
+</tr>
+</tbody>
+</table></div>
+<h3>11.2 测试与断言</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>现象</th>
+<th>根因</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>5</td>
+<td>整个 Spring 上下文起不来（<code>No qualifying bean</code>）</td>
+<td><code>@MockBean</code> 顶掉了「唯一实现某接口」的 Bean</td>
+<td><code>@MockBean</code> 指向<strong>具体实现类</strong>（ADR-029）</td>
+</tr>
+<tr>
+<td>6</td>
+<td>源码扫描断言大批失败或<strong>全部空通过</strong></td>
+<td>依赖 <code>Paths.get("")</code> 推导路径，运行器工作目录不对</td>
+<td>运行器 <code>Push-Location</code> 到模块目录；扫描类断言必须断言「集合非空」</td>
+</tr>
+<tr>
+<td>7</td>
+<td>断言<strong>假绿</strong>（注入违规仍绿）</td>
+<td>字面量扫描未剥注释</td>
+<td>先剥注释再判定；并做故障注入验证</td>
+</tr>
+<tr>
+<td>8</td>
+<td>用例偶发红绿翻转</td>
+<td>排序并列，缺唯一兜底键</td>
+<td>改<strong>生产侧</strong>排序（§5.15），不要改测试</td>
+</tr>
+<tr>
+<td>9</td>
+<td>红线套件 <code>StackOverflowError</code></td>
+<td>正则灾难性回溯</td>
+<td>用占有量词 / 懒惰量词，保持线性复杂度（ADR-028）</td>
+</tr>
+<tr>
+<td>10</td>
+<td>红线误报上游 demo 页</td>
+<td>扫描范围用绝对路径判「是否学习端」，仓库名含 study</td>
+<td>按<strong>相对路径</strong> + 本项目目录白名单判定（ADR-028）</td>
+</tr>
+</tbody>
+</table></div>
+<h3>11.3 前端与浏览器</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>现象</th>
+<th>根因</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>11</td>
+<td>页面 <code>inject()</code> 拿不到值</td>
+<td><code>provide/inject</code> 方向反了（布局是页面的<strong>子</strong>组件）</td>
+<td>用<strong>模块级共享单例</strong>（ADR-032）</td>
+</tr>
+<tr>
+<td>12</td>
+<td>嵌套 ref 拿到数字不是 <code>Ref</code></td>
+<td>模板 ref 是深层 reactive 代理，<strong>自动解包</strong></td>
+<td>共享单例 + 顶层 ref（ADR-032）</td>
+</tr>
+<tr>
+<td>13</td>
+<td>路由切换后会话静默停摆</td>
+<td>状态工厂里注册了 <code>onMounted</code></td>
+<td>工厂不注册钩子，生命周期归宿主组件（ADR-032）</td>
+</tr>
+<tr>
+<td>14</td>
+<td>家长端窄屏被整个盖住</td>
+<td>上游默认布局 <code>&lt;992px</code> 渲染<strong>常开抽屉 + 遮罩</strong></td>
+<td><code>StudyParentShell</code> 全屏固定层（ADR-033）</td>
+</tr>
+<tr>
+<td>15</td>
+<td>浏览器量测失真</td>
+<td>Vite dev server 把任意导航改写成 <code>index.html</code></td>
+<td>自建静态 + 反代服务（8765 等）做同源量测</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>完整清单见 <code>06-AI协作/04-知识库/03-AI常见坑.md</code>（A/B/C/D/E 五段）。</p>
+</blockquote>
+</section>
+<section id="docs">
+  <div class="sec-head"><span class="sec-num">12</span><h3>文档流水线</h3><span class="tag">不手改 HTML</span></div>
+  <p>文档流水线</p>
+<p>文档流水线：改源稿 → 生成 → 校验 → 浏览器验证，<strong>绝不手改 HTML</strong>。</p>
+<h3>12.1 四步流程</h3>
+<pre class="cmd"><code class="language-powershell">cd 'D:\DevProject\2-JavaPrj\20261030-jeecg-study'
+
+# 1. 生成一份报告（源稿 → HTML）
+python '.\05-公共资源\2026103001-报告生成器.py' &lt;源稿.md&gt; &lt;输出.html&gt;
+
+# 2. 带截图的报告（图片 base64 内嵌 → 单文件自包含）
+python '.\05-公共资源\2026103102-报告图片内嵌.py' &lt;源稿.md&gt; &lt;输出.html&gt;
+
+# 3. 静态结构自检（期望 ALL PASS (11 files)）
+python '.\05-公共资源\2026103013-交付物校验.py'
+
+# 4. 浏览器实测
+python -m http.server 8899 --bind 127.0.0.1
+# 打开 http://127.0.0.1:8899/&lt;文档路径&gt;
+</code></pre>
+<h3>12.2 源稿的两条硬规则</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>规则</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>META.sections</code> 的<strong>数量与顺序</strong>必须与正文 <code>##</code> <strong>严格一致</strong></td>
+<td>否则整篇内容错位；校验脚本会逐条比对并报「第 N 节标题不一致」</td>
+</tr>
+<tr>
+<td>2</td>
+<td>每个 <code>##</code> 章节的<strong>第一行正文必须与章节标题互为前缀</strong></td>
+<td>校验脚本比对「侧栏导航标题」与「该 section 首个标题 / 首段」是否指同一章；写成「标题：一句摘要」即可</td>
+</tr>
+</tbody>
+</table></div>
+<h3>12.3 产物清单</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>产物</th>
+<th>路径</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>产品需求说明书</td>
+<td><code>01-需求迭代/02-需求文档/01-产品需求说明书.html</code></td>
+</tr>
+<tr>
+<td>产品设计规范</td>
+<td><code>01-需求迭代/03-设计规范/01-产品设计规范.html</code></td>
+</tr>
+<tr>
+<td>系统设计说明书</td>
+<td><code>02-代码开发/01-设计文档/01-系统设计说明书.html</code></td>
+</tr>
+<tr>
+<td>数据库设计说明书</td>
+<td><code>02-代码开发/02-数据库/01-数据库设计说明书.html</code></td>
+</tr>
+<tr>
+<td>接口设计说明书</td>
+<td><code>02-代码开发/03-接口文档/01-接口设计说明书.html</code></td>
+</tr>
+<tr>
+<td>前端页面清单</td>
+<td><code>02-代码开发/04-前端页面/01-前端页面清单.html</code></td>
+</tr>
+<tr>
+<td>测试大纲</td>
+<td><code>03-测试验证/01-测试文档/01-测试大纲.html</code></td>
+</tr>
+<tr>
+<td>测试用例</td>
+<td><code>03-测试验证/02-测试用例/01-测试用例.html</code></td>
+</tr>
+<tr>
+<td>P0–P4 验证报告</td>
+<td><code>03-测试验证/01-测试文档/01-P0-P4验证报告.html</code></td>
+</tr>
+<tr>
+<td>部署方案</td>
+<td><code>04-运营部署/01-部署文档/01-部署方案.html</code></td>
+</tr>
+<tr>
+<td>运维手册</td>
+<td><code>04-运营部署/02-运维文档/01-运维手册.html</code></td>
+</tr>
+<tr>
+<td><strong>用户手册</strong></td>
+<td><code>04-运营部署/04-用户手册/01-系统功能使用说明.html</code></td>
+</tr>
+<tr>
+<td><strong>技术手册</strong></td>
+<td><code>04-运营部署/05-技术手册/01-系统开发使用说明.html</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3>12.4 浏览器验证的注意事项</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>注意</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>不用无头 Edge</strong></td>
+<td>本机 msedge 常驻 → 截图与 dump-dom 不可信；用<strong>内置 Browser</strong> + iframe 校验台</td>
+</tr>
+<tr>
+<td>2</td>
+<td>量测要<strong>同源</strong></td>
+<td>跨源 iframe 读不到 <code>scrollWidth</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>拼版用 <strong>CSS Grid</strong> 不用 flex</td>
+<td>flex 换行判定差 1px 就整列掉下来</td>
+</tr>
+<tr>
+<td>4</td>
+<td>标题条<strong>独占高度</strong></td>
+<td>否则会遮住页面自己的顶栏，取证就缺证据</td>
+</tr>
+<tr>
+<td>5</td>
+<td>桌面与移动视口<strong>都要测</strong></td>
+<td>表格首列不折行只在桌面暴露横向溢出</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+
+    <div id="bottom"></div>
+    <footer class="foot"><span>jeecg-study · 技术手册 V1.0</span><span>2026-10-31</span><span>基座：JeecgBoot v3.9.2（feature/jeecg-study）</span><span>事实来源：仓库源码 + 2026-10-31 实跑结果</span></footer>
+  </main>
+
+</div>
+
+<button class="m-fab" id="fab" type="button">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/></svg>
+  目录
+</button>
+
+
+<script>
+(function(){
+  var BRAND = (document.getElementById('mTitle')||{}).textContent || '文档';
+  var links   = Array.prototype.slice.call(document.querySelectorAll('.nav-link'));
+  var pairs   = links.map(function(l){
+    var id = l.getAttribute('href').replace('#','');
+    var isJump = (id === 'top' || id === 'bottom');
+    return { link:l, sec: isJump ? null : document.getElementById(id) };
+  });
+  var sidebar = document.querySelector('.sidebar');
+  var scrim   = document.getElementById('scrim');
+  var fab     = document.getElementById('fab');
+  var mTitle  = document.getElementById('mTitle');
+  var panelOpen = false;
+
+  function isMobile(){ return window.matchMedia('(max-width:1000px)').matches; }
+  function openPanel(){
+    panelOpen = true;
+    if (sidebar) sidebar.classList.add('open');
+    if (scrim)   scrim.classList.add('show');
+  }
+  function closePanel(){
+    panelOpen = false;
+    if (sidebar) sidebar.classList.remove('open');
+    if (scrim)   scrim.classList.remove('show');
+  }
+  function togglePanel(){ panelOpen ? closePanel() : openPanel(); }
+
+  function onScroll(){
+    var y = window.scrollY + 140, idx = -1;
+    for (var i=0;i<pairs.length;i++){
+      if (pairs[i].sec && pairs[i].sec.offsetTop <= y) { idx = i; }
+    }
+    if (idx < 0) { idx = 0; for (var j=0;j<pairs.length;j++){ if (pairs[j].sec){ idx = j; break; } } }
+
+    pairs.forEach(function(p,i){ if (p.sec) p.link.classList.toggle('active', i === idx); });
+
+    if (mTitle) {
+      mTitle.textContent = window.scrollY < 40
+        ? BRAND
+        : pairs[idx].link.textContent.replace(/[↑↓]\s*/g,'').trim();
+    }
+    // 下滑后导航不可见 → 收起来为悬浮按钮
+    if (fab) fab.classList.toggle('show', window.scrollY > 80);
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', onScroll);
+  onScroll();
+
+  // 导航点击：顶/底跳转 或 锚点定位
+  pairs.forEach(function(p){
+    p.link.addEventListener('click', function(e){
+      e.preventDefault();
+      var href = p.link.getAttribute('href');
+      if (href === '#top') {
+        window.scrollTo({top:0, behavior:'smooth'});
+      } else if (href === '#bottom') {
+        window.scrollTo({top:document.documentElement.scrollHeight, behavior:'smooth'});
+      } else if (p.sec) {
+        window.scrollTo({top: p.sec.getBoundingClientRect().top + window.scrollY - 18, behavior:'smooth'});
+        history.replaceState(null,'',href);
+      }
+      closePanel();
+    });
+  });
+
+  var menuBtn  = document.getElementById('menuBtn');
+  var closeBtn = document.getElementById('closeBtn');
+  var topBtn   = document.getElementById('topBtn');
+  if (menuBtn)  menuBtn.addEventListener('click', togglePanel);
+  if (closeBtn) closeBtn.addEventListener('click', closePanel);
+  if (fab)      fab.addEventListener('click', togglePanel);
+  if (scrim)    scrim.addEventListener('click', closePanel);
+  if (topBtn)   topBtn.addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closePanel(); });
+
+  // 移动端表格卡片：为每个单元格补列名标签
+  Array.prototype.forEach.call(document.querySelectorAll('table'), function(t){
+    var heads = Array.prototype.map.call(t.querySelectorAll('thead th'), function(th){
+      return th.textContent.trim();
+    });
+    Array.prototype.forEach.call(t.querySelectorAll('tbody tr'), function(tr){
+      Array.prototype.forEach.call(tr.children, function(td,i){
+        if (heads[i]) td.setAttribute('data-label', heads[i]);
+      });
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

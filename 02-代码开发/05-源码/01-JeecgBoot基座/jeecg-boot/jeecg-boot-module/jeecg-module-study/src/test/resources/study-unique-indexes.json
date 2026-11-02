@@ -1,0 +1,204 @@
+{
+  "schema": "jeecg-study",
+  "source": "information_schema.STATISTICS (NON_UNIQUE = 0)",
+  "generator": "05-公共资源/2026103021-唯一索引清单生成.py",
+  "tables": {
+    "study_child": [
+      [
+        "id"
+      ],
+      [
+        "child_code"
+      ],
+      [
+        "user_id"
+      ]
+    ],
+    "study_context": [
+      [
+        "id"
+      ],
+      [
+        "context_code"
+      ]
+    ],
+    "study_error_pool": [
+      [
+        "id"
+      ],
+      [
+        "error_code"
+      ]
+    ],
+    "study_eye_usage": [
+      [
+        "id"
+      ],
+      [
+        "session_id"
+      ]
+    ],
+    "study_family": [
+      [
+        "id"
+      ],
+      [
+        "family_code"
+      ]
+    ],
+    "study_family_member": [
+      [
+        "id"
+      ],
+      [
+        "family_id",
+        "user_id"
+      ]
+    ],
+    "study_grammar_game_question": [
+      [
+        "id"
+      ],
+      [
+        "question_code"
+      ]
+    ],
+    "study_grammar_game_record": [
+      [
+        "id"
+      ]
+    ],
+    "study_grammar_point": [
+      [
+        "id"
+      ],
+      [
+        "grammar_code"
+      ]
+    ],
+    "study_id_sequence": [
+      [
+        "id"
+      ],
+      [
+        "prefix"
+      ]
+    ],
+    "study_knowledge_point": [
+      [
+        "id"
+      ],
+      [
+        "point_code"
+      ]
+    ],
+    "study_mother_question": [
+      [
+        "id"
+      ],
+      [
+        "mother_code"
+      ]
+    ],
+    "study_parent_child_rel": [
+      [
+        "id"
+      ],
+      [
+        "parent_user_id",
+        "child_id"
+      ]
+    ],
+    "study_practice_record": [
+      [
+        "id"
+      ]
+    ],
+    "study_question": [
+      [
+        "id"
+      ],
+      [
+        "question_code"
+      ]
+    ],
+    "study_question_variant": [
+      [
+        "id"
+      ],
+      [
+        "variant_code"
+      ]
+    ],
+    "study_review_schedule": [
+      [
+        "id"
+      ],
+      [
+        "error_code",
+        "schedule_date"
+      ]
+    ],
+    "study_schema_migration": [
+      [
+        "id"
+      ],
+      [
+        "script_name"
+      ]
+    ],
+    "study_sentence_context": [
+      [
+        "id"
+      ],
+      [
+        "sentence_code"
+      ]
+    ],
+    "study_textbook_version": [
+      [
+        "id"
+      ],
+      [
+        "version_code"
+      ]
+    ],
+    "study_word": [
+      [
+        "id"
+      ],
+      [
+        "word_code"
+      ],
+      [
+        "spelling",
+        "line_type"
+      ]
+    ],
+    "study_word_context": [
+      [
+        "id"
+      ],
+      [
+        "word_code",
+        "sentence_code"
+      ]
+    ],
+    "study_writing": [
+      [
+        "id"
+      ],
+      [
+        "writing_code"
+      ]
+    ],
+    "study_writing_scenario": [
+      [
+        "id"
+      ],
+      [
+        "scenario_code"
+      ]
+    ]
+  }
+}

@@ -1,0 +1,3866 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jeecg-study · 产品设计规范</title>
+<style>
+
+  :root{
+    --bg:#fafaf9; --surface:#ffffff; --chrome:#f7f7f5; --line:#e6e6e1; --line-soft:#eeeeea;
+    --ink:#15171c; --ink-2:#454b58; --muted:#8b8f98;
+    --accent:#10b981; --accent-ink:#047857; --accent-soft:rgba(16,185,129,.10); --accent-line:rgba(16,185,129,.28);
+    --up:#d93a2b; --up-soft:rgba(217,58,43,.10); --up-line:rgba(217,58,43,.28);
+    --down:#0f8a6d; --down-soft:rgba(15,138,109,.10); --down-line:rgba(15,138,109,.28);
+    --amber:#b07d12; --amber-soft:rgba(176,125,18,.10); --amber-line:rgba(176,125,18,.28);
+    --sans:'Outfit','PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif;
+    --mono:'JetBrains Mono','SFMono-Regular',Consolas,monospace;
+    --nav-w:272px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:var(--sans);font-size:15px;line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(720px 300px at 10% -8%, rgba(16,185,129,.06), transparent 62%),
+      radial-gradient(620px 280px at 94% -6%, rgba(21,94,117,.05), transparent 60%);
+    background-repeat:no-repeat;
+  }
+  a{color:inherit;}
+  code{font-family:var(--mono);font-size:.88em;background:#f4f4f1;border:1px solid var(--line-soft);border-radius:4px;padding:1px 5px;overflow-wrap:anywhere;}
+
+  /* ============ 布局：侧边导航 + 章节正文 ============ */
+  .shell{display:flex;align-items:flex-start;max-width:1280px;margin:0 auto;gap:0;}
+  .sidebar{
+    width:var(--nav-w);flex:none;position:sticky;top:0;align-self:flex-start;
+    height:100vh;overflow-y:auto;padding:26px 20px 40px 24px;border-right:1px solid var(--line);
+  }
+  .sidebar::-webkit-scrollbar{width:8px;}
+  .sidebar::-webkit-scrollbar-thumb{background:#dcdcd6;border-radius:6px;}
+  .brand{display:flex;align-items:center;gap:9px;margin-bottom:6px;}
+  .brand-mark{width:26px;height:26px;flex:none;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--accent-line);}
+  .brand-mark svg{width:14px;height:14px;}
+  .brand h1{font-size:15px;font-weight:600;margin:0;letter-spacing:-.01em;}
+  .meta-line{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-bottom:18px;}
+  .nav-title{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;padding-left:11px;}
+  .nav-link{
+    display:flex;align-items:center;gap:8px;padding:7px 11px;border-radius:9px;
+    font-size:13.5px;color:var(--ink-2);text-decoration:none;border-left:2px solid transparent;
+    transition:background .15s,color .15s,border-color .15s;
+  }
+  .nav-link:hover{background:#f0f0ec;color:var(--ink);}
+  .nav-link.active{background:var(--accent-soft);color:var(--accent-ink);border-left-color:var(--accent);font-weight:500;}
+  .nav-link .lv{
+    margin-left:auto;font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:999px;
+    border:1px solid var(--line);background:var(--surface);color:var(--muted);white-space:nowrap;
+  }
+  .nav-link.active .lv{border-color:var(--accent-line);background:var(--surface);}
+  .mini-rate{margin-top:14px;border-top:1px solid var(--line);padding-top:14px;}
+  .mini-row{display:flex;align-items:center;gap:8px;margin-bottom:9px;font-size:12px;color:var(--ink-2);}
+  .mini-row .bar{flex:1;height:6px;background:#eeeeea;border-radius:4px;overflow:hidden;}
+  .mini-row .bar i{display:block;height:100%;border-radius:4px;}
+  .mini-row .n{font-family:var(--mono);font-size:10.5px;color:var(--muted);width:58px;text-align:right;}
+
+  .main{flex:1;min-width:0;padding:34px 40px 80px;}
+
+  /* ============ 标题区 ============ */
+  .kicker{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink);background:var(--accent-soft);border:1px solid var(--accent-line);padding:5px 11px;border-radius:999px;}
+  .kicker i{width:6px;height:6px;border-radius:50%;background:var(--accent);}
+  h2.title{font-size:32px;line-height:1.25;font-weight:600;letter-spacing:-.018em;margin:16px 0 0;}
+  .sub{color:var(--ink-2);font-size:15px;margin:10px 0 0;max-width:74ch;}
+  .facts{display:flex;flex-wrap:wrap;gap:9px;margin-top:20px;}
+  .fact{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:9px 13px;box-shadow:0 2px 8px rgba(0,0,0,.03);}
+  .fact b{display:block;font-family:var(--mono);font-size:15px;font-weight:600;letter-spacing:-.01em;}
+  .fact span{font-size:11.5px;color:var(--muted);}
+
+  /* 语义色工具类 */
+  .up{color:var(--up);} .down{color:var(--down);} .flat{color:var(--muted);} .amber{color:var(--amber);}
+
+  /* ============ 章节 ============ */
+  section{margin-top:52px;scroll-margin-top:24px;}
+  .sec-head{display:flex;align-items:baseline;gap:11px;padding-bottom:11px;border-bottom:1px solid var(--line);margin-bottom:20px;}
+  .sec-num{font-family:var(--mono);font-size:12px;color:var(--accent-ink);font-weight:600;}
+  .sec-head h3{font-size:21px;font-weight:600;letter-spacing:-.012em;margin:0;}
+  .sec-head .tag{margin-left:auto;font-size:11.5px;color:var(--muted);font-family:var(--mono);}
+  p{margin:0 0 11px;}
+  .lead-p{font-size:15.5px;color:var(--ink-2);max-width:78ch;margin-bottom:18px;}
+  h4.sub-h{font-size:15px;font-weight:600;margin:26px 0 10px;letter-spacing:-.008em;}
+  h5.sub-h5{font-size:13.5px;font-weight:600;margin:18px 0 7px;color:var(--ink-2);}
+  ul.plain{margin:6px 0 12px;padding-left:20px;}
+  ul.plain li{margin:5px 0;font-size:13.5px;color:var(--ink-2);}
+  ol.plain{margin:6px 0 12px;padding-left:20px;}
+  ol.plain li{margin:5px 0;font-size:13.5px;color:var(--ink-2);}
+  .cite-src{display:inline-block;margin-top:5px;font-family:var(--mono);font-size:10.5px;color:var(--muted);
+    border:1px solid var(--line);border-radius:5px;padding:1px 6px;background:var(--surface);}
+  .cite-src a{color:var(--accent-ink);text-decoration:none;}
+
+  /* ============ 核心信息 ============ */
+  .core-list{list-style:none;padding:0;margin:0;}
+  .core-item{display:flex;gap:13px;padding:13px 0;border-bottom:1px solid var(--line-soft);}
+  .core-item:last-child{border-bottom:0;}
+  .core-dot{width:9px;height:9px;border-radius:50%;flex:none;margin-top:7px;background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .core-dot.r{background:var(--up);box-shadow:0 0 0 3px var(--up-soft);}
+  .core-dot.a{background:var(--amber);box-shadow:0 0 0 3px var(--amber-soft);}
+  .core-body{min-width:0;}
+  .core-body h4{margin:0 0 3px;font-size:14.5px;font-weight:600;}
+  .core-body p{margin:0;font-size:13.5px;color:var(--ink-2);}
+
+  /* ============ 数据卡 ============ */
+  .grid4{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));margin:18px 0 4px;}
+  .dcard{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:14px 15px;box-shadow:0 2px 8px rgba(0,0,0,.03);}
+  .dcard .k{font-size:11.5px;color:var(--muted);margin-bottom:5px;}
+  .dcard .v{font-family:var(--mono);font-size:19px;font-weight:600;letter-spacing:-.02em;line-height:1.2;}
+  .dcard .d{font-family:var(--mono);font-size:11.5px;margin-top:3px;}
+
+  /* ============ 表格 ============ */
+  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13.5px;}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line-soft);vertical-align:top;}
+  th{font-size:11.5px;color:var(--muted);font-weight:500;letter-spacing:.04em;background:#f7f7f4;border-bottom:1px solid var(--line);}
+  td:first-child{font-weight:500;white-space:normal;min-width:72px;}
+  td.mono{font-family:var(--mono);font-size:12px;white-space:nowrap;}
+  .pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap;}
+  .p-ok{background:var(--down-soft);color:var(--down);border:1px solid var(--down-line);}
+  .p-warn{background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber-line);}
+  .p-bad{background:var(--up-soft);color:var(--up);border:1px solid var(--up-line);}
+  .p-info{background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--accent-line);}
+  .p-gray{background:#f2f2ef;color:var(--muted);border:1px solid var(--line);}
+
+  /* ============ 来源表：长名称不撑破表格 + 可点链接 ============ */
+  .tbl-src td:first-child{white-space:normal;min-width:150px;}
+  .tbl-src .u-cell{font-family:var(--mono);font-size:11.5px;line-height:1.5;word-break:break-all;overflow-wrap:anywhere;}
+  .src-link{color:var(--accent-ink);text-decoration:none;border-bottom:1px solid var(--accent-line);word-break:break-all;}
+  .src-link:hover{color:var(--accent);border-bottom-color:var(--accent);}
+
+  /* ============ 流程/命令块：宽内容内部滚动，不撑破页面 ============ */
+  pre.cmd{background:#15171c;color:#e6e8ec;border-radius:12px;padding:14px 16px;overflow-x:auto;
+    font-family:var(--mono);font-size:12px;line-height:1.7;margin:10px 0 14px;
+    -webkit-overflow-scrolling:touch;}
+  pre.cmd code{background:transparent;border:0;padding:0;color:inherit;font-size:inherit;overflow-wrap:normal;white-space:pre;}
+  pre.cmd .c{color:#8b8f98;}
+  pre.cmd .ok{color:#34d399;font-weight:600;}
+  pre.cmd .bad{color:#f87171;font-weight:600;}
+  pre.cmd .warn{color:#fbbf24;font-weight:600;}
+
+  /* ============ 双栏 ============ */
+  .cols{display:grid;gap:14px;grid-template-columns:1fr 1fr;margin-top:14px;}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 17px;box-shadow:0 2px 8px rgba(0,0,0,.03);}
+  .panel h4{margin:0 0 10px;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:7px;}
+  .panel h4 svg{width:15px;height:15px;}
+  .panel.bad h4{color:var(--up);}
+  .panel.good h4{color:var(--down);}
+  .panel.info h4{color:var(--accent-ink);}
+  .panel.warn h4{color:var(--amber);}
+  .panel ul{margin:0;padding-left:0;list-style:none;}
+  .panel li{position:relative;padding-left:15px;margin-bottom:9px;font-size:13.5px;color:var(--ink-2);line-height:1.6;}
+  .panel li:last-child{margin-bottom:0;}
+  .panel li::before{content:"";position:absolute;left:0;top:9px;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.45;}
+  .panel p{font-size:13.5px;color:var(--ink-2);}
+
+  /* ============ 结论条 ============ */
+  .callout{border:1px solid var(--accent-line);background:var(--accent-soft);border-radius:14px;padding:16px 18px;margin-top:18px;}
+  .callout h4{margin:0 0 7px;font-size:14px;font-weight:600;color:var(--accent-ink);display:flex;align-items:center;gap:8px;}
+  .callout h4 svg{width:15px;height:15px;}
+  .callout p{margin:0;font-size:13.5px;color:#2c4a3e;}
+  .callout p+p{margin-top:7px;}
+  .callout.warn{border-color:var(--amber-line);background:var(--amber-soft);}
+  .callout.warn h4{color:var(--amber);} .callout.warn p{color:#5c4413;}
+  .callout.bad{border-color:var(--up-line);background:var(--up-soft);}
+  .callout.bad h4{color:var(--up);} .callout.bad p{color:#6b2018;}
+  .note{border:1px solid var(--line);background:var(--surface);border-radius:13px;padding:14px 16px;margin-top:14px;font-size:12.5px;color:var(--muted);}
+  .note b{color:var(--ink-2);}
+
+  /* ============ 风险条 ============ */
+  .risk{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px dashed var(--line);}
+  .risk:last-child{border-bottom:0;}
+  .risk .lv-badge{flex:none;font-family:var(--mono);font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;}
+  .risk .rb{min-width:0;}
+  .risk .rb b{display:block;font-size:13.5px;margin-bottom:2px;}
+  .risk .rb span{font-size:13px;color:var(--ink-2);}
+
+  /* 正文 markdown 渲染补充 */
+  .main h4{font-size:15px;font-weight:600;margin:26px 0 10px;letter-spacing:-.008em;}
+  .main h5{font-size:13.5px;font-weight:600;margin:18px 0 7px;color:var(--ink-2);}
+  .main ul,.main ol{margin:6px 0 12px;padding-left:20px;}
+  .main li{margin:5px 0;font-size:13.5px;color:var(--ink-2);}
+  .main strong{color:var(--ink);font-weight:600;}
+  .main blockquote{border-left:3px solid var(--accent-line);background:var(--accent-soft);
+    border-radius:0 12px 12px 0;padding:11px 15px;margin:12px 0;font-size:13.5px;color:#2c4a3e;}
+  .main blockquote p{margin:0;}
+  .main hr{border:0;border-top:1px solid var(--line);margin:26px 0;}
+  .main img{max-width:100%;}
+
+  .foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px 20px;}
+  .foot code{background:transparent;border:0;padding:0;color:var(--muted);}
+
+  /* ============ 移动端：悬浮导航面板 ============ */
+  .m-topbar,.m-fab,.scrim,.m-close{display:none;}
+
+  @media (max-width:1000px){
+    .shell{display:block;}
+    body{padding-top:48px;}
+
+    .m-topbar{
+      display:flex;align-items:center;gap:9px;
+      position:fixed;top:0;left:0;right:0;height:48px;z-index:45;
+      padding:0 12px;background:rgba(250,250,249,.94);backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--line);
+    }
+    .m-topbar .t-btn{
+      display:inline-flex;align-items:center;gap:5px;flex:none;
+      font-family:var(--sans);font-size:12.5px;color:var(--ink-2);
+      background:var(--surface);border:1px solid var(--line);border-radius:8px;
+      padding:6px 10px;cursor:pointer;transition:all .16s;
+    }
+    .m-topbar .t-btn:hover{border-color:#d3d3cd;color:var(--ink);}
+    .m-topbar .t-btn svg{width:14px;height:14px;color:var(--muted);}
+    .m-topbar .t-title{
+      flex:1;min-width:0;font-size:13px;color:var(--ink-2);font-weight:500;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+
+    .sidebar{
+      position:fixed;left:auto;right:14px;top:auto;bottom:78px;
+      width:min(80vw,320px);height:auto;max-height:min(64vh,580px);
+      z-index:70;border:1px solid var(--line);border-radius:18px;
+      background:var(--chrome);padding:16px 16px 22px;
+      box-shadow:0 20px 56px -14px rgba(0,0,0,.32);
+      opacity:0;transform:translateY(18px) scale(.97);pointer-events:none;
+      transition:opacity .26s ease,transform .26s cubic-bezier(.2,.8,.3,1);
+    }
+    .sidebar.open{opacity:1;transform:none;pointer-events:auto;}
+    .m-close{
+      display:inline-flex;align-items:center;justify-content:center;margin-left:auto;flex:none;
+      width:30px;height:30px;border-radius:8px;border:1px solid var(--line);
+      background:var(--surface);color:var(--muted);cursor:pointer;padding:0;
+    }
+    .m-close svg{width:14px;height:14px;}
+    .m-close:hover{color:var(--ink);border-color:#d3d3cd;}
+
+    .scrim{
+      display:block;position:fixed;inset:0;z-index:65;
+      background:rgba(21,23,28,.34);opacity:0;pointer-events:none;transition:opacity .26s;
+    }
+    .scrim.show{opacity:1;pointer-events:auto;}
+
+    .m-fab{
+      display:inline-flex;align-items:center;gap:7px;
+      position:fixed;right:14px;bottom:16px;z-index:60;
+      font-family:var(--sans);font-size:13px;color:#fff;
+      background:var(--ink);border:1px solid var(--ink);border-radius:999px;
+      padding:11px 16px;cursor:pointer;
+      box-shadow:0 10px 26px -6px rgba(0,0,0,.45);
+      opacity:0;transform:translateY(14px) scale(.9);pointer-events:none;
+      transition:opacity .24s,transform .24s,background .16s;
+    }
+    .m-fab.show{opacity:1;transform:none;pointer-events:auto;}
+    .m-fab:hover{background:#2b2f38;}
+    .m-fab svg{width:15px;height:15px;}
+
+    .main{padding:26px 22px 96px;}
+    .cols{grid-template-columns:1fr;}
+  }
+
+  /* 手机小屏：表格转卡片 */
+  @media (max-width:820px){
+    table,tbody,tr,td{display:block;width:100%;}
+    thead{display:none;}
+    table{font-size:12.5px;}
+    tr{
+      background:var(--surface);border:1px solid var(--line);border-radius:12px;
+      padding:11px 14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.03);
+    }
+    td{border:0;padding:3px 0;}
+    td:first-child{font-weight:600;font-size:13.5px;padding-bottom:6px;white-space:normal;}
+    td:not(:first-child){
+      position:relative;padding:3px 0 3px 76px;font-size:12.5px;color:var(--ink-2);
+    }
+    td:not(:first-child)::before{
+      content:attr(data-label);position:absolute;left:0;top:3px;width:68px;
+      font-size:11px;color:var(--muted);
+    }
+  }
+
+  @media (max-width:680px){
+    body{font-size:14px;line-height:1.72;overflow-wrap:anywhere;}
+    h2.title{font-size:23px;letter-spacing:-.015em;}
+    .sub{font-size:14px;}
+    .kicker{font-size:10px;padding:4px 9px;}
+    .facts{gap:7px;}
+    .fact{flex:1 1 calc(50% - 4px);min-width:0;padding:9px 11px;}
+    .fact b{font-size:14px;}
+    .fact span{font-size:10.5px;}
+    .grid4{grid-template-columns:1fr 1fr;gap:9px;}
+    .dcard{padding:12px 13px;}
+    .dcard .v{font-size:16px;}
+    .main{padding:22px 15px 92px;}
+    section{margin-top:38px;}
+    .sec-head{flex-wrap:wrap;gap:8px;}
+    .sec-head h3{font-size:18px;}
+    .sec-head .tag{margin-left:0;width:100%;}
+    .core-body h4{font-size:14px;}
+    .core-body p{font-size:13px;}
+    .panel{padding:14px 15px;}
+    .panel li{font-size:13px;}
+    .panel h4{font-size:13px;}
+    .callout{padding:14px 15px;}
+    .callout p{font-size:13px;}
+    .foot{gap:6px 14px;font-size:11.5px;}
+    .note{font-size:12px;}
+  }
+
+  :root{--accent:#1890ff;--accent-ink:#0054cd;--accent-soft:rgba(24,144,255,.10);--accent-line:rgba(24,144,255,.28);}
+  .tbl-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .tbl-wrap table{margin-top:0;}
+  @media (max-width:820px){ .tbl-wrap{overflow-x:visible;} }
+</style>
+</head>
+<body id="top">
+<div class="scrim" id="scrim"></div>
+
+<div class="m-topbar">
+  <button class="t-btn" id="menuBtn" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+    目录
+  </button>
+  <span class="m-title" id="mTitle">jeecg-study</span>
+  <button class="t-btn" id="topBtn" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/></svg>
+    顶部
+  </button>
+</div>
+
+<div class="shell">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg></span>
+      <h1>jeecg-study</h1>
+      <button class="m-close" id="closeBtn" type="button" aria-label="关闭导航">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="meta-line">20261030 · V1.1 · 设计规范</div>
+
+    <div class="nav-title">快速跳转</div>
+    <a class="nav-link" href="#top"><span>↑ 页面顶部</span></a>
+    <a class="nav-link" href="#bottom"><span>↓ 页面底部</span></a>
+
+    <div class="nav-title">章节</div>
+    <a class="nav-link" href="#scope">适用范围与效力</a>
+    <a class="nav-link" href="#token">设计令牌总表<span class="lv">Token</span></a>
+    <a class="nav-link" href="#color">配色规范</a>
+    <a class="nav-link" href="#dark">暗色模式注意事项</a>
+    <a class="nav-link" href="#type">字体与字号</a>
+    <a class="nav-link" href="#space">间距与栅格</a>
+    <a class="nav-link" href="#radius">圆角与阴影</a>
+    <a class="nav-link" href="#comp">组件规格</a>
+    <a class="nav-link" href="#layout">页面骨架</a>
+    <a class="nav-link" href="#learn">学习端专项规范<span class="lv">新增</span></a>
+    <a class="nav-link" href="#state">交互与状态</a>
+    <a class="nav-link" href="#responsive">响应式与移动端</a>
+    <a class="nav-link" href="#forbid">禁止事项清单<span class="lv">避坑</span></a>
+    <a class="nav-link" href="#check">自检清单<span class="lv">Review</span></a>
+
+    <div class="nav-title">规范覆盖</div><div class="mini-rate"><div class="mini-row"><span>配色令牌</span><span class="bar"><i style="width:100%;background:#1890ff"></i></span><span class="n">基座锁定</span></div><div class="mini-row"><span>字体字号</span><span class="bar"><i style="width:100%;background:#1890ff"></i></span><span class="n">基座+自定</span></div><div class="mini-row"><span>间距栅格</span><span class="bar"><i style="width:90%;background:#1890ff"></i></span><span class="n">本项目自定</span></div><div class="mini-row"><span>组件规格</span><span class="bar"><i style="width:95%;background:#1890ff"></i></span><span class="n">上游组件</span></div><div class="mini-row"><span>布局骨架</span><span class="bar"><i style="width:95%;background:#1890ff"></i></span><span class="n">四端分立</span></div><div class="mini-row"><span>学习端专项</span><span class="bar"><i style="width:80%;background:#b07d12"></i></span><span class="n">新增</span></div></div>
+  </aside>
+
+  <main class="main">
+    <div class="kicker"><i></i>需求迭代 · 前端基线</div>
+    <h2 class="title">产品设计规范</h2>
+    <p class="sub">jeecg-study 产品设计规范 V1.1。基于开源 JeecgBoot v3.9.2 独立基座实测归纳的配色、布局、尺寸间距、字体字号与组件基线，供新增页面直接沿用。每个数值标注来源文件与行号，可回溯核对；基座未定义的部分显式声明为本项目自定。</p>
+    <div class="facts"><div class="fact"><b>#1890ff</b><span>主色 primary</span></div><div class="fact"><b>14px</b><span>字号基准</span></div><div class="fact"><b>60px</b><span>顶栏高度</span></div><div class="fact"><b>210px</b><span>侧栏宽度</span></div><div class="fact"><b>992px</b><span>移动阈值</span></div></div>
+
+<section id="scope">
+  <div class="sec-head"><span class="sec-num">01</span><h3>适用范围与效力</h3><span class="tag">先说清楚</span></div>
+  <p>适用范围与效力</p>
+<h3>1.1 规范来源与上游一致性</h3>
+<p>本规范<strong>不是新拟的</strong>，而是从<strong>开源 JeecgBoot v3.9.2 独立基座</strong>的代码中<strong>实测归纳</strong>。每个数值都标注来源文件与行号，可回溯核对。</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>取样范围</th>
+<th>位置（相对 <code>02-代码开发/05-源码/01-JeecgBoot基座/jeecgboot-vue3/</code>）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>设计令牌</td>
+<td><code>src/design/</code>（<code>color.less</code> · <code>index.less</code> · <code>theme.less</code> · <code>public.less</code> · <code>entry.css</code> · <code>var/index.less</code> · <code>var/breakpoint.less</code> · <code>var/easing.less</code> · <code>ant/index.less</code> · <code>ant/btn.less</code> · <code>ant/input.less</code> · <code>ant/pagination.less</code>）</td>
+</tr>
+<tr>
+<td>构建期变量</td>
+<td><code>build/generate/generateModifyVars.ts</code> · <code>build/config/themeConfig.ts</code> · <code>build/vite/plugin/theme.ts</code></td>
+</tr>
+<tr>
+<td>主题与布局设置</td>
+<td><code>src/settings/designSetting.ts</code> · <code>src/settings/projectSetting.ts</code> · <code>src/utils/getConfigByMenuType.ts</code> · <code>src/logics/theme/dark.ts</code></td>
+</tr>
+<tr>
+<td>运行时 antd token</td>
+<td><code>src/App.vue:41-99</code></td>
+</tr>
+<tr>
+<td>上游组件</td>
+<td><code>src/components/</code>（Table / Form / Modal / Drawer / Description / Icon / Button / Page / Tree / Upload…） · <code>src/hooks/system/useListPage.ts</code></td>
+</tr>
+<tr>
+<td>布局骨架</td>
+<td><code>src/layouts/default/</code>（header / sider / tabs / content） · <code>src/components/Page/src/PageWrapper.vue</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>上游一致性已用 git 证明</strong>（基座自带 <code>.git</code>，分支 <code>feature/jeecg-study</code>）：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>检查</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>git rev-list --count v3.9.2..HEAD</code></td>
+<td><code>0</code> —— HEAD 树 == tag <code>v3.9.2</code> 树</td>
+</tr>
+<tr>
+<td><code>git diff --stat v3.9.2 HEAD</code></td>
+<td>空</td>
+</tr>
+<tr>
+<td><code>git status --porcelain -- jeecgboot-vue3</code></td>
+<td>空 —— <strong>前端零改动、零未跟踪文件</strong></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>本项目的全部改动都在后端</strong>（<code>jeecg-boot/</code>，含新建 <code>jeecg-module-study/</code>）。前端 <code>src/design/</code> 是<strong>上游原样</strong>，因此本规范引用的每一个数值都是上游真实取值，不是本项目的二次加工。
+仓内 <code>update-begin--author:</code> 注释是<strong>上游 JeecgBoot 自己</strong>对 Ant Design 派生代码的改动痕迹，不属于本项目。</p>
+</blockquote>
+<!--update-begin---author:mavis ---date:2026-10-31  for：【F-18】取证前提已变：node_modules 已安装，antd 默认值改为可引 file:line----------- -->
+
+<blockquote>
+<p><strong>取证前提已变（2026-10-31）</strong>：<code>node_modules</code> <strong>已安装</strong>（<code>ant-design-vue</code> <strong>4.2.6</strong>），
+Ant Design Vue 自身的默认值（控件高度、字号阶梯、<code>@font-family</code>、<code>@border-color-base</code>、中性色板）
+现在<strong>有 file:line 可引</strong>——真源在 <code>node_modules/ant-design-vue/es/theme/themes/</code>：
+<code>seed.js</code>（seed token 默认值）、<code>default/colors.js</code>（中性色板）、<code>default/colorAlgorithm.js</code>（换算函数）。
+本规范凡引用 antd 默认值，一律给出该路径与行号，不再写「仓内不可引用」。</p>
+<p>⚠️ <strong>两点仍须记住</strong>：① <code>node_modules</code> <strong>不入版本库</strong>，换机器后要先 <code>pnpm install</code> 才能复核这些行号；
+② 本项目在运行时<strong>覆盖</strong>了若干 token（<code>src/App.vue:75-89</code>：<code>colorTextBase: '#333'</code>、<code>borderRadius: 4</code>、<code>fontSize: 14</code>），
+所以「运行时生效值」与「antd 默认值」<strong>不是一回事</strong>——两条都要引，别混。</p>
+</blockquote>
+<!--update-end---author:mavis ---date:2026-10-31  for：【F-18】取证前提已变：node_modules 已安装，antd 默认值改为可引 file:line----------- -->
+
+<h3>1.2 效力等级</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>级别</th>
+<th>含义</th>
+<th>违反后果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>强制</strong></td>
+<td>新增页面必须照做</td>
+<td>代码评审打回</td>
+</tr>
+<tr>
+<td><strong>建议</strong></td>
+<td>默认照做，偏离需在 PR 说明理由</td>
+<td>评审可讨论</td>
+</tr>
+<tr>
+<td><strong>禁止</strong></td>
+<td>不得使用</td>
+<td>评审打回，并需说明替代方案</td>
+</tr>
+</tbody>
+</table></div>
+<h3>1.3 适用范围</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>端</th>
+<th>布局</th>
+<th>适用范围</th>
+<th>补充规范</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>管理端</td>
+<td><code>layouts/default</code>（基座自带）</td>
+<td>第 3–9 章全部</td>
+<td>—</td>
+</tr>
+<tr>
+<td>家长端</td>
+<td><code>layouts/parent</code>（<strong>本项目新建</strong>）</td>
+<td>第 3–9 章 + §9.6</td>
+<td>家长端只读约束 + 家庭内比较禁令</td>
+</tr>
+<tr>
+<td>学习端</td>
+<td><code>layouts/study</code>（<strong>本项目新建</strong>）</td>
+<td>第 3–8 章 + <strong>第 10 章</strong></td>
+<td>学习端专项覆盖管理端差异项</td>
+</tr>
+<tr>
+<td>孩子端</td>
+<td><code>layouts/study</code>（同学习端）</td>
+<td>第 10 章 + §9.8</td>
+<td>两步登录界面</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>学习端面向 7–15 岁儿童，<strong>不能</strong>直接套用管理端的信息密度。第 10 章给出差异。</p>
+</blockquote>
+<h3>1.4 基座未定义、本项目自定的部分</h3>
+<p>基座是通用后台框架，<strong>没有</strong>产品级的视觉体系。下列 13 项基座<strong>没有定义</strong>，必须由本项目定，写在这里以免后续 agent 自行发挥：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>缺口</th>
+<th>基座现状</th>
+<th>本项目的处置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>全局字体族</td>
+<td>less 层无 <code>font-family</code>；仅运行时 antd token 有</td>
+<td>§5.1 锁定</td>
+</tr>
+<tr>
+<td>2</td>
+<td>字号阶梯</td>
+<td>只有 <code>font-size-base: 14px</code> 一个 token</td>
+<td>§5.2 定 6 档</td>
+</tr>
+<tr>
+<td>3</td>
+<td>字重阶梯</td>
+<td>只有表头 <code>500</code></td>
+<td>§5.3 定 3 档</td>
+</tr>
+<tr>
+<td>4</td>
+<td>字间距</td>
+<td>全仓无声明</td>
+<td>§5.4 明确<strong>不使用</strong></td>
+</tr>
+<tr>
+<td>5</td>
+<td>间距体系</td>
+<td>无 spacing 变量，全是字面量</td>
+<td>§6.1 定刻度</td>
+</tr>
+<tr>
+<td>6</td>
+<td>圆角阶梯</td>
+<td>只有 <code>border-radius-base: 2px</code></td>
+<td>§7.1 定 4 档</td>
+</tr>
+<tr>
+<td>7</td>
+<td>阴影阶梯</td>
+<td>无 shadow 变量，仅 5 处字面量</td>
+<td>§7.2 定 3 档</td>
+</tr>
+<tr>
+<td>8</td>
+<td>分隔线 / 边框语义表</td>
+<td>只有 3 个 border 变量</td>
+<td>§7.3 定 3 档</td>
+</tr>
+<tr>
+<td>9</td>
+<td>响应式栅格</td>
+<td><code>.ant-col { width: 100% }</code> 反而禁用了列宽</td>
+<td>§6.2 给 <code>a-row</code> 用法</td>
+</tr>
+<tr>
+<td>10</td>
+<td>移动端排版规则</td>
+<td>只有「侧栏改 Drawer + 顶栏隐藏元素」</td>
+<td>§12 定规则</td>
+</tr>
+<tr>
+<td>11</td>
+<td>触控最小点击区</td>
+<td>全仓无定义</td>
+<td>§10.1 定 44×44</td>
+</tr>
+<tr>
+<td>12</td>
+<td>护眼色板 / 对比度</td>
+<td>全仓无定义</td>
+<td>§10.5 定</td>
+</tr>
+<tr>
+<td>13</td>
+<td>图标语义映射表</td>
+<td>只有生成脚本，无场景约定</td>
+<td>§8.8 定前缀规则</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="token">
+  <div class="sec-head"><span class="sec-num">02</span><h3>设计令牌总表</h3><span class="tag">一页速查</span></div>
+  <p>设计令牌总表</p>
+<blockquote>
+<p>一页速查。做新页面时先看这一页。<strong>「基座锁定」= 改了会破坏与上游的一致性；「本项目自定」= 基座没有，本规范说了算。</strong></p>
+</blockquote>
+<h3>2.1 继承自基座（硬约束）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>类别</th>
+<th>令牌</th>
+<th>值</th>
+<th>来源 file:line</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>颜色</td>
+<td><code>--primary-color</code></td>
+<td><code>#1890ff</code></td>
+<td><code>build/generate/generateModifyVars.ts:20,36</code></td>
+</tr>
+<tr>
+<td>颜色</td>
+<td><code>--primary-1</code> … <code>--primary-10</code></td>
+<td><code>#e6f7ff #bae7ff #91d5ff #69c0ff #40a9ff #1890ff #096dd9 #0050b3 #003a8c #002766</code></td>
+<td><code>build/generate/generateModifyVars.ts:24-26</code></td>
+</tr>
+<tr>
+<td>颜色</td>
+<td><code>--success-color</code></td>
+<td><code>#55D187</code></td>
+<td><code>build/generate/generateModifyVars.ts:40</code></td>
+</tr>
+<tr>
+<td>颜色</td>
+<td><code>--error-color</code></td>
+<td><code>#ED6F6F</code></td>
+<td><code>build/generate/generateModifyVars.ts:41</code></td>
+</tr>
+<tr>
+<td>颜色</td>
+<td><code>--warning-color</code></td>
+<td><code>#EFBD47</code></td>
+<td><code>build/generate/generateModifyVars.ts:42</code></td>
+</tr>
+<tr>
+<td>颜色</td>
+<td><code>--info-color</code> / <code>--processing-color</code></td>
+<td><code>= primary</code></td>
+<td><code>build/generate/generateModifyVars.ts:38,39</code></td>
+</tr>
+<tr>
+<td>颜色</td>
+<td><code>--link-color</code></td>
+<td><code>= primary</code></td>
+<td><code>build/generate/generateModifyVars.ts:46</code></td>
+</tr>
+<tr>
+<td>颜色</td>
+<td><code>--app-content-background</code></td>
+<td><code>#fafafa</code></td>
+<td><code>build/generate/generateModifyVars.ts:47</code></td>
+</tr>
+<tr>
+<td>颜色</td>
+<td>顶栏背景</td>
+<td><code>#018ffb</code></td>
+<td><code>src/utils/getConfigByMenuType.ts:39</code> → <code>src/settings/designSetting.ts:28</code></td>
+</tr>
+<tr>
+<td>颜色</td>
+<td>侧栏背景</td>
+<td><code>#001628</code></td>
+<td><code>src/utils/getConfigByMenuType.ts:40</code> → <code>src/settings/designSetting.ts:48</code></td>
+</tr>
+<tr>
+<td>颜色</td>
+<td>内容区底色</td>
+<td><code>#f4f7f9</code></td>
+<td><code>src/design/color.less:16</code></td>
+</tr>
+<tr>
+<td>字体</td>
+<td><code>--font-size-base</code></td>
+<td><code>14px</code></td>
+<td><code>build/generate/generateModifyVars.ts:44</code></td>
+</tr>
+<tr>
+<td>字体</td>
+<td>行高</td>
+<td><code>1.5715</code></td>
+<td><code>src/design/index.less:26</code></td>
+</tr>
+<tr>
+<td>圆角</td>
+<td><code>--border-radius-base</code></td>
+<td><code>2px</code></td>
+<td><code>build/generate/generateModifyVars.ts:45</code></td>
+</tr>
+<tr>
+<td>尺寸</td>
+<td>运行时 token <code>borderRadius</code> / <code>sizeStep</code> / <code>sizeUnit</code></td>
+<td><code>4</code> / <code>4</code> / <code>4</code></td>
+<td><code>src/App.vue:82-84</code></td>
+</tr>
+<tr>
+<td>尺寸</td>
+<td>运行时 token <code>fontSize</code></td>
+<td><code>14</code></td>
+<td><code>src/App.vue:78</code></td>
+</tr>
+<tr>
+<td>尺寸</td>
+<td>运行时 token <code>wireframe</code></td>
+<td><code>true</code>（组件去阴影）</td>
+<td><code>src/App.vue:77</code></td>
+</tr>
+<tr>
+<td>尺寸</td>
+<td>顶栏高度</td>
+<td><code>60px</code></td>
+<td><code>src/design/var/index.less:17</code></td>
+</tr>
+<tr>
+<td>尺寸</td>
+<td>侧栏宽度</td>
+<td><code>210px</code></td>
+<td><code>src/settings/projectSetting.ts:114</code></td>
+</tr>
+<tr>
+<td>尺寸</td>
+<td>侧栏折叠 / 折叠带标题</td>
+<td><code>48px</code> / <code>80px</code></td>
+<td><code>src/enums/appEnum.ts:1,2</code></td>
+</tr>
+<tr>
+<td>尺寸</td>
+<td>Logo 尺寸</td>
+<td><code>32px</code></td>
+<td><code>src/design/var/index.less:21</code></td>
+</tr>
+<tr>
+<td>尺寸</td>
+<td>内容区留白</td>
+<td><code>margin: 16px</code></td>
+<td><code>src/components/Page/src/PageWrapper.vue:167</code></td>
+</tr>
+<tr>
+<td>尺寸</td>
+<td>图标默认</td>
+<td><code>16px</code></td>
+<td><code>src/components/Icon/src/Icon.vue:23</code></td>
+</tr>
+<tr>
+<td>尺寸</td>
+<td>按钮图标</td>
+<td><code>15px</code></td>
+<td><code>src/components/Button/src/props.ts:18</code></td>
+</tr>
+<tr>
+<td>断点</td>
+<td>屏幕断点</td>
+<td><code>480 / 576 / 768 / 992 / 1200 / 1600</code></td>
+<td><code>src/design/var/breakpoint.less:6,10,14,18,22,26</code> · <code>src/enums/breakpointEnum.ts:11-16</code></td>
+</tr>
+<tr>
+<td>断点</td>
+<td><strong>移动端判定阈值</strong></td>
+<td><strong><code>&lt; 992px</code></strong></td>
+<td><code>src/components/Application/src/AppProvider.vue:28-31</code></td>
+</tr>
+<tr>
+<td>交互</td>
+<td>表格行高</td>
+<td>antd 默认</td>
+<td><code>src/hooks/system/useListPage.ts:294</code>（<code>minHeight: 300</code>）</td>
+</tr>
+<tr>
+<td>交互</td>
+<td>查询表单 gutter</td>
+<td><code>8</code></td>
+<td><code>src/hooks/system/useListPage.ts:264</code></td>
+</tr>
+<tr>
+<td>交互</td>
+<td>命名空间</td>
+<td><code>jeecg</code></td>
+<td><code>src/design/var/index.less:5</code> · <code>src/settings/designSetting.ts:3</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3>2.2 本项目自定（基座没有，规范说了算）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>类别</th>
+<th>令牌</th>
+<th>值</th>
+<th>规范位置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>字体</td>
+<td>字体族</td>
+<td><code>-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Helvetica Neue, Helvetica, Arial, sans-serif, …</code></td>
+<td>§5.1</td>
+</tr>
+<tr>
+<td>字体</td>
+<td>等宽字体</td>
+<td><code>ui-monospace, SFMono-Regular, Menlo, Consolas, monospace</code></td>
+<td>§5.1</td>
+</tr>
+<tr>
+<td>字体</td>
+<td>字号阶梯</td>
+<td><code>12 / 13 / 14 / 15 / 16 / 20</code>（学习端另见 §10.1）</td>
+<td>§5.2</td>
+</tr>
+<tr>
+<td>字体</td>
+<td>字重阶梯</td>
+<td><code>400 / 500 / 600</code></td>
+<td>§5.3</td>
+</tr>
+<tr>
+<td>间距</td>
+<td>间距刻度</td>
+<td><code>4 / 8 / 10 / 12 / 16 / 24 / 32</code></td>
+<td>§6.1</td>
+</tr>
+<tr>
+<td>栅格</td>
+<td><code>a-row</code> gutter</td>
+<td><code>16</code>（表单查询区用基座默认 <code>8</code>）</td>
+<td>§6.2</td>
+</tr>
+<tr>
+<td>栅格</td>
+<td>表单列</td>
+<td>短字段 <code>:span="12"</code>；长文本 <code>:span="24"</code></td>
+<td>§6.2</td>
+</tr>
+<tr>
+<td>圆角</td>
+<td>圆角阶梯</td>
+<td><code>2 / 3 / 4 / 6 / 8</code>（学习端可到 <code>12</code>）</td>
+<td>§7.1</td>
+</tr>
+<tr>
+<td>阴影</td>
+<td>阴影阶梯</td>
+<td>3 种（卡片 hover / 弹层 / 移动卡片）</td>
+<td>§7.2</td>
+</tr>
+<tr>
+<td>边框</td>
+<td>边框阶梯</td>
+<td><code>1px solid #f0f0f0</code> / <code>1px dashed #e8e8e8</code> / 全局 <code>#e5e7eb</code></td>
+<td>§7.3</td>
+</tr>
+<tr>
+<td>交互</td>
+<td>触控最小点击区</td>
+<td><code>44 × 44px</code>（学习端 / 孩子端）</td>
+<td>§10.1</td>
+</tr>
+<tr>
+<td>交互</td>
+<td>表格首列长度</td>
+<td>≤ 12 字</td>
+<td>§8.3</td>
+</tr>
+<tr>
+<td>图标</td>
+<td>命名规则</td>
+<td><code>ant-design:*</code>（业务语义前缀见 §8.8）</td>
+<td>§8.8</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="color">
+  <div class="sec-head"><span class="sec-num">03</span><h3>配色规范</h3><span class="tag">颜色</span></div>
+  <p>配色规范</p>
+<h3>3.1 主色与色阶</h3>
+<p>主色 <strong><code>#1890ff</code></strong>，来源链完整（<strong>全部为上游文件</strong>）：</p>
+<pre class="cmd"><code>src/settings/projectSetting.ts:16     menuType = MenuTypeEnum.SIDEBAR
+  → src/utils/getConfigByMenuType.ts:38    themeColor = APP_PRESET_COLOR_LIST[1]
+  → src/settings/designSetting.ts:10      APP_PRESET_COLOR_LIST[1] = '#1890ff'
+  → src/settings/projectSetting.ts:19,49  setting.themeColor
+  → build/config/themeConfig.ts:5        primaryColor = setting.themeColor
+  → build/generate/generateModifyVars.ts:20,36   primary-color = palettes[5]
+</code></pre>
+<p><strong>色阶由 <code>@ant-design/colors</code> 在构建期生成</strong>（<code>build/generate/generateModifyVars.ts:19-26</code>），共 10 级：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>变量</th>
+<th>值</th>
+<th>行号</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>primary-color</code></td>
+<td><code>#1890ff</code></td>
+<td>20, 36</td>
+</tr>
+<tr>
+<td><code>primary-1</code> … <code>primary-10</code></td>
+<td><code>#e6f7ff, #bae7ff, #91d5ff, #69c0ff, #40a9ff, #1890ff, #096dd9, #0050b3, #003a8c, #002766</code></td>
+<td>24-26</td>
+</tr>
+<tr>
+<td><code>info-color</code> / <code>processing-color</code></td>
+<td><code>#1890ff</code></td>
+<td>38-39</td>
+</tr>
+<tr>
+<td><code>success-color</code></td>
+<td><code>#55D187</code></td>
+<td>40</td>
+</tr>
+<tr>
+<td><code>error-color</code></td>
+<td><code>#ED6F6F</code></td>
+<td>41</td>
+</tr>
+<tr>
+<td><code>warning-color</code></td>
+<td><code>#EFBD47</code></td>
+<td>42</td>
+</tr>
+<tr>
+<td><code>font-size-base</code></td>
+<td><code>14px</code></td>
+<td>44</td>
+</tr>
+<tr>
+<td><code>border-radius-base</code></td>
+<td><code>2px</code></td>
+<td>45</td>
+</tr>
+<tr>
+<td><code>link-color</code></td>
+<td><code>#1890ff</code></td>
+<td>46</td>
+</tr>
+<tr>
+<td><code>app-content-background</code></td>
+<td><code>#fafafa</code></td>
+<td>47</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>运行时 antd token 优先级高于上面的 less</strong>（<code>src/App.vue:71-89</code>）：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>token</th>
+<th>值</th>
+<th>行号</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>colorPrimary</code></td>
+<td><code>#1890ff</code>（取 <code>themeColor</code>）</td>
+<td>71, 76</td>
+</tr>
+<tr>
+<td><code>wireframe</code></td>
+<td><code>true</code>（组件去阴影）</td>
+<td>77</td>
+</tr>
+<tr>
+<td><code>fontSize</code></td>
+<td><code>14</code></td>
+<td>78</td>
+</tr>
+<tr>
+<td><code>colorTextBase</code></td>
+<td><code>#333</code></td>
+<td>79</td>
+</tr>
+<tr>
+<td><code>colorSuccess</code> / <code>colorInfo</code> / <code>colorWarning</code> / <code>colorError</code></td>
+<td><code>#55D187</code> / <code>#1890ff</code> / <code>#EFBD47</code> / <code>#ED6F6F</code></td>
+<td>80-86</td>
+</tr>
+<tr>
+<td><code>borderRadius</code> / <code>sizeStep</code> / <code>sizeUnit</code></td>
+<td><code>4</code> / <code>4</code> / <code>4</code></td>
+<td>82-84</td>
+</tr>
+<tr>
+<td><code>fontFamily</code></td>
+<td>见 §5.1</td>
+<td>87-88</td>
+</tr>
+</tbody>
+</table></div>
+<p>主题色运行时切换实现：<code>src/logics/theme/index.ts:17-46</code>（写 CSS 变量 <code>--j-global-primary-color</code>，不重新编译，见 <code>src/App.vue:42-44</code>）。</p>
+<blockquote>
+<p><strong>规范 3.1（强制）</strong>：新页面<strong>一律使用 less 变量或 antd token</strong>，不得硬编码 <code>#1890ff</code>。需要主色变体时用 <code>primary-1</code> ~ <code>primary-10</code> 色阶，<strong>不用 <code>lighten()</code>/<code>darken()</code> 现算</strong>。
+<strong>主色不改</strong>：本项目沿用基座默认 <code>#1890ff</code>。改主色会牵动 10 级色阶、antd token、暗色变量组与全部既有页面，属于架构级变更，需先走 ADR。</p>
+</blockquote>
+<h3>3.2 语义色</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>语义</th>
+<th>主题色值</th>
+<th>来源</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>成功</td>
+<td><code>#55D187</code></td>
+<td><code>build/generate/generateModifyVars.ts:40</code></td>
+<td>操作成功、状态正常</td>
+</tr>
+<tr>
+<td>警告</td>
+<td><code>#EFBD47</code></td>
+<td><code>:41</code></td>
+<td>需要注意、统计异常</td>
+</tr>
+<tr>
+<td>危险</td>
+<td><code>#ED6F6F</code></td>
+<td><code>:41</code></td>
+<td>删除、校验失败、错误提示</td>
+</tr>
+<tr>
+<td>信息</td>
+<td><code>#1890ff</code></td>
+<td><code>:38</code></td>
+<td>主操作、进行中</td>
+</tr>
+<tr>
+<td>离线/中性</td>
+<td><code>rgba(51, 51, 51, 0.45)</code>（= antd <code>colorTextTertiary</code>）</td>
+<td><code>src/App.vue:79</code>（<code>colorTextBase: '#333'</code>）→ <code>node_modules/ant-design-vue/es/theme/themes/default/colors.js:29</code></td>
+<td>禁用、离线、未开始</td>
+</tr>
+</tbody>
+</table></div>
+<!--update-begin---author:mavis ---date:2026-10-31  for：【F-18】修正「离线/中性 = #595959」的事实错误----------- -->
+
+<blockquote>
+<p>⚠️ <strong>原写的 <code>#595959</code> 不是 antd 默认值</strong>（2026-10-31 更正）：ant-design-vue 4.2.6 的中性文字色是
+<code>colorTextTertiary</code> = <code>getAlphaColor(colorTextBase, 0.45)</code>，而本项目运行时把 <code>colorTextBase</code> 覆盖成了
+<code>#333</code>（<code>src/App.vue:79</code>），故实际值是 <code>rgba(51, 51, 51, 0.45)</code>。
+<code>#595959</code> 在整个 antd 包里<strong>只出现在 legacy token</strong>（<code>es/theme/convertLegacyToken.js:679</code> 的
+<code>comment-action-hover-color</code>），在上游 JeecgBoot 自己的监控页里也只是<strong>写死的字面量</strong>
+（<code>src/views/monitor/log/index.vue:129</code> 等），<strong>不是任何 token 的默认值</strong>——照抄它会拿到一个不随主题走的死色。</p>
+</blockquote>
+<!--update-end---author:mavis ---date:2026-10-31  for：【F-18】修正「离线/中性 = #595959」的事实错误----------- -->
+
+<p><strong>按钮语义色变体</strong>（<code>src/design/color.less:112-131</code>，由 <code>src/design/ant/btn.less:119-223</code> 消费）：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>变量</th>
+<th>值</th>
+<th>行号</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>@button-primary-color</code> / hover / active</td>
+<td><code>@primary-color</code> / <code>lighten(5%)</code> / <code>darken(5%)</code></td>
+<td>112-114</td>
+</tr>
+<tr>
+<td><code>@button-success-color</code> / hover / active</td>
+<td><code>@success-color</code> / <code>lighten(10%)</code> / <code>darken(10%)</code></td>
+<td>121-123</td>
+</tr>
+<tr>
+<td><code>@button-warn-color</code> / hover / active</td>
+<td><code>@warning-color</code> / <code>lighten(10%)</code> / <code>darken(10%)</code></td>
+<td>125-127</td>
+</tr>
+<tr>
+<td><code>@button-error-color</code> / hover / active</td>
+<td><code>@error-color</code> / <code>lighten(10%)</code> / <code>darken(10%)</code></td>
+<td>129-131</td>
+</tr>
+<tr>
+<td><code>@button-cancel-color</code> / bg / border</td>
+<td><code>#606266</code> / <code>@white</code> / <code>#cececd</code></td>
+<td>133-135</td>
+</tr>
+<tr>
+<td><code>@button-ghost-hover-bg-color</code></td>
+<td><code>#e1ebf6</code></td>
+<td>118</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>链接色</strong>（<code>src/design/color.less:88-89</code>）：hover = <code>@primary-color</code>；active = <code>darken(@primary-color, 10%)</code>。</p>
+<h3>3.3 顶栏 / 侧栏 / 布局色</h3>
+<p><strong>顶栏与侧栏的配色是「菜单类型」的函数</strong>，不是固定值。<code>src/utils/getConfigByMenuType.ts:20-41</code>：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>菜单类型</th>
+<th>主色</th>
+<th>顶栏底</th>
+<th>侧栏底</th>
+<th>行号</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TOP_MENU</code> 顶部栏</td>
+<td><code>APP_PRESET_COLOR_LIST[1]</code></td>
+<td><code>HEADER_PRESET_BG_COLOR_LIST[4]</code> = <code>#018ffb</code></td>
+<td>—</td>
+<td>22-23</td>
+</tr>
+<tr>
+<td><code>MIX</code> 混合</td>
+<td><code>APP_PRESET_COLOR_LIST[2]</code> = <code>#009688</code></td>
+<td><code>[2]</code> = <code>#009688</code></td>
+<td><code>[3]</code> = <code>#ffffff</code></td>
+<td>27-29</td>
+</tr>
+<tr>
+<td><code>MIX_SIDEBAR</code> 折叠</td>
+<td><code>[1]</code> = <code>#1890ff</code></td>
+<td><code>[0]</code> = <code>#ffffff</code></td>
+<td><code>[0]</code> = <code>#001529</code></td>
+<td>33-35</td>
+</tr>
+<tr>
+<td><strong><code>SIDEBAR</code> 侧边栏（当前默认）</strong></td>
+<td><code>[1]</code> = <code>#1890ff</code></td>
+<td><code>[4]</code> = <code>#018ffb</code></td>
+<td><code>[7]</code> = <code>#001628</code></td>
+<td>38-40</td>
+</tr>
+</tbody>
+</table></div>
+<p>预设色板原文：<code>src/settings/designSetting.ts:8-20</code>（主色 11 色）、<code>:23-35</code>（顶栏 11 色）、<code>:38-53</code>（侧栏 13 色）、<code>:56-71</code>（侧栏 Logo 渐变）。</p>
+<p><strong>CSS 变量</strong>（<code>src/design/color.less:1-12</code>，挂在 <code>html</code> 上）：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>变量</th>
+<th>值</th>
+<th>行号</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--header-bg-color</code></td>
+<td><code>#394664</code></td>
+<td>3</td>
+</tr>
+<tr>
+<td><code>--header-bg-hover-color</code></td>
+<td><code>#273352</code></td>
+<td>4</td>
+</tr>
+<tr>
+<td><code>--header-active-menu-bg-color</code></td>
+<td><code>#273352</code></td>
+<td>5</td>
+</tr>
+<tr>
+<td><code>--sider-dark-bg-color</code> / <code>-darken-</code> / <code>-lighten-</code></td>
+<td><code>#273352</code>（三者同值）</td>
+<td>8-10</td>
+</tr>
+<tr>
+<td><code>--sider-logo-bg-color</code></td>
+<td><code>linear-gradient(180deg, #000000, #021d37)</code></td>
+<td>11</td>
+</tr>
+</tbody>
+</table></div>
+<p>顶栏浅色态（<code>src/design/color.less:57-59</code>）：hover 底 <code>#f6f6f6</code>、描述色 <code>#7c8087</code>、底边框 <code>#eee</code>。
+菜单触发器（<code>src/design/color.less:74-75</code>）：常态 <code>rgba(255,255,255,0.1)</code>，hover <code>rgba(255,255,255,0.2)</code>。</p>
+<h3>3.4 文本色 / 边框色 / 背景色</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>用途</th>
+<th>值</th>
+<th>来源 file:line</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>正文（浅色 body）</td>
+<td><code>rgba(0, 0, 0, 0.65)</code></td>
+<td><code>src/design/theme.less:8</code></td>
+</tr>
+<tr>
+<td>正文（表格 / 表单控件）</td>
+<td><code>rgba(0, 0, 0, 0.65)</code></td>
+<td><code>src/design/theme.less:16,21,26,31</code></td>
+</tr>
+<tr>
+<td>次要文字 text-secondary</td>
+<td><code>rgba(0, 0, 0, 0.45)</code></td>
+<td><code>src/design/theme.less:12</code></td>
+</tr>
+<tr>
+<td>标签文字</td>
+<td><code>#606266</code></td>
+<td><code>src/design/color.less:99</code>（<code>@text-color-call-out</code>）</td>
+</tr>
+<tr>
+<td>帮助 / 提示文字</td>
+<td><code>#909399</code></td>
+<td><code>src/design/color.less:102</code>（<code>@text-color-help-dark</code>）</td>
+</tr>
+<tr>
+<td>面包屑项文字</td>
+<td><code>#999</code></td>
+<td><code>src/design/color.less:107</code></td>
+</tr>
+<tr>
+<td>列表项文字</td>
+<td><code>#000000d9</code></td>
+<td><code>src/design/ant/index.less:108</code></td>
+</tr>
+<tr>
+<td>表头文字</td>
+<td><code>#000000d9</code>，<code>font-weight: 500</code></td>
+<td><code>src/design/ant/index.less:121-122</code></td>
+</tr>
+<tr>
+<td>只读态 label</td>
+<td><code>#797c81</code></td>
+<td><code>src/design/index.less:144</code></td>
+</tr>
+<tr>
+<td>内容区底色</td>
+<td><code>#f4f7f9</code></td>
+<td><code>src/design/color.less:16</code></td>
+</tr>
+<tr>
+<td>表格 / 页面底色</td>
+<td><code>#fafafa</code></td>
+<td><code>build/generate/generateModifyVars.ts:47</code> · <code>src/components/Table/src/BasicTable.vue:476</code></td>
+</tr>
+<tr>
+<td>全局重置边框色</td>
+<td><code>#e5e7eb</code></td>
+<td><code>src/design/entry.css:175</code></td>
+</tr>
+<tr>
+<td>边框色（深）</td>
+<td><code>#b6b7b9</code></td>
+<td><code>src/design/color.less:30</code></td>
+</tr>
+<tr>
+<td>边框色（浅深）</td>
+<td><code>#cececd</code></td>
+<td><code>src/design/color.less:33</code></td>
+</tr>
+<tr>
+<td>树节点 hover 底</td>
+<td><code>#f5f7fa</code></td>
+<td><code>src/design/color.less:81</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3>3.5 状态底色</h3>
+<p><strong>浅色主题</strong>（<code>src/design/theme.less:35-48</code>）：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>状态</th>
+<th>底色</th>
+<th>边框</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>success</td>
+<td><code>#f6ffed</code></td>
+<td><code>#b7eb8f</code></td>
+</tr>
+<tr>
+<td>error</td>
+<td><code>#fff2f0</code></td>
+<td><code>#ffccc7</code></td>
+</tr>
+<tr>
+<td>warning</td>
+<td><code>#fffbe6</code></td>
+<td><code>#ffe58f</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>消息底色</strong>（<code>src/design/color.less:43-49</code>）：success <code>#f1f9ec</code> · info <code>#e8eff8</code> · warning <code>#fdf6ed</code> · danger <code>#fef0f0</code>。</p>
+<p><strong>暗色主题</strong>（<code>build/vite/plugin/theme.ts:83-94</code>）：success <code>#162312</code>/<code>#274916</code>/<code>#49aa19</code> · info <code>#111b26</code>/<code>#153450</code>/<code>#177ddc</code> · warning <code>#2b2111</code>/<code>#594214</code>/<code>#d89614</code> · error <code>#2a1215</code>/<code>#58181c</code>/<code>#a61d24</code>。</p>
+<blockquote>
+<p><strong>规范 3.5（强制）</strong>：状态色板<strong>只用于提示条、标签、色块</strong>，不用于正文或大面积背景。</p>
+</blockquote>
+<h3>3.6 滚动条 / 灰度 / 色弱</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>值</th>
+<th>来源 file:line</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>滚动条宽 / 高</td>
+<td><code>7px</code> / <code>8px</code></td>
+<td><code>src/design/public.less:12-13</code></td>
+</tr>
+<tr>
+<td>滚动条轨道</td>
+<td><code>rgba(0, 0, 0, 0.05)</code></td>
+<td><code>src/design/public.less:20</code></td>
+</tr>
+<tr>
+<td>滚动条滑块</td>
+<td><code>rgba(144, 147, 153, 0.3)</code>，圆角 <code>2px</code></td>
+<td><code>src/design/public.less:25,27</code></td>
+</tr>
+<tr>
+<td>滑块 hover</td>
+<td><code>@border-color-dark</code>（暗色 <code>#5e6063</code>）</td>
+<td><code>src/design/public.less:32,37</code></td>
+</tr>
+<tr>
+<td>灰度模式</td>
+<td><code>filter: grayscale(100%)</code></td>
+<td><code>src/design/index.less:33</code></td>
+</tr>
+<tr>
+<td>色弱模式</td>
+<td><code>filter: invert(80%)</code></td>
+<td><code>src/design/index.less:29</code></td>
+</tr>
+<tr>
+<td>开关位置</td>
+<td><code>projectSetting.ts:54</code>（grayMode）/ <code>:57</code>（colorWeak），默认关</td>
+<td></td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="dark">
+  <div class="sec-head"><span class="sec-num">04</span><h3>暗色模式注意事项</h3><span class="tag">已知坑</span></div>
+  <p>暗色模式注意事项</p>
+<h3>4.1 机制与默认值</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>机制</th>
+<th>说明</th>
+<th>来源 file:line</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>暗色开关</td>
+<td><code>AppDarkModeToggle</code>，<code>50×26px</code>，<code>border-radius:30px</code>，底 <code>#151515</code></td>
+<td><code>src/components/Application/src/AppDarkModeToggle.vue:49-55</code></td>
+</tr>
+<tr>
+<td>DOM 标记</td>
+<td><code>html[data-theme="dark"]</code> + class <code>dark</code></td>
+<td><code>src/logics/theme/dark.ts:14-22</code></td>
+</tr>
+<tr>
+<td>antd 算法</td>
+<td><code>theme.darkAlgorithm</code></td>
+<td><code>src/App.vue:55</code></td>
+</tr>
+<tr>
+<td>CSS 变量注入</td>
+<td><code>vite-plugin-theme</code>，选择器前缀 <code>[data-theme]</code></td>
+<td><code>build/vite/plugin/theme.ts:21-44,41</code></td>
+</tr>
+<tr>
+<td><strong>默认态</strong></td>
+<td><code>darkMode = ThemeEnum.LIGHT</code>——<strong>默认关闭</strong></td>
+<td><code>src/settings/designSetting.ts:5</code> · <code>src/settings/projectSetting.ts:51</code></td>
+</tr>
+<tr>
+<td>主题色运行时写入</td>
+<td><code>--j-global-primary-color</code></td>
+<td><code>src/App.vue:42-44</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3>4.2 本项目约定</h3>
+<p>上游的暗色是<strong>框架级</strong>能力：变量与组件都适配了，但<strong>业务页面里硬编码的 hex 不会跟着变</strong>（<code>build/vite/plugin/theme.ts</code> 只覆盖 antd token 与 CSS 变量，管不到业务代码里写死的颜色）。</p>
+<blockquote>
+<p><strong>规范 4.2（强制）</strong>：
+① jeecg-study 新页面凡使用颜色，<strong>必须</strong>走 CSS 变量或 less 变量，<strong>不得硬编码 hex</strong>——否则暗色模式下会出现半深半浅。
+② <strong>管理端与家长端跟随全局暗色开关</strong>（家长端不锁定）。
+③ <strong>学习端与孩子端锁定浅色</strong>：根节点显式 <code>data-theme="light"</code>，不随全局切换——护眼场景下深色底反而增加疲劳。
+④ 暗色模式<strong>默认关闭</strong>，不作为交付验收项。</p>
+</blockquote>
+<h3>4.3 暗色变量组（实现参考）</h3>
+<p><code>build/vite/plugin/theme.ts:68-81</code>：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>变量</th>
+<th>暗色值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>text-color</code></td>
+<td><code>#c9d1d9</code></td>
+</tr>
+<tr>
+<td><code>heading-color</code></td>
+<td><code>rgb(255 255 255 / 65%)</code></td>
+</tr>
+<tr>
+<td><code>component-background</code></td>
+<td><code>#151515</code></td>
+</tr>
+<tr>
+<td><code>border-color-base</code></td>
+<td><code>#303030</code></td>
+</tr>
+<tr>
+<td><code>item-active-bg</code></td>
+<td><code>#111b26</code></td>
+</tr>
+<tr>
+<td><code>app-content-background</code></td>
+<td><code>#1e1e1e</code></td>
+</tr>
+<tr>
+<td><code>tree-node-selected-bg</code></td>
+<td><code>#11263c</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>注意：<code>@border-color-split</code>（分隔线）的暗色覆盖在 <code>build/vite/plugin/theme.ts:78</code> 处是<strong>注释状态</strong>，不生效。</p>
+</blockquote>
+</section>
+<section id="type">
+  <div class="sec-head"><span class="sec-num">05</span><h3>字体与字号</h3><span class="tag">文字</span></div>
+  <p>字体与字号</p>
+<h3>5.1 字体族</h3>
+<p><strong>强制</strong>使用运行时 antd token 的 <code>fontFamily</code>（<code>src/App.vue:87-88</code>）：</p>
+<pre class="cmd"><code>-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, Hiragino Sans GB,
+Microsoft YaHei, Helvetica Neue, Helvetica, Arial, sans-serif,
+Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol
+</code></pre>
+<p>中文回退已含 <code>PingFang SC</code>（macOS/iOS）、<code>Hiragino Sans GB</code>（macOS）、<code>Microsoft YaHei</code>（Windows）。</p>
+<p><strong>等宽字体</strong>（代码、JSON、公式、配置内容）：<code>ui-monospace, SFMono-Regular, Menlo, Consolas, monospace</code>。</p>
+<blockquote>
+<p><strong>规范 5.1（强制）</strong>：
+① <strong>不得</strong>在业务代码里重新声明 <code>font-family</code>（less 层基座未定义字体族，靠 antd token 继承；自行声明会脱离暗色与主题体系）。
+② 等宽场景用统一变量，不各写各的。
+③ <code>src/assets/loginmini/style/base.less:32</code> 的字体族是<strong>登录页专用</strong>，不得当全局。</p>
+</blockquote>
+<h3>5.2 字号阶梯</h3>
+<p>基座<strong>没有字号阶梯</strong>，只有 <code>font-size-base: 14px</code> 一个 token（<code>build/generate/generateModifyVars.ts:44</code>）和若干零散字面量。本项目按下表定档：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>字号</th>
+<th>用途</th>
+<th>基座中可对照的字面量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>12px</code></td>
+<td>分页 mini、页签、引导文案</td>
+<td><code>src/design/ant/pagination.less:35</code> · <code>src/layouts/default/tabs/index.less:75,139,198</code></td>
+</tr>
+<tr>
+<td><code>13px</code></td>
+<td>引导按钮、卡片页签</td>
+<td><code>src/design/index.less:128</code> · <code>src/layouts/default/tabs/tabs.theme.card.less:87</code></td>
+</tr>
+<tr>
+<td><code>14px</code></td>
+<td><strong>正文基准</strong>；输入框；顶栏 logo</td>
+<td><code>build/generate/generateModifyVars.ts:44</code> · <code>src/design/ant/index.less:88</code> · <code>src/layouts/default/header/index.less:63</code></td>
+</tr>
+<tr>
+<td><code>15px</code></td>
+<td>引导标题、顶栏图标</td>
+<td><code>src/design/index.less:105</code> · <code>src/layouts/default/header/index.less:162,194</code></td>
+</tr>
+<tr>
+<td><code>16px</code></td>
+<td>顶栏操作项（<code>1.2em</code>）、通用 Icon</td>
+<td><code>src/layouts/default/header/index.less:123</code> · <code>src/components/Icon/src/Icon.vue:23</code></td>
+</tr>
+<tr>
+<td><code>20px</code></td>
+<td>引导跳过键</td>
+<td><code>src/design/index.less:108</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>装饰性小字号</strong>（限箭头、排序符，不得用于正文）：<code>10px</code> 下拉箭头（<code>src/design/ant/index.less:112</code>）、<code>11px</code> 表格排序箭头（<code>src/design/ant/index.less:117</code>）。</p>
+<blockquote>
+<p><strong>规范 5.2（强制）</strong>：字号只用 <code>12 / 13 / 14 / 15 / 16 / 20</code>。<code>10px</code> 与 <code>11px</code> 限装饰性元素。<strong>不得</strong>使用 <code>10px</code> 以下；<strong>不得</strong>使用表中没有的字号（如 <code>18px</code> <code>22px</code>）。
+<strong>学习端</strong>按 §10.1 放宽。</p>
+</blockquote>
+<h3>5.3 字重</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>字重</th>
+<th>用途</th>
+<th>来源 file:line</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>400</code></td>
+<td>正文默认</td>
+<td>CSS 默认继承 —— antd seed <strong>没有</strong> <code>fontWeight</code> token（只有强调字重 <code>fontWeightStrong: 600</code>，<code>node_modules/ant-design-vue/es/theme/util/alias.js:80</code>）</td>
+</tr>
+<tr>
+<td><code>500</code></td>
+<td>表格表头</td>
+<td><code>src/design/ant/index.less:122</code></td>
+</tr>
+<tr>
+<td><code>600</code></td>
+<td>卡片数值、段落标题、统计卡标题</td>
+<td>本项目自定（基座无 600 范例）</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>规范 5.3（强制）</strong>：字重只用 <code>400 / 500 / 600</code>。<strong>禁止 <code>700</code> 及以上</strong>——<code>wireframe: true</code>（<code>src/App.vue:77</code>）的整体风格是轻量线框，粗体会破坏一致性。</p>
+</blockquote>
+<h3>5.4 行高与字间距</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>值</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>全局行高</td>
+<td><code>1.5715</code></td>
+<td><code>src/design/index.less:26</code>（注释明说「与 3.x 一致」）</td>
+</tr>
+<tr>
+<td>标题行高</td>
+<td><code>1.4</code></td>
+<td>本项目自定</td>
+</tr>
+<tr>
+<td>大号数字行高</td>
+<td><code>1.2</code></td>
+<td>本项目自定</td>
+</tr>
+<tr>
+<td><strong>字间距 letter-spacing</strong></td>
+<td><strong>不使用</strong></td>
+<td>全仓无声明</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>规范 5.4（建议）</strong>：正文行高用 <code>1.5715</code>；标题类用 <code>1.4</code>；大号数字用 <code>1.2</code>。
+<strong>不引入</strong> <code>letter-spacing</code> / <code>word-spacing</code>。</p>
+</blockquote>
+</section>
+<section id="space">
+  <div class="sec-head"><span class="sec-num">06</span><h3>间距与栅格</h3><span class="tag">留白</span></div>
+  <p>间距与栅格</p>
+<h3>6.1 间距刻度</h3>
+<p>基座<strong>没有 spacing 变量体系</strong>（<code>src/design/var/index.less</code> 只有布局尺寸与 z-index），全部是硬编码字面量。本项目定档：</p>
+<p><strong>强制</strong>：间距只用 <code>4 / 8 / 10 / 12 / 16 / 24 / 32</code>。</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>值</th>
+<th>本项目中的典型用途</th>
+<th>基座中可对照的字面量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>16px</code></td>
+<td>页面内容区留白；<code>a-row :gutter="16"</code>；底部按钮 <code>padding:10px 16px</code></td>
+<td><code>src/components/Page/src/PageWrapper.vue:167</code> · <code>src/design/public.less:98</code></td>
+</tr>
+<tr>
+<td><code>12px</code></td>
+<td>列表项 <code>padding:12px 0</code>；分页选项左距</td>
+<td><code>src/design/ant/index.less:107</code> · <code>src/design/ant/pagination.less:80</code></td>
+</tr>
+<tr>
+<td><code>10px</code></td>
+<td>表格标题容器 <code>padding:10px</code></td>
+<td><code>src/components/Table/src/BasicTable.vue:484</code></td>
+</tr>
+<tr>
+<td><code>8px</code></td>
+<td>按钮组 <code>margin:0 8px 8px 0</code>；表格查询区 <code>gutter:8</code>；表格容器 <code>margin-bottom:8px</code></td>
+<td><code>src/design/public.less:65</code> · <code>src/hooks/system/useListPage.ts:264</code> · <code>src/components/Table/src/BasicTable.vue:488</code></td>
+</tr>
+<tr>
+<td><code>4px</code></td>
+<td>分页项间距 <code>margin:0 4px</code>；面包屑 <code>padding:0 8px</code>；校验提示圆角</td>
+<td><code>src/design/ant/pagination.less:52</code> · <code>src/layouts/default/header/components/Breadcrumb.vue:157</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3>6.2 栅格与表单布局</h3>
+<blockquote>
+<p>⚠️ <strong>基座的一个坑</strong>：<code>src/design/ant/index.less:9-11</code> 写了 <code>.ant-col { width: 100% }</code>，<strong>等于禁用了 antd 栅格的列宽</strong>。所以基座里<strong>没有可用的响应式栅格</strong>，<code>a-row</code>/<code>a-col</code> 必须自己给 <code>span</code>。</p>
+</blockquote>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>用法</th>
+<th>值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>页面容器留白</td>
+<td><code>margin: 16px</code></td>
+<td><code>src/components/Page/src/PageWrapper.vue:167</code>（<code>--dense</code> 时为 <code>0</code>，<code>:182</code>）</td>
+</tr>
+<tr>
+<td>列表页 <code>a-row</code></td>
+<td><code>:gutter="16"</code></td>
+<td>本项目自定</td>
+</tr>
+<tr>
+<td>查询表单 <code>a-row</code></td>
+<td><code>:gutter="8"</code></td>
+<td>基座默认 <code>src/hooks/system/useListPage.ts:264</code></td>
+</tr>
+<tr>
+<td>表单列</td>
+<td>短字段 <code>:span="12"</code>；长文本 <code>:span="24"</code></td>
+<td>本项目自定</td>
+</tr>
+<tr>
+<td>表单排布</td>
+<td>管理端 <code>layout="horizontal"</code>（<strong>基座默认</strong>）；窄表单 / 学习端 <code>layout="vertical"</code></td>
+<td>见 §8.4</td>
+</tr>
+<tr>
+<td>查询区响应式列</td>
+<td><code>xs:24 / sm:12 / md:12 / lg:8 / xl:8 / xxl:6</code></td>
+<td><code>src/hooks/system/useListPage.ts:243-250</code></td>
+</tr>
+<tr>
+<td>查询区 label 列</td>
+<td><code>xs:24 / sm:8 / md:6 / lg:8 / xl:6 / xxl:6</code></td>
+<td><code>src/hooks/system/useListPage.ts:269-276</code></td>
+</tr>
+<tr>
+<td>查询区折叠</td>
+<td>超过 <code>autoAdvancedCol: 3</code> 列自动折叠</td>
+<td><code>src/hooks/system/useListPage.ts:281</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>规范 6.2（强制）</strong>：列表页 <code>a-row</code> 的 <code>gutter</code> 必须是 <code>16</code>；表单列只能 <code>12</code> 或 <code>24</code>；<strong>不要依赖 antd 的 <code>xs/sm/md</code> 栅格自动断点</strong>（<code>.ant-col</code> 被锁成 100%），响应式列要按 §12.1 的断点自己给。</p>
+</blockquote>
+<h3>6.3 基座既有的间距字面量</h3>
+<p>供对齐参考，<strong>不新增</strong>：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>位置</th>
+<th>值</th>
+<th>file:line</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>按钮组</td>
+<td><code>margin: 0 8px 8px 0</code></td>
+<td><code>src/design/public.less:65</code></td>
+</tr>
+<tr>
+<td>底部按钮容器</td>
+<td><code>padding: 10px 16px</code>，<code>border-top:1px solid #e8e8e8</code></td>
+<td><code>src/design/public.less:97-98</code></td>
+</tr>
+<tr>
+<td>分页项</td>
+<td><code>margin: 0 4px</code></td>
+<td><code>src/design/ant/pagination.less:52</code></td>
+</tr>
+<tr>
+<td>分页快速跳输入</td>
+<td><code>height:22px; margin:0 6px</code></td>
+<td><code>src/design/ant/pagination.less:84-87</code></td>
+</tr>
+<tr>
+<td>表格标题容器</td>
+<td><code>padding: 10px</code> / <code>12px 10px 6px 10px</code> / <code>margin-bottom: 8px</code></td>
+<td><code>src/components/Table/src/BasicTable.vue:484,487,488</code></td>
+</tr>
+<tr>
+<td>面包屑</td>
+<td><code>padding: 0 8px</code></td>
+<td><code>src/layouts/default/header/components/Breadcrumb.vue:157</code></td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="radius">
+  <div class="sec-head"><span class="sec-num">07</span><h3>圆角与阴影</h3><span class="tag">质感</span></div>
+  <p>圆角与阴影</p>
+<h3>7.1 圆角</h3>
+<p>基座只有两个圆角 token：<code>border-radius-base: 2px</code>（构建期）与运行时 <code>borderRadius: 4</code>（<code>src/App.vue:82</code>）。本项目定档：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>用途</th>
+<th>值</th>
+<th>来源 file:line</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>antd 组件（运行时）</td>
+<td><code>borderRadius: 4</code></td>
+<td><code>src/App.vue:82</code></td>
+</tr>
+<tr>
+<td>antd 组件（less 期）</td>
+<td><code>border-radius-base: 2px</code></td>
+<td><code>build/generate/generateModifyVars.ts:45</code></td>
+</tr>
+<tr>
+<td>底部浮层按钮组</td>
+<td><code>0 0 2px 2px</code></td>
+<td><code>src/design/public.less:101</code></td>
+</tr>
+<tr>
+<td>滚动条滑块</td>
+<td><code>2px</code></td>
+<td><code>src/design/public.less:27</code></td>
+</tr>
+<tr>
+<td>校验提示</td>
+<td><code>4px</code></td>
+<td><code>src/design/index.less:80</code></td>
+</tr>
+<tr>
+<td>卡片 / 统计卡</td>
+<td><code>6px</code></td>
+<td>本项目自定</td>
+</tr>
+<tr>
+<td>移动端卡片</td>
+<td><code>8px</code></td>
+<td>本项目自定</td>
+</tr>
+<tr>
+<td>学习端卡片</td>
+<td><code>12px</code></td>
+<td>本项目自定（§10.2）</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>规范 7.1（强制）</strong>：管理端圆角只用 <code>2 / 3 / 4 / 6 / 8</code>。卡片类容器用 <code>6px</code>，移动端卡片用 <code>8px</code>，小元素用 <code>4px</code>。<strong>管理端禁止 <code>12px</code> 以上</strong>；学习端按 §10.2 放宽到 <code>12px</code>。</p>
+</blockquote>
+<h3>7.2 阴影</h3>
+<p>基座<strong>没有 shadow 变量体系</strong>，只有 5 处字面量。本项目定档：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>用途</th>
+<th>值</th>
+<th>来源 file:line</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>弹层（Popover）</td>
+<td><code>0 2px 12px 0 rgba(0, 0, 0, 0.1)</code></td>
+<td><code>src/design/ant/index.less:41</code></td>
+</tr>
+<tr>
+<td>页签</td>
+<td><code>0 4px 4px rgb(0 21 41 / 8%)</code></td>
+<td><code>src/layouts/default/tabs/index.less:25</code></td>
+</tr>
+<tr>
+<td>卡片页签</td>
+<td><code>0 1px 4px rgb(0 21 41 / 8%)</code></td>
+<td><code>src/layouts/default/tabs/tabs.theme.card.less:31</code></td>
+</tr>
+<tr>
+<td>暗色卡片 hover</td>
+<td><code>0 3px 6px -4px rgb(0 0 0 / 48%), 0 6px 16px 0 rgb(0 0 0 / 32%), 0 9px 28px 8px rgb(0 0 0 / 20%)</code></td>
+<td><code>src/design/theme.less:70</code></td>
+</tr>
+<tr>
+<td>卡片 hover（浅色）</td>
+<td><code>0 2px 8px rgba(0, 0, 0, 0.08)</code></td>
+<td>本项目自定</td>
+</tr>
+<tr>
+<td>移动端卡片</td>
+<td><code>0 1px 2px rgba(0, 0, 0, 0.03)</code></td>
+<td>本项目自定</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>规范 7.2（强制）</strong>：阴影只用上表三种（浅色卡片 hover / 弹层 / 移动卡片）。<strong>禁止自造 <code>box-shadow</code></strong>——<code>wireframe: true</code> 下阴影只用于可交互元素的 hover 反馈与弹层。
+注：<code>src/design/ant/btn.less:10</code> 的按钮阴影是<strong>注释状态</strong>，不生效。</p>
+</blockquote>
+<h3>7.3 边框与分隔</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>值</th>
+<th>来源 file:line</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>全局重置</td>
+<td><code>border-width: 0; border-style: solid; border-color: #e5e7eb</code></td>
+<td><code>src/design/entry.css:171-176</code></td>
+</tr>
+<tr>
+<td>业务内细边框</td>
+<td><code>1px solid #f0f0f0</code></td>
+<td>本项目自定</td>
+</tr>
+<tr>
+<td>虚线分隔</td>
+<td><code>1px dashed #e8e8e8</code></td>
+<td>本项目自定</td>
+</tr>
+<tr>
+<td>底部按钮组上边</td>
+<td><code>1px solid #e8e8e8</code></td>
+<td><code>src/design/public.less:97</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>规范 7.3（强制）</strong>：边框宽度只用 <code>1px</code>。全局 <code>border-width: 0</code> 意味着<strong>每个边框都要显式写宽度</strong>。
+<strong>注意</strong>：全局重置的 <code>#e5e7eb</code> 会与 antd 的 <code>@border-color-base</code> 叠加，视觉上以 <code>#e5e7eb</code> 生效——这是基座既有行为，不要试图「修正」。</p>
+</blockquote>
+<h3>7.4 z-index 层级表</h3>
+<p><strong>必须复用基座的层级，不要自造</strong>（<code>src/design/var/index.less:24-40</code>）：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>层级</th>
+<th>z-index</th>
+<th>变量</th>
+<th>行号</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NProgress 进度条</td>
+<td><code>99999</code></td>
+<td>—</td>
+<td><code>src/design/public.less:51</code></td>
+</tr>
+<tr>
+<td>页面 Loading</td>
+<td><code>10000</code></td>
+<td><code>@page-loading-z-index</code></td>
+<td><code>src/design/var/index.less:26</code></td>
+</tr>
+<tr>
+<td>锁屏页</td>
+<td><code>3000</code></td>
+<td><code>@lock-page-z-index</code></td>
+<td><code>:28</code></td>
+</tr>
+<tr>
+<td>预览组件</td>
+<td><code>1000</code></td>
+<td><code>@preview-comp-z-index</code></td>
+<td><code>:38</code></td>
+</tr>
+<tr>
+<td>混合侧栏 fixed</td>
+<td><code>550</code></td>
+<td><code>@layout-mix-sider-fixed-z-index</code></td>
+<td><code>:36</code></td>
+</tr>
+<tr>
+<td>侧栏 fixed</td>
+<td><code>510</code></td>
+<td><code>@layout-sider-fixed-z-index</code></td>
+<td><code>:34</code></td>
+</tr>
+<tr>
+<td>多页签 fixed</td>
+<td><code>505</code></td>
+<td><code>@multiple-tab-fixed-z-index</code></td>
+<td><code>:32</code></td>
+</tr>
+<tr>
+<td>顶栏 fixed</td>
+<td><code>500</code></td>
+<td><code>@layout-header-fixed-z-index</code></td>
+<td><code>:30</code></td>
+</tr>
+<tr>
+<td>侧栏拖拽条</td>
+<td><code>200</code></td>
+<td><code>@side-drag-z-index</code></td>
+<td><code>:24</code></td>
+</tr>
+<tr>
+<td>页脚</td>
+<td><code>99</code></td>
+<td><code>@page-footer-z-index</code></td>
+<td><code>:40</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>规范 7.4</strong>：新页面自定义浮层（抽屉、悬浮球、护眼遮罩）应落在 <code>1000</code>（预览组件层）或 <code>3000</code>（锁屏层）之间，<strong>不得使用 <code>99999</code></strong>（那是进度条专用）。</p>
+</blockquote>
+</section>
+<section id="comp">
+  <div class="sec-head"><span class="sec-num">08</span><h3>组件规格</h3><span class="tag">控件</span></div>
+  <p>组件规格</p>
+<h3>8.1 按钮</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>值</th>
+<th>来源 file:line</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>组件</td>
+<td><code>a-button</code> → Jeecg 自研 <code>BasicButton</code>（<strong>不是</strong> antd Button）</td>
+<td><code>src/components/Button/src/BasicButton.vue</code></td>
+</tr>
+<tr>
+<td>图标尺寸</td>
+<td><code>iconSize</code> 默认 <code>15</code></td>
+<td><code>src/components/Button/src/props.ts:18</code></td>
+</tr>
+<tr>
+<td>前置/后置图标</td>
+<td><code>preIcon</code> / <code>postIcon</code></td>
+<td><code>src/components/Button/src/props.ts:8,11</code></td>
+</tr>
+<tr>
+<td>按钮组间距</td>
+<td><code>margin: 0 8px 8px 0</code></td>
+<td><code>src/design/public.less:65</code></td>
+</tr>
+<tr>
+<td>按钮高度</td>
+<td><strong>基座不覆盖</strong>，由 antd 默认 <code>controlHeight</code> 决定 = <strong>32px</strong></td>
+<td><code>node_modules/ant-design-vue/es/theme/themes/seed.js:52</code>（运行时未覆盖该 token）</td>
+</tr>
+<tr>
+<td>link 按钮透明边框</td>
+<td><code>border-color: transparent !important</code></td>
+<td><code>src/design/ant/btn.less:17-21</code></td>
+</tr>
+<tr>
+<td>disabled link 文字</td>
+<td><code>rgba(0,0,0,0.25)</code>（暗色 <code>rgba(255,255,255,0.25)</code>）</td>
+<td><code>src/design/ant/btn.less:76,85</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>规范 8.1（强制）</strong>：按钮<strong>必须</strong>用 <code>a-button</code>（即 <code>BasicButton</code>），<strong>禁止</strong>裸 <code>&lt;button&gt;</code>。
+<strong>高度</strong>：管理端沿用 antd 默认 <code>controlHeight</code> = <strong>32px</strong>（<code>node_modules/ant-design-vue/es/theme/themes/seed.js:52</code>）；<strong>学习端 ≥ 44px</strong>（§10.1）。</p>
+</blockquote>
+<h3>8.2 表格</h3>
+<p><strong>组件</strong>：<code>BasicTable</code>（<code>src/components/Table/src/BasicTable.vue</code>），<strong>标准列表页必须经 <code>useListPage</code> / <code>useListTable</code> 初始化</strong>（<code>src/hooks/system/useListPage.ts</code>），不要手写 <code>&lt;a-table&gt;</code>。</p>
+<p><code>useListTable</code> 的默认参数（<code>src/hooks/system/useListPage.ts:251-319</code>）：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>默认值</th>
+<th>行号</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rowKey</code></td>
+<td><code>'id'</code></td>
+<td>252</td>
+</tr>
+<tr>
+<td><code>useSearchForm</code></td>
+<td><code>true</code>（自带查询条件区）</td>
+<td>254</td>
+</tr>
+<tr>
+<td>查询区 <code>compact</code></td>
+<td><code>true</code>（紧凑模式）</td>
+<td>258</td>
+</tr>
+<tr>
+<td>查询区 <code>autoSubmitOnEnter</code></td>
+<td><code>true</code>（回车提交）</td>
+<td>262</td>
+</tr>
+<tr>
+<td>查询区 <code>rowProps.gutter</code></td>
+<td><code>8</code></td>
+<td>264</td>
+</tr>
+<tr>
+<td>查询区 <code>showAdvancedButton</code></td>
+<td><code>true</code>（展开/收起）</td>
+<td>279</td>
+</tr>
+<tr>
+<td>查询区 <code>autoAdvancedCol</code></td>
+<td><code>3</code>（超过 3 列折叠）</td>
+<td>281</td>
+</tr>
+<tr>
+<td><code>striped</code></td>
+<td><code>false</code></td>
+<td>289</td>
+</tr>
+<tr>
+<td><code>canResize</code></td>
+<td><code>true</code></td>
+<td>292</td>
+</tr>
+<tr>
+<td><code>minHeight</code></td>
+<td><code>300</code></td>
+<td>294</td>
+</tr>
+<tr>
+<td><code>clickToRowSelect</code></td>
+<td><code>false</code></td>
+<td>297</td>
+</tr>
+<tr>
+<td><code>bordered</code></td>
+<td><code>true</code></td>
+<td>299</td>
+</tr>
+<tr>
+<td><code>showIndexColumn</code></td>
+<td><code>false</code></td>
+<td>301</td>
+</tr>
+<tr>
+<td><code>showTableSetting</code></td>
+<td><code>true</code>（表格设置面板）</td>
+<td>303</td>
+</tr>
+<tr>
+<td><code>showActionColumn</code></td>
+<td><code>true</code></td>
+<td>309</td>
+</tr>
+<tr>
+<td>操作列 <code>width</code> / <code>title</code></td>
+<td><code>120</code> / <code>'操作'</code></td>
+<td>312-313</td>
+</tr>
+<tr>
+<td>默认排序</td>
+<td><code>createTime</code> 倒序</td>
+<td>331-336</td>
+</tr>
+<tr>
+<td>导出行选择列宽</td>
+<td><code>50</code></td>
+<td>360</td>
+</tr>
+<tr>
+<td>分页</td>
+<td><strong>内置</strong>（<code>pagination</code> prop，<code>src/components/Table/src/props.ts:124</code>）</td>
+<td>—</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>BasicTable 其他默认</strong>（<code>src/components/Table/src/props.ts</code>）：<code>striped</code> false <code>:23</code> · <code>showIndexColumn</code> true <code>:81</code>（被 <code>useListTable</code> 覆盖为 false） · <code>canResize</code> true <code>:95</code> · <code>bordered</code> <code>:123</code> · <code>pagination</code> <code>:124</code> · <code>size</code> <code>:140</code>。</p>
+<p><strong>表头样式</strong>（<code>src/design/ant/index.less:120-126</code>）：<code>color: #000000d9; font-weight: 500</code>；暗色 <code>rgba(255,255,255,.65)</code>。
+<strong>表格底色</strong>：<code>@app-content-background</code> = <code>#fafafa</code>（<code>src/components/Table/src/BasicTable.vue:476</code>）。</p>
+<blockquote>
+<p><strong>规范 8.2（强制）</strong>：
+① 列表页<strong>必须</strong>用 <code>useListPage</code> + <code>BasicTable</code>，不要手写 <code>a-table</code>——内置的查询区、分页、表格设置、导出导入都依赖它。
+② <strong>分页是表格内置的</strong>（在表格底部），<strong>不要</strong>再额外做一套置顶分页。
+③ 弹窗内与子列表的表格用 <code>size="small"</code>。
+④ <strong>列宽必须显式指定</strong>：长文本列给 <code>width</code> 或 <code>ellipsis</code>，避免长内容撑破容器。</p>
+<p>⚠️ <strong>不要引用 <code>src/design/ant/table.less</code></strong>：该文件的 import 在 <code>src/design/ant/index.less:6</code> 被注释，是<strong>死代码</strong>，引用其值不生效。</p>
+</blockquote>
+<h3>8.3 表格列的折行规则（重要）</h3>
+<blockquote>
+<p>这是本项目从真实事故中总结的规则，<strong>基座没有</strong>（上游表格不限制列宽）。</p>
+<p><strong>规范 8.3（强制）</strong>：
+① 首列只放<strong>短标签</strong>（建议 ≤ 12 字），描述性内容放第二列或之后。
+② 长文本单元格用 <code>ellipsis</code> + <code>tooltip</code>，或指定 <code>width</code>。
+③ 自定义样式时若必须长文本，用可折行包裹：<code>&lt;span style="white-space: normal"&gt;…&lt;/span&gt;</code>。
+④ 提交前用溢出探针在<strong>桌面视口</strong>（不是只看移动端）验证 <code>documentElement.scrollWidth === clientWidth</code>。</p>
+</blockquote>
+<h3>8.4 表单</h3>
+<p><strong>组件</strong>：<code>BasicForm</code>（<code>src/components/Form/src/BasicForm.vue</code>）。</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>值</th>
+<th>来源 file:line</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>默认布局</strong></td>
+<td><strong><code>layout: 'horizontal'</code></strong></td>
+<td><code>src/components/Form/src/props.ts:103</code></td>
+</tr>
+<tr>
+<td>可选布局</td>
+<td><code>'horizontal' / 'vertical' / 'inline'</code></td>
+<td><code>src/components/Form/src/props.ts:103</code></td>
+</tr>
+<tr>
+<td><code>labelWidth</code></td>
+<td><code>0</code>（自适应）</td>
+<td><code>src/components/Form/src/props.ts:18-20</code></td>
+</tr>
+<tr>
+<td><code>size</code></td>
+<td><code>'default'</code></td>
+<td><code>src/components/Form/src/props.ts:50</code></td>
+</tr>
+<tr>
+<td><code>labelCol</code> / <code>wrapperCol</code></td>
+<td>取 <code>form.labelCol</code> / <code>form.wrapperCol</code></td>
+<td><code>src/components/Form/src/props.ts:98-111</code></td>
+</tr>
+<tr>
+<td>输入框字号</td>
+<td><code>14px</code></td>
+<td><code>src/design/ant/index.less:88</code></td>
+</tr>
+<tr>
+<td>InputNumber 最小宽</td>
+<td><code>110px</code></td>
+<td><code>src/design/ant/input.less:6</code></td>
+</tr>
+<tr>
+<td>只读 / 详情态</td>
+<td>输入类控件 <code>background-color: #f9f9fa !important</code></td>
+<td><code>src/design/theme.less:155,179</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>规范 8.4（强制）</strong>：
+① 管理端表单沿用基座默认 <strong><code>layout="horizontal"</code></strong>，label 在左、控件在右；<strong>不要</strong>强制改 <code>vertical</code>。
+② <strong>窄表单</strong>（登录、单个输入项的弹窗）与<strong>学习端</strong>用 <code>layout="vertical"</code>。
+③ <strong>禁止</strong> <code>layout="inline"</code>（挤在一行，移动端必崩）。
+④ 短字段 <code>:span="12"</code>、长文本 <code>:span="24"</code>（§6.2）。</p>
+<p><strong>V1.1 修正</strong>：旧版规范曾写「表单一律 <code>vertical</code>、禁止 <code>horizontal</code>」——那是 monitorV2 的做法，<strong>与上游基座默认相反</strong>，已按上游改正。</p>
+</blockquote>
+<h3>8.5 弹窗与抽屉</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>值</th>
+<th>来源 file:line</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>弹窗组件</td>
+<td><code>BasicModal</code>（<code>src/components/Modal/src/BasicModal.vue</code>）</td>
+<td>—</td>
+</tr>
+<tr>
+<td>抽屉组件</td>
+<td><code>BasicDrawer</code>（<code>src/components/Drawer/src/BasicDrawer.vue</code>）</td>
+<td>—</td>
+</tr>
+<tr>
+<td>弹窗外壳</td>
+<td><code>.ant-modal .ant-modal-content { padding: 0 }</code></td>
+<td><code>src/design/ant/index.less:83</code></td>
+</tr>
+<tr>
+<td>弹窗关闭键</td>
+<td><code>top: 13px</code></td>
+<td><code>src/design/ant/index.less:77</code></td>
+</tr>
+<tr>
+<td>弹窗提示图标色</td>
+<td>warning/success/error/info 取对应语义色</td>
+<td><code>src/design/ant/index.less:48-62</code></td>
+</tr>
+<tr>
+<td>底部浮层按钮组</td>
+<td><code>padding: 10px 16px</code>，<code>border-top: 1px solid #e8e8e8</code>，圆角 <code>0 0 2px 2px</code></td>
+<td><code>src/design/public.less:89-101</code></td>
+</tr>
+<tr>
+<td>列表项</td>
+<td><code>padding: 12px 0</code>，<code>color: #000000d9</code></td>
+<td><code>src/design/ant/index.less:107-108</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>规范 8.5（强制）</strong>：弹窗外壳 <code>padding</code> 为 0，内容留白<strong>必须</strong>由 <code>:body-style</code> 提供（如 <code>STUDY_MODAL_BODY_STYLE</code>），<strong>禁止</strong>贴边。
+弹窗宽度用 antd 默认档位（<code>520 / 600 / 720 / 920</code>）或 <code>BasicModal</code> 的 <code>width</code> prop，<strong>不新增</strong>自定义宽度档。</p>
+</blockquote>
+<h3>8.6 标签与徽标</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>值</th>
+<th>来源 file:line</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>组件</td>
+<td><code>a-tag</code>（<code>bordered: true</code>，圆角随 token <code>4px</code>）</td>
+<td>antd 默认 + <code>src/App.vue:82</code></td>
+</tr>
+<tr>
+<td>标签圆角</td>
+<td><code>4px</code></td>
+<td><code>src/App.vue:82</code></td>
+</tr>
+<tr>
+<td>标签色</td>
+<td><strong>只用 antd 预设名</strong>（<code>success</code> / <code>warning</code> / <code>error</code> / <code>blue</code> / <code>processing</code> / <code>default</code>），不传裸 hex</td>
+<td>本项目自定</td>
+</tr>
+<tr>
+<td>徽标底色</td>
+<td>antd <code>badge</code> 默认态底色 = <code>colorTextPlaceholder</code>（= <code>colorTextQuaternary</code> = <code>rgba(51,51,51,0.25)</code>）</td>
+<td><code>node_modules/ant-design-vue/es/badge/style/index.js:202</code> → <code>.../themes/default/colors.js:30</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>规范 8.6（强制）</strong>：标签色<strong>只用 antd 预设名</strong>，不传裸 hex——预设名走的是 antd 的语义映射，能自动适配暗色模式；裸 hex 不能。
+<strong>同名同色</strong>：任意中文标签（如关系标签「妈妈」「爸爸」）应按字符串 hash 固定映射到同一预设色，保证同一标签在任何页面颜色一致（本项目自定规则，见《前端页面清单》组件约定）。</p>
+</blockquote>
+<h3>8.7 操作列</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>规则</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>统一组件</td>
+<td><code>StudyActionColumn</code>（本项目自研，对标上游 <code>BasicTable</code> 的 <code>actionColumn</code> 插槽）</td>
+<td><code>src/hooks/system/useListPage.ts:311-318</code></td>
+</tr>
+<tr>
+<td>数量规则</td>
+<td><strong>≤3 个全部行内；&gt;3 个前 2 个行内，第 3 个起进「更多」下拉</strong></td>
+<td>本项目自定</td>
+</tr>
+<tr>
+<td>元素</td>
+<td><code>a</code> 链接（非按钮），图标 + 文案，链接间距 <code>gap:4px</code>，整列 <code>white-space:nowrap</code></td>
+<td>本项目自定</td>
+</tr>
+<tr>
+<td>二次确认</td>
+<td>行内用 <code>a-popconfirm</code>；下拉内用 <code>Modal.confirm</code>（危险操作 <code>okType: 'danger'</code>）</td>
+<td>本项目自定</td>
+</tr>
+<tr>
+<td>权限</td>
+<td>动作项 <code>auth</code> 字段，走 <code>hasPermission</code>（等价 <code>v-auth</code>）</td>
+<td>上游权限约定</td>
+</tr>
+<tr>
+<td>危险判定</td>
+<td>显式 <code>danger</code>/<code>success</code>，或文案含「删除」「另存」（危险优先）</td>
+<td>本项目自定</td>
+</tr>
+<tr>
+<td>操作列宽度</td>
+<td>默认 <code>120</code>，<code>fixed</code> 默认 <code>false</code></td>
+<td><code>src/hooks/system/useListPage.ts:312,315</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>规范 8.7（强制）</strong>：操作列<strong>必须</strong>用 <code>StudyActionColumn</code>，<strong>禁止</strong>手写 <code>a-space</code> + 散落链接——排列、权限与二次确认规则会走样。</p>
+</blockquote>
+<h3>8.8 图标</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>约定</th>
+<th>来源 file:line</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>库</td>
+<td>Iconify：在线 <code>@iconify/iconify</code> / 离线 <code>@purge-icons/generated</code>，由 <code>VITE_GLOB_ICONIFY_USE_TYPE</code> 切换</td>
+<td><code>src/components/Icon/src/Icon.vue:47-56</code></td>
+</tr>
+<tr>
+<td>组件</td>
+<td>全局 <code>Icon</code>（<code>&lt;Icon icon="ant-design:xxx" /&gt;</code>），默认 <code>size = 16</code></td>
+<td><code>src/components/Icon/src/Icon.vue:21-24</code></td>
+</tr>
+<tr>
+<td>渲染</td>
+<td><code>fontSize</code>（iconify 分支 <code>:83</code>）或 <code>width/height</code>（svg 分支 <code>SvgIcon.vue:39-41</code>）</td>
+<td>—</td>
+</tr>
+<tr>
+<td>图标 class</td>
+<td><code>app-iconify anticon</code>（svg 分支 <code>.jeecg-svg-icon</code>）</td>
+<td><code>src/components/Icon/src/Icon.vue:2-3</code></td>
+</tr>
+<tr>
+<td>占位底色</td>
+<td><code>@iconify-bg-color</code> = <code>#5551</code></td>
+<td><code>src/design/color.less:23</code> · <code>src/components/Icon/src/Icon.vue:113</code></td>
+</tr>
+<tr>
+<td>旋转动画</td>
+<td><code>loadingCircle 1s infinite linear</code></td>
+<td><code>src/components/Icon/src/Icon.vue:104</code></td>
+</tr>
+<tr>
+<td>顶栏图标尺寸</td>
+<td><code>16px !important</code></td>
+<td><code>src/layouts/default/header/index.less:162,194</code></td>
+</tr>
+<tr>
+<td>antd 图标库</td>
+<td><code>@ant-design/icons-vue ^7.0.1</code></td>
+<td><code>package.json:32</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>规范 8.8（强制）</strong>：图标<strong>只用</strong> <code>&lt;Icon icon="ant-design:xxx" /&gt;</code>，<strong>禁止</strong>内联 SVG、<strong>禁止</strong> emoji 当图标。
+<strong>业务语义前缀</strong>：上游只有 <code>ant-design:*</code> 一套。本项目补充约定——<strong>学习端/孩子端用 <code>ant-design:*</code></strong>（与上游一致），<strong>家长端与学习端不引入第三方图标集</strong>；确需扩展时先在本文登记，不得在页面里临时引包。</p>
+</blockquote>
+<h3>8.9 分页</h3>
+<p>分页由 <code>BasicTable</code> <strong>内置</strong>（<code>src/components/Table/src/props.ts:124</code>，实现 <code>src/components/Table/src/usePagination.tsx</code>），不单独造组件。</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>值</th>
+<th>来源 file:line</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>分页项间距</td>
+<td><code>margin: 0 4px !important</code></td>
+<td><code>src/design/ant/pagination.less:52</code></td>
+</tr>
+<tr>
+<td>激活态</td>
+<td>底色 <code>@primary-color !important</code>，边框 <code>transparent</code>，圆角 <code>none</code></td>
+<td><code>src/design/ant/pagination.less:69-72</code> · <code>src/design/ant/index.less:148-156</code></td>
+</tr>
+<tr>
+<td>非激活项</td>
+<td><code>background-color: transparent !important</code></td>
+<td><code>src/design/ant/pagination.less:57</code></td>
+</tr>
+<tr>
+<td>mini 字号</td>
+<td><code>12px</code></td>
+<td><code>src/design/ant/pagination.less:35</code></td>
+</tr>
+<tr>
+<td>快速跳输入框</td>
+<td><code>height:22px; line-height:22px; margin:0 6px</code></td>
+<td><code>src/design/ant/pagination.less:84-87</code></td>
+</tr>
+<tr>
+<td>disabled 项</td>
+<td><code>display: none !important</code></td>
+<td><code>src/design/ant/pagination.less:96</code></td>
+</tr>
+<tr>
+<td>尺寸选择器</td>
+<td><code>display:inline-block; width:auto</code></td>
+<td><code>src/design/ant/index.less:91-94</code></td>
+</tr>
+<tr>
+<td>后端参数</td>
+<td><code>pageNo</code> / <code>pageSize</code></td>
+<td>上游 <code>useListPage</code> 约定</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>规范 8.9</strong>：分页<strong>必须</strong>用 <code>BasicTable</code> 内置分页，通过 <code>pagination</code> prop 调整（如 <code>showSizeChanger</code>、<code>showQuickJumper</code>）；<strong>不要</strong>另做分页组件。</p>
+</blockquote>
+<h3>8.10 统计卡</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>值</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>组件</td>
+<td><code>StudyStatCards</code>（本项目自研）；<code>StudyListSummary</code> 为其列表变体</td>
+<td>本项目自定</td>
+</tr>
+<tr>
+<td>栅格</td>
+<td>CSS Grid <code>repeat(columnsPerRow, minmax(0,1fr))</code>，默认 4 列/行</td>
+<td>本项目自定</td>
+</tr>
+<tr>
+<td>卡片</td>
+<td><code>padding: 10px 14px; border-radius: 6px; min-width: 0</code></td>
+<td>本项目自定</td>
+</tr>
+<tr>
+<td>数值</td>
+<td><code>font-size: 20px; font-weight: 600; line-height: 1.2</code></td>
+<td>本项目自定</td>
+</tr>
+<tr>
+<td>label</td>
+<td><code>font-size: 12px; color: #606266</code></td>
+<td>文字色见 <code>src/design/color.less:99</code></td>
+</tr>
+<tr>
+<td>hover</td>
+<td><code>box-shadow: 0 2px 8px rgba(0,0,0,0.08)</code></td>
+<td>§7.2</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="layout">
+  <div class="sec-head"><span class="sec-num">09</span><h3>页面骨架</h3><span class="tag">分块</span></div>
+  <p>页面骨架</p>
+<h3>9.1 标准列表页骨架</h3>
+<p>上游的列表页约定是 <strong><code>useListPage</code> + <code>BasicTable</code></strong>（自带查询区、分页、表格设置、导入导出）：</p>
+<pre class="cmd"><code>&lt;div class=&quot;jeecg-page-wrapper&quot;&gt;          ← 内容区 margin:16px（PageWrapper.vue:167）
+  └─ &lt;BasicTable&gt;                          ← useListTable 统一初始化
+       ├─ 查询条件区（useSearchForm:true）  ← compact + gutter:8 + 超过 3 列折叠
+       ├─ 表格主体                          ← :pagination 由组件内置
+       │   └─ 操作列插槽（StudyActionColumn）
+       └─ 分页（组件内置，表格底部）
+</code></pre>
+<p>实证：<code>src/hooks/system/useListPage.ts:231-398</code>（<code>useListTable</code> 全部默认参数）、<code>src/components/Table/src/BasicTable.vue</code>。</p>
+<p><strong>块间分隔方式</strong>：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>分隔</th>
+<th>方式</th>
+<th>出处</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>表格标题区 ↔ 表格</td>
+<td><code>margin-bottom: 8px</code></td>
+<td><code>src/components/Table/src/BasicTable.vue:488</code></td>
+</tr>
+<tr>
+<td>表格标题容器</td>
+<td><code>padding: 10px</code> / <code>12px 10px 6px 10px</code></td>
+<td><code>src/components/Table/src/BasicTable.vue:484,487</code></td>
+</tr>
+<tr>
+<td>表格底部按钮组</td>
+<td><code>border-top: 1px solid #e8e8e8</code>，<code>padding: 10px 16px</code></td>
+<td><code>src/design/public.less:97-98</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>规范 9.1（强制）</strong>：管理端列表页<strong>必须</strong>是「<code>PageWrapper</code> → <code>useListPage</code> + <code>BasicTable</code>」这个结构，<strong>禁止</strong>手写 <code>a-table</code>、<strong>禁止</strong>把查询表单与表格混排、<strong>禁止</strong>另做一套分页组件。
+<strong>家长端与学习端不适用本骨架</strong>：它们用独立布局（§9.6 / §9.7），列表部分仍复用 <code>BasicTable</code> 但不套管理端容器。</p>
+</blockquote>
+<h3>9.2 详情页与描述项</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>值</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>组件</td>
+<td><code>Description</code>（<code>src/components/Description/src/Description.vue</code>）</td>
+<td>—</td>
+</tr>
+<tr>
+<td>只读表单样式</td>
+<td><code>html[data-theme='light'] .ant-form:not(.jeecg-form-detail-effect)</code> 下禁用态统一 <code>rgba(51,51,51,0.25)</code></td>
+<td><code>src/design/ant/index.less:184-201</code></td>
+</tr>
+<tr>
+<td>详情 label 色</td>
+<td><code>#797c81</code></td>
+<td><code>src/design/index.less:144</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>规范 9.2</strong>：详情页用 <code>Description</code> 或只读态 <code>BasicForm</code>（加 <code>jeecg-form-detail-effect</code> 之外的只读语义），<strong>不要</strong>用可编辑表单假装详情。</p>
+</blockquote>
+<h3>9.3 自研组件职责对照</h3>
+<p>jeecg-study 在上游组件之上自研以下组件（去掉上游同名，改 <code>Study</code> 前缀）：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>组件</th>
+<th>职责</th>
+<th>关键 props</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>StudyListToolbar</code></td>
+<td>列表页顶部操作区（不含分页——分页归 <code>BasicTable</code>）</td>
+<td><code>alwaysShow</code>；emit <code>refresh</code></td>
+</tr>
+<tr>
+<td><code>StudyListSummary</code></td>
+<td>列表顶部多维统计 + 点击筛选</td>
+<td><code>api</code>、<code>params</code>、<code>dimensions</code>、<code>defaultGroupBy</code>、<code>maxGroups</code>(12)、<code>labelMaps</code>、<code>fallbackTotal</code>；emit <code>filter-change</code></td>
+</tr>
+<tr>
+<td><code>StudyStatCards</code></td>
+<td>工作台统计卡</td>
+<td><code>items{title,value,extra,key,path}</code>、<code>clickable</code>、<code>columnsPerRow</code>(4)；emit <code>click</code></td>
+</tr>
+<tr>
+<td><code>StudyDataList</code></td>
+<td>桌面表格 / 窄屏卡片双形态（<strong>学习端</strong>用）</td>
+<td><code>rowKey</code>、<code>columns</code>、<code>dataSource</code>、<code>scroll</code>、<code>size</code>、<code>rowSelection</code>、<code>expandedRowKeys</code></td>
+</tr>
+<tr>
+<td><code>StudyEnumTag</code></td>
+<td>枚举彩色中文标签</td>
+<td><code>kind</code>、<code>value</code></td>
+</tr>
+<tr>
+<td><code>StudyActionColumn</code></td>
+<td>统一操作列（§8.7）</td>
+<td><code>actions[]</code>、<code>maxInline</code></td>
+</tr>
+<tr>
+<td><code>StudyCategoryTree</code></td>
+<td>树形维护页</td>
+<td><code>title</code>、<code>api</code>、<code>codeType</code>、<code>authAdd/Edit/Delete/Export/Import</code></td>
+</tr>
+<tr>
+<td><code>StudyHelpDrawer</code></td>
+<td>页面帮助（Markdown → 抽屉）</td>
+<td><code>helpKey</code>、<code>title</code>、<code>tooltip</code></td>
+</tr>
+<tr>
+<td><code>StudyExcelButtons</code></td>
+<td>导入导出（管理端；学习端<strong>禁用</strong>）</td>
+<td><code>api</code>、<code>title</code>、<code>query</code>、<code>authExport/Import/Template</code></td>
+</tr>
+<tr>
+<td><code>StudyTypeFilterPanel</code></td>
+<td>左栏筛选 + 类型列表/树</td>
+<td><code>mode('flat'/'tree')</code>、<code>items</code>、<code>treeData</code>、<code>showAllItem</code></td>
+</tr>
+<tr>
+<td><code>StudyAttachmentPanel</code></td>
+<td>多文件/多图附件 + 主图</td>
+<td><code>mode('files'|'images')</code></td>
+</tr>
+<tr>
+<td><code>StudyPlaceholder</code></td>
+<td>占位页</td>
+<td><code>title</code>、<code>message</code>、<code>hint</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>规范 9.3（强制）</strong>：jeecg-study <strong>优先复用上游组件或平移这些组件</strong>，不新造同类组件。确需新造时，props 命名与事件签名保持同构。
+<strong>导入导出</strong>：学习端与孩子端<strong>不提供</strong> Excel 导入导出（数据出口最小化，见 R-04/R-02）。</p>
+</blockquote>
+<h3>9.4 布局骨架尺寸</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>值</th>
+<th>来源 file:line</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>顶栏高度</td>
+<td><code>60px</code></td>
+<td><code>src/design/var/index.less:17</code></td>
+</tr>
+<tr>
+<td>Logo 区</td>
+<td><code>min-width: 192px</code>，<code>padding: 0 10px</code>，图标 <code>32px</code></td>
+<td><code>src/layouts/default/header/index.less:61-67</code></td>
+</tr>
+<tr>
+<td>侧栏宽度</td>
+<td><code>210px</code></td>
+<td><code>src/settings/projectSetting.ts:114</code></td>
+</tr>
+<tr>
+<td>侧栏折叠</td>
+<td><code>48px</code>（折叠且显示标题 <code>80px</code>）</td>
+<td><code>src/enums/appEnum.ts:1,2</code></td>
+</tr>
+<tr>
+<td>内容区背景</td>
+<td><code>#f4f7f9</code></td>
+<td><code>src/design/color.less:16</code> · <code>src/layouts/default/index.vue:104</code></td>
+</tr>
+<tr>
+<td>内容区留白</td>
+<td><code>margin: 16px</code>（<code>--dense</code> 为 <code>0</code>）</td>
+<td><code>src/components/Page/src/PageWrapper.vue:167,182</code></td>
+</tr>
+<tr>
+<td>内容区固定宽模式</td>
+<td><code>width: 1200px; margin: 0 auto</code></td>
+<td><code>src/layouts/default/content/index.vue:54-55</code></td>
+</tr>
+<tr>
+<td>内容区 flex</td>
+<td><code>flex: 1 1 auto; min-height: 0</code>，无 padding</td>
+<td><code>src/layouts/default/content/index.vue:50-51</code></td>
+</tr>
+<tr>
+<td>页签高度</td>
+<td>card <code>50px</code> / smooth <code>48px</code> / simple <code>38px</code> / base <code>30px</code></td>
+<td><code>src/design/var/index.less:9,10,12</code> · <code>src/layouts/default/tabs/tabs.theme.simple.less:4</code></td>
+</tr>
+<tr>
+<td>面包屑</td>
+<td><strong>默认关闭</strong> <code>showBreadCrumb: false</code></td>
+<td><code>src/settings/projectSetting.ts:181</code></td>
+</tr>
+<tr>
+<td>命名空间</td>
+<td><code>@namespace: jeecg</code> / <code>prefixCls = 'jeecg'</code></td>
+<td><code>src/design/var/index.less:5</code> · <code>src/settings/designSetting.ts:3</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>规范 9.4</strong>：页面宽度默认 <code>ContentEnum.FULL</code>（<code>src/settings/projectSetting.ts:63</code>），<strong>不要</strong>改成固定 1200px——学习端与孩子端必须全宽。</p>
+</blockquote>
+<h3>9.5 四端布局对照</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>端</th>
+<th>布局</th>
+<th>顶栏</th>
+<th>侧栏</th>
+<th>内容区</th>
+<th>主题</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>管理端</td>
+<td><code>layouts/default</code>（上游自带）</td>
+<td>有（60px）</td>
+<td>有（210px）</td>
+<td><code>PageWrapper</code> margin 16px</td>
+<td>跟随全局</td>
+</tr>
+<tr>
+<td>家长端</td>
+<td><code>layouts/parent</code>（<strong>本项目新建</strong>）</td>
+<td><strong>无</strong></td>
+<td><strong>无</strong></td>
+<td>顶部孩子切换条 + 内容区</td>
+<td>跟随全局</td>
+</tr>
+<tr>
+<td>学习端</td>
+<td><code>layouts/study</code>（<strong>本项目新建</strong>）</td>
+<td>轻量顶栏（48px）</td>
+<td><strong>无</strong></td>
+<td>全宽 + 底部主操作条</td>
+<td><strong>锁定浅色</strong></td>
+</tr>
+<tr>
+<td>孩子端</td>
+<td><code>layouts/study</code>（同学习端）</td>
+<td>轻量顶栏（48px）</td>
+<td><strong>无</strong></td>
+<td>同学习端</td>
+<td><strong>锁定浅色</strong></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>规范 9.5</strong>：四端的差异只允许体现在<strong>布局壳</strong>与<strong>密度</strong>上，<strong>配色与字号令牌全局共用</strong>（§3 / §5）。</p>
+</blockquote>
+<h3>9.6 家长端布局 <code>layouts/parent</code></h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>规则</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>顶栏</td>
+<td><strong>无</strong>管理端顶栏（不吃 logo、菜单、页签、设置按钮）</td>
+</tr>
+<tr>
+<td>顶部条</td>
+<td>自绘「孩子切换条」：当前孩子昵称 + 切换入口 + 家庭入口，高度 ≤ 48px</td>
+</tr>
+<tr>
+<td>侧栏</td>
+<td><strong>无</strong></td>
+</tr>
+<tr>
+<td>内容区</td>
+<td>全宽 + 16px 留白；卡片式分区，不用管理端页签</td>
+</tr>
+<tr>
+<td>表格</td>
+<td>复用 <code>BasicTable</code>，但 <code>showTableSetting: false</code>、操作列只保留「查看」</td>
+</tr>
+<tr>
+<td>写操作</td>
+<td>仅家庭/成员/孩子档案/关联/PIN 重置这几类页面有；其余只读</td>
+</tr>
+<tr>
+<td>主题</td>
+<td>跟随全局暗色开关（§4.2②）</td>
+</tr>
+<tr>
+<td>禁止</td>
+<td>出现排名、百分位、家长间对比、家庭内比较措辞（R-04）</td>
+</tr>
+</tbody>
+</table></div>
+<h3>9.7 学习端布局 <code>layouts/study</code></h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>规则</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>顶栏</td>
+<td>轻量顶栏 <strong>48px</strong>：模块名 / 连续天数 / 护眼状态；无面包屑、无页签</td>
+</tr>
+<tr>
+<td>侧栏</td>
+<td><strong>无</strong></td>
+</tr>
+<tr>
+<td>内容区</td>
+<td>全宽无留白（padding 由页面自己给），单屏单任务</td>
+</tr>
+<tr>
+<td>底部条</td>
+<td>底部主操作条 <strong>64px</strong>，含 <code>env(safe-area-inset-bottom)</code> 适配</td>
+</tr>
+<tr>
+<td>表格</td>
+<td><strong>不用</strong>表格。学习端用卡片流（<code>StudyDataList</code> 的窄屏形态）</td>
+</tr>
+<tr>
+<td>主题</td>
+<td>根节点锁定 <code>data-theme="light"</code>（§4.2③）</td>
+</tr>
+<tr>
+<td>字号</td>
+<td>按 §10.1 放宽</td>
+</tr>
+<tr>
+<td>圆角</td>
+<td>可到 <code>12px</code>（§7.1）</td>
+</tr>
+</tbody>
+</table></div>
+<h3>9.8 孩子端布局</h3>
+<p>孩子端<strong>复用学习端布局</strong>，额外约束：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>规则</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>登录页</td>
+<td>两步：① 家庭码 → ② 选孩子 + PIN。中间态与错误态<strong>不得</strong>暴露他人信息</td>
+</tr>
+<tr>
+<td>失败提示</td>
+<td>PIN 错误<strong>不显示剩余次数</strong>（中性表述），家庭码错误显示「家庭码不正确」（4009）</td>
+</tr>
+<tr>
+<td>锁定</td>
+<td>5 次失败锁 10 分钟；锁定期提示不含内部计数细节</td>
+</tr>
+<tr>
+<td>顶栏</td>
+<td>学习端顶栏 + 家长昵称列表（仅昵称，不含账号）</td>
+</tr>
+<tr>
+<td>禁止</td>
+<td>与学习端相同的全部禁止项 + 不得出现任何家长账号标识</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="learn">
+  <div class="sec-head"><span class="sec-num">10</span><h3>学习端专项规范</h3><span class="tag">孩子端</span></div>
+  <p>学习端专项规范</p>
+<blockquote>
+<p>本节是 jeecg-study 新增部分，面向 7–15 岁孩子的学习界面。管理端规范在此<strong>不适用</strong>的地方以本节为准。</p>
+</blockquote>
+<h3>10.1 与管理端的三处关键差异</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>管理端</th>
+<th>学习端</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>字号</td>
+<td>12–14px 为主</td>
+<td>正文 ≥ 16px，关键操作按钮 ≥ 18px</td>
+<td>儿童阅读距离与专注度</td>
+</tr>
+<tr>
+<td>点击目标</td>
+<td>antd 默认 <code>controlHeight</code> = 32px（<code>node_modules/ant-design-vue/es/theme/themes/seed.js:52</code>）</td>
+<td><strong>最小 44×44px</strong></td>
+<td>儿童手指精度</td>
+</tr>
+<tr>
+<td>信息密度</td>
+<td>高（表格多列）</td>
+<td>低（一屏一个任务）</td>
+<td>降低认知负担</td>
+</tr>
+</tbody>
+</table></div>
+<h3>10.2 学习端页面骨架</h3>
+<pre class="cmd"><code>┌─────────────────────────────────────┐
+│ 顶栏：模块名 / 连续天数 / 护眼状态     │  高 48px，固定
+├─────────────────────────────────────┤
+│                                     │
+│         主任务区（单屏单任务）         │  padding 16px
+│                                     │
+├─────────────────────────────────────┤
+│ 底部主操作条（一个主动作）             │  高 64px，安全区适配
+└─────────────────────────────────────┘
+</code></pre>
+<p><strong>规则</strong>：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>规则</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>一屏一任务</td>
+<td>学习端页面<strong>不得</strong>出现需要滚动才能完成的主任务</td>
+</tr>
+<tr>
+<td>底部主动作</td>
+<td>主操作固定在底部（拇指可达区），高度 ≥ 44px；一屏只允许<strong>一个</strong>主按钮</td>
+</tr>
+<tr>
+<td>字号</td>
+<td>正文 16px；题干 18px；主按钮文字 18px；辅助说明 14px；数值/成就 20px</td>
+</tr>
+<tr>
+<td>圆角</td>
+<td>学习端卡片可用 <code>12px</code>（突破管理端的 8px 上限，因为儿童界面需要更柔和的视觉）</td>
+</tr>
+<tr>
+<td>主色</td>
+<td>沿用 <code>#1890ff</code>；<strong>成就/奖励</strong>类元素用主题成功色 <code>#55D187</code></td>
+</tr>
+<tr>
+<td>主题</td>
+<td>学习端<strong>固定浅色主题</strong>，根节点显式 <code>data-theme="light"</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3>10.3 判对错反馈的视觉规范</h3>
+<p>这是学习端最关键的一屏，必须与红线 R-02 呼应。</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>状态</th>
+<th>视觉</th>
+<th>文案原则</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>答对</td>
+<td>成功色 <code>#55D187</code> 的柔和底 + 图标，<strong>不放大音量式动效</strong></td>
+<td>「对了」+ 一句肯定</td>
+</tr>
+<tr>
+<td>答错</td>
+<td>危险色 <code>#ED6F6F</code> 的柔和底；<strong>不使用纯红大面积填充</strong>（避免挫败感）</td>
+<td>「再看一次」+ 指向错在哪一步</td>
+</tr>
+<tr>
+<td>需申诉</td>
+<td>中性灰底 + 「我不同意」链接</td>
+<td>说明判定依据来源</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>强制规则</strong>：</p>
+<ol>
+<li>反馈区必须显示<strong>判定来源</strong>标记：来源为规则时显示「按答案判定」，来源含模型时显示「AI 辅助讲解，判定以规则为准」。</li>
+<li>判定依据（basis）必须可展开查看。</li>
+<li>答错时<strong>先显示错在哪一步</strong>，再显示完整解析（顺序不可颠倒）。</li>
+<li>不出现「你太笨了」「错误次数：3」这类负向表述；错误次数以中性方式呈现或干脆不呈现。</li>
+</ol>
+<h3>10.4 闯关与奖励</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>规范</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>关卡卡</td>
+<td>圆角 12px，卡片间距 12px，未解锁态降低对比度（<code>opacity:.55</code>）+ 锁图标</td>
+</tr>
+<tr>
+<td>连贯天数</td>
+<td>用 <code>#55D187</code> 的连续条，<strong>不做排行榜</strong>（R-04）</td>
+</tr>
+<tr>
+<td>奖励反馈</td>
+<td>轻量动效（≤600ms），不使用全屏闪白/抖动等可能引起不适的效果</td>
+</tr>
+<tr>
+<td>失败态</td>
+<td>不用红色叉号满屏；用「再来一次」引导，且<strong>必须给出下一步该做什么</strong></td>
+</tr>
+</tbody>
+</table></div>
+<h3>10.5 护眼相关的界面约束</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>规范</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>蓝光过滤</td>
+<td>全局 <code>filter</code> 类切换，状态持久化</td>
+</tr>
+<tr>
+<td>休息提醒</td>
+<td>阻断式遮罩：<strong>不可自动消失</strong>，须点击确认。遮罩 z-index 取 <code>1000</code>–<code>3000</code> 之间（§7.4）</td>
+</tr>
+<tr>
+<td>远眺引导</td>
+<td>提醒页给出具体动作提示（看向 6 米外 20 秒），不只写「休息一下」</td>
+</tr>
+<tr>
+<td>用眼时长显示</td>
+<td>家长端用数字 + 进度条；孩子端<strong>不显示</strong>时长数字（避免看表心累），只显示状态图标</td>
+</tr>
+<tr>
+<td>护眼色板</td>
+<td>基座无对比度规范，本项目约定正文与背景对比度 ≥ 4.5:1，次要文字 ≥ 3:1；护眼遮罩使用中性浅底，不使用高饱和色</td>
+</tr>
+</tbody>
+</table></div>
+<h3>10.6 练习页的答案屏蔽（R-01 视觉实现）</h3>
+<p>对应《系统设计说明书》10.3 的 <code>PracticeAnswerGate</code> 状态机：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>状态</th>
+<th>解析区</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>UNANSWERED</td>
+<td><strong>不渲染到 DOM</strong></td>
+<td>不是 <code>display:none</code>，是组件根本不挂载</td>
+</tr>
+<tr>
+<td>ANSWERED</td>
+<td>渲染「看解析」入口按钮</td>
+<td>判定结果已返回</td>
+</tr>
+<tr>
+<td>REVEALED</td>
+<td>渲染完整解析</td>
+<td>孩子主动点击后</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>视觉上「看解析」按钮在 UNANSWERED 状态下<strong>占位保留但不激活</strong>（避免布局跳动），但解析内容不得存在于 DOM。</p>
+</blockquote>
+</section>
+<section id="state">
+  <div class="sec-head"><span class="sec-num">11</span><h3>交互与状态</h3><span class="tag">空/错/载</span></div>
+  <p>交互与状态</p>
+<h3>11.1 空状态</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>实现</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>表格空态</td>
+<td>antd Table 默认（不传 <code>locale.emptyText</code>）</td>
+<td>antd 默认</td>
+</tr>
+<tr>
+<td>空态插画</td>
+<td><code>&lt;a-empty description="暂无数据" /&gt;</code></td>
+<td>antd 默认</td>
+</tr>
+<tr>
+<td>简化插画</td>
+<td><code>&lt;a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" /&gt;</code></td>
+<td>antd 默认</td>
+</tr>
+</tbody>
+</table></div>
+<h3>11.2 加载态</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>实现</th>
+<th>来源 file:line</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>表格加载</td>
+<td><code>BasicTable</code> 的 <code>loading</code></td>
+<td><code>src/components/Table/src/props.ts</code></td>
+</tr>
+<tr>
+<td>区域加载</td>
+<td><code>a-spin :spinning</code></td>
+<td>antd 默认</td>
+</tr>
+<tr>
+<td>顶部进度条</td>
+<td><code>#nprogress .bar</code> 高 <code>2px</code>，色 <code>@primary-color</code>，<code>opacity:.75</code>，<code>z-index:99999</code></td>
+<td><code>src/design/public.less:44-57</code></td>
+</tr>
+<tr>
+<td>页面级 loading</td>
+<td><code>@page-loading-z-index</code> = <code>10000</code></td>
+<td><code>src/design/var/index.less:26</code> · <code>src/layouts/default/content/index.vue:61</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3>11.3 错误态</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>实现</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>汇总失败</td>
+<td><code>a-alert type="warning" show-icon</code> + 「重试」<code>a-button size="small" type="link"</code></td>
+<td>antd 默认 + 本项目自定</td>
+</tr>
+<tr>
+<td>汇总静默失败</td>
+<td><code>errorMessageMode: 'none'</code></td>
+<td>上游 axios 约定</td>
+</tr>
+<tr>
+<td>校验/提示</td>
+<td><code>message.warning</code> / <code>message.error</code> / <code>message.success</code></td>
+<td>上游 <code>useMessage</code></td>
+</tr>
+<tr>
+<td>越权（4010）</td>
+<td>提示「无权查看该孩子的数据」，<strong>不得</strong>提示「数据不存在」</td>
+<td>§4.2 + R-04</td>
+</tr>
+<tr>
+<td>破坏性操作失败</td>
+<td>提示必须带业务 id，便于定位</td>
+<td>本项目自定</td>
+</tr>
+</tbody>
+</table></div>
+<h3>11.4 焦点态与无障碍</h3>
+<blockquote>
+<p>⚠️ <strong>基座的一个坑</strong>：<code>src/design/index.less:44-51</code> 对 <code>a:focus, a:active, button, div, svg, span</code> 一律 <code>outline: none !important</code>——<strong>焦点环被全局抹除</strong>。这对键盘用户是无障碍缺陷。</p>
+<p><strong>规范 11.4（强制）</strong>：
+① 学习端与孩子端的<strong>可点击元素必须自补焦点样式</strong>（<code>:focus-visible { outline: 2px solid @primary-color; outline-offset: 2px }</code>），不得依赖基座默认。
+② 触控目标 ≥ 44×44px（§10.1）。
+③ 正文与背景对比度 ≥ 4.5:1。
+④ <strong>不得</strong>在业务代码里再写 <code>outline: none</code>。</p>
+</blockquote>
+</section>
+<section id="responsive">
+  <div class="sec-head"><span class="sec-num">12</span><h3>响应式与移动端</h3><span class="tag">断点</span></div>
+  <p>响应式与移动端</p>
+<h3>12.1 断点</h3>
+<p>基座的断点集合（<strong>LESS 与 JS 完全一致</strong>）：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>断点</th>
+<th>宽度</th>
+<th>LESS</th>
+<th>JS 枚举</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>xs</td>
+<td><code>480px</code></td>
+<td><code>src/design/var/breakpoint.less:6</code></td>
+<td><code>src/enums/breakpointEnum.ts:11</code></td>
+</tr>
+<tr>
+<td>sm</td>
+<td><code>576px</code></td>
+<td><code>:10</code></td>
+<td><code>:12</code></td>
+</tr>
+<tr>
+<td>md</td>
+<td><code>768px</code></td>
+<td><code>:14</code></td>
+<td><code>:13</code></td>
+</tr>
+<tr>
+<td>lg</td>
+<td><code>992px</code></td>
+<td><code>:18</code></td>
+<td><code>:14</code></td>
+</tr>
+<tr>
+<td>xl</td>
+<td><code>1200px</code></td>
+<td><code>:22</code></td>
+<td><code>:15</code></td>
+</tr>
+<tr>
+<td>2xl</td>
+<td><code>1600px</code></td>
+<td><code>:26</code></td>
+<td><code>:16</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>max 区间变量</strong>：<code>@screen-xs-max</code> = <code>sm-1px</code> 等 5 个（<code>src/design/var/breakpoint.less:29-33</code>）。
+<strong>断点判定</strong>：<code>src/hooks/event/useBreakpoint.ts:39-51</code>（监听 <code>resize</code>，<code>:55-64</code>）。</p>
+<blockquote>
+<p><strong>规范 12.1</strong>：新增页面的媒体查询<strong>必须</strong>用这 6 个断点，<strong>不要</strong>自造（如 <code>768px</code> 之外再定 <code>820px</code>）。
+⚠️ <strong>但注意</strong>：<code>.ant-col { width: 100% }</code>（<code>src/design/ant/index.less:9-11</code>）使 antd 的响应式列失效——<strong>列数变化要自己写媒体查询</strong>，不能只靠 <code>a-col</code> 的 <code>xs/sm/md</code>。</p>
+</blockquote>
+<h3>12.2 移动端具体值</h3>
+<blockquote>
+<p>⚠️ <strong>V1.1 修正</strong>：旧版规范把移动端阈值写成 <code>768px</code>。<strong>上游基座的实际阈值是 <code>992px</code></strong>（<code>src/components/Application/src/AppProvider.vue:28-31</code>，<code>width - 1 &lt; 992</code> 即判为移动端）。本项目<strong>沿用上游的 992px</strong>，与上游行为保持一致。</p>
+</blockquote>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>值</th>
+<th>来源 file:line</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>移动端判定阈值</strong></td>
+<td><strong><code>&lt; 992px</code></strong></td>
+<td><code>src/components/Application/src/AppProvider.vue:28-31</code></td>
+</tr>
+<tr>
+<td>移动端菜单策略</td>
+<td>强制切为 <code>SIDEBAR</code> + <code>INLINE</code> + <code>split:false</code>，退出移动端后还原</td>
+<td><code>src/components/Application/src/AppProvider.vue:50-56,59-71</code></td>
+</tr>
+<tr>
+<td>移动端侧栏</td>
+<td>改为 <code>Drawer</code>（left，宽 = <code>menuWidth</code>）</td>
+<td><code>src/layouts/default/sider/index.vue:2-12</code></td>
+</tr>
+<tr>
+<td>移动端顶栏</td>
+<td>隐藏面包屑 / 错误提示 / 通知 / 锁屏 / 全屏 / logo 标题</td>
+<td><code>src/layouts/default/header/index.less:19-44</code></td>
+</tr>
+<tr>
+<td>页内 padding</td>
+<td><code>16px</code>（学习端 <code>16px</code>，窄屏可到 <code>12px</code>）</td>
+<td>本项目自定</td>
+</tr>
+<tr>
+<td>卡片 body padding</td>
+<td><code>12px</code></td>
+<td>本项目自定</td>
+</tr>
+<tr>
+<td>移动端卡片圆角</td>
+<td><code>8px</code></td>
+<td>本项目自定</td>
+</tr>
+<tr>
+<td>移动端卡片阴影</td>
+<td><code>0 1px 2px rgba(0,0,0,0.03)</code></td>
+<td>本项目自定</td>
+</tr>
+<tr>
+<td>窄屏弹窗</td>
+<td><code>max-width:100vw; margin:0; top:0; border-radius:0; min-height:100vh</code></td>
+<td>本项目自定</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>规范 12.2（强制）</strong>：
+① jeecg-study 移动端统一采用上游的 <strong>992px</strong> 阈值；<code>&lt;=992px</code> 时表格转卡片列表（<strong>不是</strong>横向滚动）。
+② 学习端与孩子端<strong>本身就是</strong>移动优先，不做桌面表格形态。
+③ 家长端在 <code>&lt;=992px</code> 时顶部条收起为「孩子名 + 切换」两元素。</p>
+</blockquote>
+<h3>12.3 上游移动端行为（供对齐）</h3>
+<p>上游在移动端做的三件事，本项目沿用：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>行为</th>
+<th>说明</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>侧栏变抽屉</td>
+<td>菜单从固定侧栏变成 Drawer</td>
+<td><code>src/layouts/default/sider/index.vue:2-12</code></td>
+</tr>
+<tr>
+<td>顶栏精简</td>
+<td>隐藏面包屑、通知、锁屏、全屏、logo 标题</td>
+<td><code>src/layouts/default/header/index.less:19-44</code></td>
+</tr>
+<tr>
+<td>菜单模式回退</td>
+<td>移动端强制 SIDEBAR + INLINE，退出后还原用户设置</td>
+<td><code>src/components/Application/src/AppProvider.vue:50-71</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>本项目的差异</strong>：家长端与学习端<strong>没有侧栏</strong>，因此不需要「侧栏变抽屉」这一步——它们的窄屏形态由独立布局直接承担（§9.5）。</p>
+</blockquote>
+</section>
+<section id="forbid">
+  <div class="sec-head"><span class="sec-num">13</span><h3>禁止事项清单</h3><span class="tag">别踩</span></div>
+  <p>禁止事项清单</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>编号</th>
+<th>禁止</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F-01</td>
+<td>硬编码 <code>#1890ff</code> / <code>#52c41a</code> / <code>#faad14</code> 等色值</td>
+<td>主题切换与暗色模式会失效；应走 less 变量或 antd token</td>
+</tr>
+<tr>
+<td>F-02</td>
+<td>自定义 <code>font-family</code></td>
+<td>基座 less 层无字体族，靠 antd token 继承；自行声明会脱离主题体系</td>
+</tr>
+<tr>
+<td>F-03</td>
+<td>字号使用 <code>10px</code> 以下或 §5.2 表中没有的值</td>
+<td>无层级依据</td>
+</tr>
+<tr>
+<td>F-04</td>
+<td>字重 ≥ 700</td>
+<td><code>wireframe: true</code> 风格不兼容</td>
+</tr>
+<tr>
+<td>F-05</td>
+<td>管理端圆角 ≥ 12px</td>
+<td>与既有卡片体系割裂</td>
+</tr>
+<tr>
+<td>F-06</td>
+<td>自造 <code>box-shadow</code></td>
+<td>阴影只用于 hover 与弹层</td>
+</tr>
+<tr>
+<td>F-07</td>
+<td>手写 <code>&lt;a-table&gt;</code> 列表页</td>
+<td>必须走 <code>useListPage</code> + <code>BasicTable</code>（查询区/分页/表格设置/导入导出）</td>
+</tr>
+<tr>
+<td>F-08</td>
+<td>另做一套分页组件</td>
+<td>分页由 <code>BasicTable</code> 内置</td>
+</tr>
+<tr>
+<td>F-09</td>
+<td><code>layout="inline"</code> 表单</td>
+<td>移动端必崩；窄表单用 <code>vertical</code></td>
+</tr>
+<tr>
+<td>F-10</td>
+<td>强制管理端表单改 <code>layout="vertical"</code></td>
+<td>基座默认是 <code>horizontal</code>（§8.4）</td>
+</tr>
+<tr>
+<td>F-11</td>
+<td>弹窗不提供 <code>:body-style</code></td>
+<td>外壳 <code>padding: 0</code>，会贴边</td>
+</tr>
+<tr>
+<td>F-12</td>
+<td>裸 <code>&lt;button&gt;</code></td>
+<td>必须用 <code>a-button</code>（BasicButton）</td>
+</tr>
+<tr>
+<td>F-13</td>
+<td>内联 SVG / emoji 当图标</td>
+<td>统一用 <code>&lt;Icon icon="ant-design:xxx" /&gt;</code></td>
+</tr>
+<tr>
+<td>F-14</td>
+<td>手写操作列链接（不用 <code>StudyActionColumn</code>）</td>
+<td>排列与权限规则会走样</td>
+</tr>
+<tr>
+<td>F-15</td>
+<td>表格首列放长句</td>
+<td>桌面视口横向溢出（§8.3）</td>
+</tr>
+<tr>
+<td>F-16</td>
+<td>移动端表格横向滚动</td>
+<td>应转卡片</td>
+</tr>
+<tr>
+<td>F-17</td>
+<td>引用 <code>src/design/ant/table.less</code> 的值</td>
+<td><strong>死代码</strong>，import 已被注释（<code>src/design/ant/index.less:6</code>）</td>
+</tr>
+<tr>
+<td>F-18</td>
+<td>引用 antd 仓内不可见的默认值当硬约束</td>
+<td>✅ <strong>已闭环（2026-10-31）</strong>：<code>node_modules</code> 已安装（ant-design-vue 4.2.6），规范改为引 <code>node_modules/ant-design-vue/es/...</code> 的真实 file:line；并据此修正了 §3.2 的 <code>#595959</code>（<strong>并非</strong> antd 默认值，中性文字色实为 <code>rgba(51,51,51,0.45)</code>）</td>
+</tr>
+<tr>
+<td>F-19</td>
+<td>在业务代码里写 <code>outline: none</code></td>
+<td>基座已全局抹除焦点环（<code>src/design/index.less:44-51</code>），学习端须自补 <code>focus-visible</code></td>
+</tr>
+<tr>
+<td>F-20</td>
+<td>自造 z-index 大于 <code>99999</code></td>
+<td>进度条专用；浮层应在 <code>1000</code>–<code>3000</code> 之间</td>
+</tr>
+<tr>
+<td>F-21</td>
+<td>学习端出现排行/分数比较</td>
+<td>违反产品红线 R-04</td>
+</tr>
+<tr>
+<td>F-22</td>
+<td>学习端答错使用大面积纯红</td>
+<td>挫败感；应使用柔和底色</td>
+</tr>
+<tr>
+<td>F-23</td>
+<td>学习端答案区在未作答时存在于 DOM</td>
+<td>违反产品红线 R-01</td>
+</tr>
+<tr>
+<td>F-24</td>
+<td>家长端出现家长间对比 / 家庭内比较措辞</td>
+<td>违反 R-04 强化（新增断言 <code>R04-5</code> / <code>R04-6</code>）</td>
+</tr>
+<tr>
+<td>F-25</td>
+<td>学习端 / 孩子端提供 Excel 导入导出</td>
+<td>数据出口最小化；管理端才有</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="check">
+  <div class="sec-head"><span class="sec-num">14</span><h3>自检清单</h3><span class="tag">评审用</span></div>
+  <p>自检清单</p>
+<blockquote>
+<p>新增页面提交前逐条自查；代码评审按此清单核对。</p>
+</blockquote>
+<h3>14.1 通用</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>检查项</th>
+<th>通过标准</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>颜色</td>
+<td>无硬编码 hex，全部走变量/token</td>
+</tr>
+<tr>
+<td>2</td>
+<td>字号</td>
+<td>只用 12/13/14/15/16/20（学习端按 §10.1 放宽）</td>
+</tr>
+<tr>
+<td>3</td>
+<td>字重</td>
+<td>只用 400/500/600</td>
+</tr>
+<tr>
+<td>4</td>
+<td>行高</td>
+<td>正文 1.5715，标题 1.4，大数字 1.2</td>
+</tr>
+<tr>
+<td>5</td>
+<td>间距</td>
+<td>只用 4/8/10/12/16/24/32</td>
+</tr>
+<tr>
+<td>6</td>
+<td>圆角</td>
+<td>管理端 2/3/4/6/8；学习端可到 12</td>
+</tr>
+<tr>
+<td>7</td>
+<td>阴影</td>
+<td>只用 §7.2 三种之一</td>
+</tr>
+<tr>
+<td>8</td>
+<td>边框</td>
+<td>显式写 <code>1px</code> 宽度</td>
+</tr>
+<tr>
+<td>9</td>
+<td>栅格</td>
+<td>列表页 <code>a-row :gutter="16"</code>；列 12/24；响应式列自己写媒体查询</td>
+</tr>
+<tr>
+<td>10</td>
+<td>表格</td>
+<td>用 <code>useListPage</code> + <code>BasicTable</code>；不手写 <code>a-table</code>；不另做分页；列宽显式</td>
+</tr>
+<tr>
+<td>11</td>
+<td>表单</td>
+<td>管理端 <code>horizontal</code>；窄表单 <code>vertical</code>；<strong>不用</strong> <code>inline</code></td>
+</tr>
+<tr>
+<td>12</td>
+<td>弹窗</td>
+<td>传 <code>:body-style</code></td>
+</tr>
+<tr>
+<td>13</td>
+<td>按钮</td>
+<td>用 <code>a-button</code>（BasicButton）</td>
+</tr>
+<tr>
+<td>14</td>
+<td>图标</td>
+<td>用 <code>&lt;Icon icon="ant-design:xxx" /&gt;</code></td>
+</tr>
+<tr>
+<td>15</td>
+<td>操作列</td>
+<td>用 <code>StudyActionColumn</code></td>
+</tr>
+<tr>
+<td>16</td>
+<td>标签</td>
+<td>用 antd 预设名，不用裸 hex；同名同色</td>
+</tr>
+<tr>
+<td>17</td>
+<td>空态</td>
+<td>用 <code>a-empty</code></td>
+</tr>
+<tr>
+<td>18</td>
+<td>加载</td>
+<td>用 <code>:loading</code> 或 <code>a-spin</code></td>
+</tr>
+<tr>
+<td>19</td>
+<td>错误提示</td>
+<td>破坏性操作失败提示带业务 id；越权提示不伪装成「不存在」</td>
+</tr>
+<tr>
+<td>20</td>
+<td>溢出</td>
+<td><strong>桌面视口</strong>验证 <code>scrollWidth === clientWidth</code></td>
+</tr>
+<tr>
+<td>21</td>
+<td>移动端</td>
+<td><code>&lt;=992px</code> 转卡片，无横向滚动</td>
+</tr>
+<tr>
+<td>22</td>
+<td>暗色</td>
+<td>颜色走变量，未硬编码</td>
+</tr>
+<tr>
+<td>23</td>
+<td>z-index</td>
+<td>浮层在 <code>1000</code>–<code>3000</code> 之间</td>
+</tr>
+<tr>
+<td>24</td>
+<td>焦点态</td>
+<td>学习端可点击元素有 <code>focus-visible</code> 样式</td>
+</tr>
+<tr>
+<td>25</td>
+<td>断点</td>
+<td>媒体查询只用 480/576/768/992/1200/1600</td>
+</tr>
+</tbody>
+</table></div>
+<h3>14.2 多端追加</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>检查项</th>
+<th>通过标准</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>26</td>
+<td>布局归属</td>
+<td>管理端 <code>layouts/default</code>；家长端 <code>layouts/parent</code>；学习/孩子端 <code>layouts/study</code></td>
+</tr>
+<tr>
+<td>27</td>
+<td>家长端无侧栏</td>
+<td>不加载管理端顶栏与侧栏</td>
+</tr>
+<tr>
+<td>28</td>
+<td>家长端只读</td>
+<td>只读数据页无新增/编辑/删除按钮</td>
+</tr>
+<tr>
+<td>29</td>
+<td>家长端切换</td>
+<td>顶部有孩子切换条，且只能切到已关联的孩子</td>
+</tr>
+<tr>
+<td>30</td>
+<td>家长端无比较</td>
+<td>无排名/百分位/家长间对比/家庭内比较措辞</td>
+</tr>
+<tr>
+<td>31</td>
+<td>孩子端两步登录</td>
+<td>家庭码 → 选孩子 + PIN；错误态不泄露他人信息</td>
+</tr>
+<tr>
+<td>32</td>
+<td>孩子端主题</td>
+<td>根节点锁定 <code>data-theme="light"</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3>14.3 学习端追加</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>检查项</th>
+<th>通过标准</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>33</td>
+<td>一屏一任务</td>
+<td>主任务无需滚动即可完成</td>
+</tr>
+<tr>
+<td>34</td>
+<td>主动作</td>
+<td>底部固定，唯一，高 ≥44px</td>
+</tr>
+<tr>
+<td>35</td>
+<td>答案屏蔽</td>
+<td>未作答时解析区不在 DOM 中</td>
+</tr>
+<tr>
+<td>36</td>
+<td>反馈</td>
+<td>显示判定来源标记；依据可展开</td>
+</tr>
+<tr>
+<td>37</td>
+<td>文案</td>
+<td>无负向表述；无排名比较</td>
+</tr>
+<tr>
+<td>38</td>
+<td>护眼</td>
+<td>休息提醒阻断式，不可自动消失</td>
+</tr>
+<tr>
+<td>39</td>
+<td>动效</td>
+<td>≤600ms；无闪白/抖动</td>
+</tr>
+<tr>
+<td>40</td>
+<td>触控目标</td>
+<td>≥44×44px</td>
+</tr>
+<tr>
+<td>41</td>
+<td>主题</td>
+<td>根节点锁定 <code>data-theme="light"</code></td>
+</tr>
+<tr>
+<td>42</td>
+<td>无导入导出</td>
+<td>学习端 / 孩子端不提供 Excel 导入导出</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+
+    <div id="bottom"></div>
+    <footer class="foot"><span>jeecg-study · 产品设计规范 V1.1</span><span>2026-10-30</span><span>取样来源：开源 JeecgBoot v3.9.2 基座 jeecgboot-vue3/</span><span>效力：新增页面必须沿用；改动既有页面需同步更新本规范</span></footer>
+  </main>
+
+</div>
+
+<button class="m-fab" id="fab" type="button">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/></svg>
+  目录
+</button>
+
+
+<script>
+(function(){
+  var BRAND = (document.getElementById('mTitle')||{}).textContent || '文档';
+  var links   = Array.prototype.slice.call(document.querySelectorAll('.nav-link'));
+  var pairs   = links.map(function(l){
+    var id = l.getAttribute('href').replace('#','');
+    var isJump = (id === 'top' || id === 'bottom');
+    return { link:l, sec: isJump ? null : document.getElementById(id) };
+  });
+  var sidebar = document.querySelector('.sidebar');
+  var scrim   = document.getElementById('scrim');
+  var fab     = document.getElementById('fab');
+  var mTitle  = document.getElementById('mTitle');
+  var panelOpen = false;
+
+  function isMobile(){ return window.matchMedia('(max-width:1000px)').matches; }
+  function openPanel(){
+    panelOpen = true;
+    if (sidebar) sidebar.classList.add('open');
+    if (scrim)   scrim.classList.add('show');
+  }
+  function closePanel(){
+    panelOpen = false;
+    if (sidebar) sidebar.classList.remove('open');
+    if (scrim)   scrim.classList.remove('show');
+  }
+  function togglePanel(){ panelOpen ? closePanel() : openPanel(); }
+
+  function onScroll(){
+    var y = window.scrollY + 140, idx = -1;
+    for (var i=0;i<pairs.length;i++){
+      if (pairs[i].sec && pairs[i].sec.offsetTop <= y) { idx = i; }
+    }
+    if (idx < 0) { idx = 0; for (var j=0;j<pairs.length;j++){ if (pairs[j].sec){ idx = j; break; } } }
+
+    pairs.forEach(function(p,i){ if (p.sec) p.link.classList.toggle('active', i === idx); });
+
+    if (mTitle) {
+      mTitle.textContent = window.scrollY < 40
+        ? BRAND
+        : pairs[idx].link.textContent.replace(/[↑↓]\s*/g,'').trim();
+    }
+    // 下滑后导航不可见 → 收起来为悬浮按钮
+    if (fab) fab.classList.toggle('show', window.scrollY > 80);
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', onScroll);
+  onScroll();
+
+  // 导航点击：顶/底跳转 或 锚点定位
+  pairs.forEach(function(p){
+    p.link.addEventListener('click', function(e){
+      e.preventDefault();
+      var href = p.link.getAttribute('href');
+      if (href === '#top') {
+        window.scrollTo({top:0, behavior:'smooth'});
+      } else if (href === '#bottom') {
+        window.scrollTo({top:document.documentElement.scrollHeight, behavior:'smooth'});
+      } else if (p.sec) {
+        window.scrollTo({top: p.sec.getBoundingClientRect().top + window.scrollY - 18, behavior:'smooth'});
+        history.replaceState(null,'',href);
+      }
+      closePanel();
+    });
+  });
+
+  var menuBtn  = document.getElementById('menuBtn');
+  var closeBtn = document.getElementById('closeBtn');
+  var topBtn   = document.getElementById('topBtn');
+  if (menuBtn)  menuBtn.addEventListener('click', togglePanel);
+  if (closeBtn) closeBtn.addEventListener('click', closePanel);
+  if (fab)      fab.addEventListener('click', togglePanel);
+  if (scrim)    scrim.addEventListener('click', closePanel);
+  if (topBtn)   topBtn.addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closePanel(); });
+
+  // 移动端表格卡片：为每个单元格补列名标签
+  Array.prototype.forEach.call(document.querySelectorAll('table'), function(t){
+    var heads = Array.prototype.map.call(t.querySelectorAll('thead th'), function(th){
+      return th.textContent.trim();
+    });
+    Array.prototype.forEach.call(t.querySelectorAll('tbody tr'), function(tr){
+      Array.prototype.forEach.call(tr.children, function(td,i){
+        if (heads[i]) td.setAttribute('data-label', heads[i]);
+      });
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,3192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jeecg-study · 数据库设计说明书</title>
+<style>
+
+  :root{
+    --bg:#fafaf9; --surface:#ffffff; --chrome:#f7f7f5; --line:#e6e6e1; --line-soft:#eeeeea;
+    --ink:#15171c; --ink-2:#454b58; --muted:#8b8f98;
+    --accent:#10b981; --accent-ink:#047857; --accent-soft:rgba(16,185,129,.10); --accent-line:rgba(16,185,129,.28);
+    --up:#d93a2b; --up-soft:rgba(217,58,43,.10); --up-line:rgba(217,58,43,.28);
+    --down:#0f8a6d; --down-soft:rgba(15,138,109,.10); --down-line:rgba(15,138,109,.28);
+    --amber:#b07d12; --amber-soft:rgba(176,125,18,.10); --amber-line:rgba(176,125,18,.28);
+    --sans:'Outfit','PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif;
+    --mono:'JetBrains Mono','SFMono-Regular',Consolas,monospace;
+    --nav-w:272px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:var(--sans);font-size:15px;line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(720px 300px at 10% -8%, rgba(16,185,129,.06), transparent 62%),
+      radial-gradient(620px 280px at 94% -6%, rgba(21,94,117,.05), transparent 60%);
+    background-repeat:no-repeat;
+  }
+  a{color:inherit;}
+  code{font-family:var(--mono);font-size:.88em;background:#f4f4f1;border:1px solid var(--line-soft);border-radius:4px;padding:1px 5px;overflow-wrap:anywhere;}
+
+  /* ============ 布局：侧边导航 + 章节正文 ============ */
+  .shell{display:flex;align-items:flex-start;max-width:1280px;margin:0 auto;gap:0;}
+  .sidebar{
+    width:var(--nav-w);flex:none;position:sticky;top:0;align-self:flex-start;
+    height:100vh;overflow-y:auto;padding:26px 20px 40px 24px;border-right:1px solid var(--line);
+  }
+  .sidebar::-webkit-scrollbar{width:8px;}
+  .sidebar::-webkit-scrollbar-thumb{background:#dcdcd6;border-radius:6px;}
+  .brand{display:flex;align-items:center;gap:9px;margin-bottom:6px;}
+  .brand-mark{width:26px;height:26px;flex:none;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--accent-line);}
+  .brand-mark svg{width:14px;height:14px;}
+  .brand h1{font-size:15px;font-weight:600;margin:0;letter-spacing:-.01em;}
+  .meta-line{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-bottom:18px;}
+  .nav-title{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;padding-left:11px;}
+  .nav-link{
+    display:flex;align-items:center;gap:8px;padding:7px 11px;border-radius:9px;
+    font-size:13.5px;color:var(--ink-2);text-decoration:none;border-left:2px solid transparent;
+    transition:background .15s,color .15s,border-color .15s;
+  }
+  .nav-link:hover{background:#f0f0ec;color:var(--ink);}
+  .nav-link.active{background:var(--accent-soft);color:var(--accent-ink);border-left-color:var(--accent);font-weight:500;}
+  .nav-link .lv{
+    margin-left:auto;font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:999px;
+    border:1px solid var(--line);background:var(--surface);color:var(--muted);white-space:nowrap;
+  }
+  .nav-link.active .lv{border-color:var(--accent-line);background:var(--surface);}
+  .mini-rate{margin-top:14px;border-top:1px solid var(--line);padding-top:14px;}
+  .mini-row{display:flex;align-items:center;gap:8px;margin-bottom:9px;font-size:12px;color:var(--ink-2);}
+  .mini-row .bar{flex:1;height:6px;background:#eeeeea;border-radius:4px;overflow:hidden;}
+  .mini-row .bar i{display:block;height:100%;border-radius:4px;}
+  .mini-row .n{font-family:var(--mono);font-size:10.5px;color:var(--muted);width:58px;text-align:right;}
+
+  .main{flex:1;min-width:0;padding:34px 40px 80px;}
+
+  /* ============ 标题区 ============ */
+  .kicker{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink);background:var(--accent-soft);border:1px solid var(--accent-line);padding:5px 11px;border-radius:999px;}
+  .kicker i{width:6px;height:6px;border-radius:50%;background:var(--accent);}
+  h2.title{font-size:32px;line-height:1.25;font-weight:600;letter-spacing:-.018em;margin:16px 0 0;}
+  .sub{color:var(--ink-2);font-size:15px;margin:10px 0 0;max-width:74ch;}
+  .facts{display:flex;flex-wrap:wrap;gap:9px;margin-top:20px;}
+  .fact{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:9px 13px;box-shadow:0 2px 8px rgba(0,0,0,.03);}
+  .fact b{display:block;font-family:var(--mono);font-size:15px;font-weight:600;letter-spacing:-.01em;}
+  .fact span{font-size:11.5px;color:var(--muted);}
+
+  /* 语义色工具类 */
+  .up{color:var(--up);} .down{color:var(--down);} .flat{color:var(--muted);} .amber{color:var(--amber);}
+
+  /* ============ 章节 ============ */
+  section{margin-top:52px;scroll-margin-top:24px;}
+  .sec-head{display:flex;align-items:baseline;gap:11px;padding-bottom:11px;border-bottom:1px solid var(--line);margin-bottom:20px;}
+  .sec-num{font-family:var(--mono);font-size:12px;color:var(--accent-ink);font-weight:600;}
+  .sec-head h3{font-size:21px;font-weight:600;letter-spacing:-.012em;margin:0;}
+  .sec-head .tag{margin-left:auto;font-size:11.5px;color:var(--muted);font-family:var(--mono);}
+  p{margin:0 0 11px;}
+  .lead-p{font-size:15.5px;color:var(--ink-2);max-width:78ch;margin-bottom:18px;}
+  h4.sub-h{font-size:15px;font-weight:600;margin:26px 0 10px;letter-spacing:-.008em;}
+  h5.sub-h5{font-size:13.5px;font-weight:600;margin:18px 0 7px;color:var(--ink-2);}
+  ul.plain{margin:6px 0 12px;padding-left:20px;}
+  ul.plain li{margin:5px 0;font-size:13.5px;color:var(--ink-2);}
+  ol.plain{margin:6px 0 12px;padding-left:20px;}
+  ol.plain li{margin:5px 0;font-size:13.5px;color:var(--ink-2);}
+  .cite-src{display:inline-block;margin-top:5px;font-family:var(--mono);font-size:10.5px;color:var(--muted);
+    border:1px solid var(--line);border-radius:5px;padding:1px 6px;background:var(--surface);}
+  .cite-src a{color:var(--accent-ink);text-decoration:none;}
+
+  /* ============ 核心信息 ============ */
+  .core-list{list-style:none;padding:0;margin:0;}
+  .core-item{display:flex;gap:13px;padding:13px 0;border-bottom:1px solid var(--line-soft);}
+  .core-item:last-child{border-bottom:0;}
+  .core-dot{width:9px;height:9px;border-radius:50%;flex:none;margin-top:7px;background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .core-dot.r{background:var(--up);box-shadow:0 0 0 3px var(--up-soft);}
+  .core-dot.a{background:var(--amber);box-shadow:0 0 0 3px var(--amber-soft);}
+  .core-body{min-width:0;}
+  .core-body h4{margin:0 0 3px;font-size:14.5px;font-weight:600;}
+  .core-body p{margin:0;font-size:13.5px;color:var(--ink-2);}
+
+  /* ============ 数据卡 ============ */
+  .grid4{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));margin:18px 0 4px;}
+  .dcard{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:14px 15px;box-shadow:0 2px 8px rgba(0,0,0,.03);}
+  .dcard .k{font-size:11.5px;color:var(--muted);margin-bottom:5px;}
+  .dcard .v{font-family:var(--mono);font-size:19px;font-weight:600;letter-spacing:-.02em;line-height:1.2;}
+  .dcard .d{font-family:var(--mono);font-size:11.5px;margin-top:3px;}
+
+  /* ============ 表格 ============ */
+  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13.5px;}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line-soft);vertical-align:top;}
+  th{font-size:11.5px;color:var(--muted);font-weight:500;letter-spacing:.04em;background:#f7f7f4;border-bottom:1px solid var(--line);}
+  td:first-child{font-weight:500;white-space:normal;min-width:72px;}
+  td.mono{font-family:var(--mono);font-size:12px;white-space:nowrap;}
+  .pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap;}
+  .p-ok{background:var(--down-soft);color:var(--down);border:1px solid var(--down-line);}
+  .p-warn{background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber-line);}
+  .p-bad{background:var(--up-soft);color:var(--up);border:1px solid var(--up-line);}
+  .p-info{background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--accent-line);}
+  .p-gray{background:#f2f2ef;color:var(--muted);border:1px solid var(--line);}
+
+  /* ============ 来源表：长名称不撑破表格 + 可点链接 ============ */
+  .tbl-src td:first-child{white-space:normal;min-width:150px;}
+  .tbl-src .u-cell{font-family:var(--mono);font-size:11.5px;line-height:1.5;word-break:break-all;overflow-wrap:anywhere;}
+  .src-link{color:var(--accent-ink);text-decoration:none;border-bottom:1px solid var(--accent-line);word-break:break-all;}
+  .src-link:hover{color:var(--accent);border-bottom-color:var(--accent);}
+
+  /* ============ 流程/命令块：宽内容内部滚动，不撑破页面 ============ */
+  pre.cmd{background:#15171c;color:#e6e8ec;border-radius:12px;padding:14px 16px;overflow-x:auto;
+    font-family:var(--mono);font-size:12px;line-height:1.7;margin:10px 0 14px;
+    -webkit-overflow-scrolling:touch;}
+  pre.cmd code{background:transparent;border:0;padding:0;color:inherit;font-size:inherit;overflow-wrap:normal;white-space:pre;}
+  pre.cmd .c{color:#8b8f98;}
+  pre.cmd .ok{color:#34d399;font-weight:600;}
+  pre.cmd .bad{color:#f87171;font-weight:600;}
+  pre.cmd .warn{color:#fbbf24;font-weight:600;}
+
+  /* ============ 双栏 ============ */
+  .cols{display:grid;gap:14px;grid-template-columns:1fr 1fr;margin-top:14px;}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 17px;box-shadow:0 2px 8px rgba(0,0,0,.03);}
+  .panel h4{margin:0 0 10px;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:7px;}
+  .panel h4 svg{width:15px;height:15px;}
+  .panel.bad h4{color:var(--up);}
+  .panel.good h4{color:var(--down);}
+  .panel.info h4{color:var(--accent-ink);}
+  .panel.warn h4{color:var(--amber);}
+  .panel ul{margin:0;padding-left:0;list-style:none;}
+  .panel li{position:relative;padding-left:15px;margin-bottom:9px;font-size:13.5px;color:var(--ink-2);line-height:1.6;}
+  .panel li:last-child{margin-bottom:0;}
+  .panel li::before{content:"";position:absolute;left:0;top:9px;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.45;}
+  .panel p{font-size:13.5px;color:var(--ink-2);}
+
+  /* ============ 结论条 ============ */
+  .callout{border:1px solid var(--accent-line);background:var(--accent-soft);border-radius:14px;padding:16px 18px;margin-top:18px;}
+  .callout h4{margin:0 0 7px;font-size:14px;font-weight:600;color:var(--accent-ink);display:flex;align-items:center;gap:8px;}
+  .callout h4 svg{width:15px;height:15px;}
+  .callout p{margin:0;font-size:13.5px;color:#2c4a3e;}
+  .callout p+p{margin-top:7px;}
+  .callout.warn{border-color:var(--amber-line);background:var(--amber-soft);}
+  .callout.warn h4{color:var(--amber);} .callout.warn p{color:#5c4413;}
+  .callout.bad{border-color:var(--up-line);background:var(--up-soft);}
+  .callout.bad h4{color:var(--up);} .callout.bad p{color:#6b2018;}
+  .note{border:1px solid var(--line);background:var(--surface);border-radius:13px;padding:14px 16px;margin-top:14px;font-size:12.5px;color:var(--muted);}
+  .note b{color:var(--ink-2);}
+
+  /* ============ 风险条 ============ */
+  .risk{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px dashed var(--line);}
+  .risk:last-child{border-bottom:0;}
+  .risk .lv-badge{flex:none;font-family:var(--mono);font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;}
+  .risk .rb{min-width:0;}
+  .risk .rb b{display:block;font-size:13.5px;margin-bottom:2px;}
+  .risk .rb span{font-size:13px;color:var(--ink-2);}
+
+  /* 正文 markdown 渲染补充 */
+  .main h4{font-size:15px;font-weight:600;margin:26px 0 10px;letter-spacing:-.008em;}
+  .main h5{font-size:13.5px;font-weight:600;margin:18px 0 7px;color:var(--ink-2);}
+  .main ul,.main ol{margin:6px 0 12px;padding-left:20px;}
+  .main li{margin:5px 0;font-size:13.5px;color:var(--ink-2);}
+  .main strong{color:var(--ink);font-weight:600;}
+  .main blockquote{border-left:3px solid var(--accent-line);background:var(--accent-soft);
+    border-radius:0 12px 12px 0;padding:11px 15px;margin:12px 0;font-size:13.5px;color:#2c4a3e;}
+  .main blockquote p{margin:0;}
+  .main hr{border:0;border-top:1px solid var(--line);margin:26px 0;}
+  .main img{max-width:100%;}
+
+  .foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px 20px;}
+  .foot code{background:transparent;border:0;padding:0;color:var(--muted);}
+
+  /* ============ 移动端：悬浮导航面板 ============ */
+  .m-topbar,.m-fab,.scrim,.m-close{display:none;}
+
+  @media (max-width:1000px){
+    .shell{display:block;}
+    body{padding-top:48px;}
+
+    .m-topbar{
+      display:flex;align-items:center;gap:9px;
+      position:fixed;top:0;left:0;right:0;height:48px;z-index:45;
+      padding:0 12px;background:rgba(250,250,249,.94);backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--line);
+    }
+    .m-topbar .t-btn{
+      display:inline-flex;align-items:center;gap:5px;flex:none;
+      font-family:var(--sans);font-size:12.5px;color:var(--ink-2);
+      background:var(--surface);border:1px solid var(--line);border-radius:8px;
+      padding:6px 10px;cursor:pointer;transition:all .16s;
+    }
+    .m-topbar .t-btn:hover{border-color:#d3d3cd;color:var(--ink);}
+    .m-topbar .t-btn svg{width:14px;height:14px;color:var(--muted);}
+    .m-topbar .t-title{
+      flex:1;min-width:0;font-size:13px;color:var(--ink-2);font-weight:500;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+
+    .sidebar{
+      position:fixed;left:auto;right:14px;top:auto;bottom:78px;
+      width:min(80vw,320px);height:auto;max-height:min(64vh,580px);
+      z-index:70;border:1px solid var(--line);border-radius:18px;
+      background:var(--chrome);padding:16px 16px 22px;
+      box-shadow:0 20px 56px -14px rgba(0,0,0,.32);
+      opacity:0;transform:translateY(18px) scale(.97);pointer-events:none;
+      transition:opacity .26s ease,transform .26s cubic-bezier(.2,.8,.3,1);
+    }
+    .sidebar.open{opacity:1;transform:none;pointer-events:auto;}
+    .m-close{
+      display:inline-flex;align-items:center;justify-content:center;margin-left:auto;flex:none;
+      width:30px;height:30px;border-radius:8px;border:1px solid var(--line);
+      background:var(--surface);color:var(--muted);cursor:pointer;padding:0;
+    }
+    .m-close svg{width:14px;height:14px;}
+    .m-close:hover{color:var(--ink);border-color:#d3d3cd;}
+
+    .scrim{
+      display:block;position:fixed;inset:0;z-index:65;
+      background:rgba(21,23,28,.34);opacity:0;pointer-events:none;transition:opacity .26s;
+    }
+    .scrim.show{opacity:1;pointer-events:auto;}
+
+    .m-fab{
+      display:inline-flex;align-items:center;gap:7px;
+      position:fixed;right:14px;bottom:16px;z-index:60;
+      font-family:var(--sans);font-size:13px;color:#fff;
+      background:var(--ink);border:1px solid var(--ink);border-radius:999px;
+      padding:11px 16px;cursor:pointer;
+      box-shadow:0 10px 26px -6px rgba(0,0,0,.45);
+      opacity:0;transform:translateY(14px) scale(.9);pointer-events:none;
+      transition:opacity .24s,transform .24s,background .16s;
+    }
+    .m-fab.show{opacity:1;transform:none;pointer-events:auto;}
+    .m-fab:hover{background:#2b2f38;}
+    .m-fab svg{width:15px;height:15px;}
+
+    .main{padding:26px 22px 96px;}
+    .cols{grid-template-columns:1fr;}
+  }
+
+  /* 手机小屏：表格转卡片 */
+  @media (max-width:820px){
+    table,tbody,tr,td{display:block;width:100%;}
+    thead{display:none;}
+    table{font-size:12.5px;}
+    tr{
+      background:var(--surface);border:1px solid var(--line);border-radius:12px;
+      padding:11px 14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.03);
+    }
+    td{border:0;padding:3px 0;}
+    td:first-child{font-weight:600;font-size:13.5px;padding-bottom:6px;white-space:normal;}
+    td:not(:first-child){
+      position:relative;padding:3px 0 3px 76px;font-size:12.5px;color:var(--ink-2);
+    }
+    td:not(:first-child)::before{
+      content:attr(data-label);position:absolute;left:0;top:3px;width:68px;
+      font-size:11px;color:var(--muted);
+    }
+  }
+
+  @media (max-width:680px){
+    body{font-size:14px;line-height:1.72;overflow-wrap:anywhere;}
+    h2.title{font-size:23px;letter-spacing:-.015em;}
+    .sub{font-size:14px;}
+    .kicker{font-size:10px;padding:4px 9px;}
+    .facts{gap:7px;}
+    .fact{flex:1 1 calc(50% - 4px);min-width:0;padding:9px 11px;}
+    .fact b{font-size:14px;}
+    .fact span{font-size:10.5px;}
+    .grid4{grid-template-columns:1fr 1fr;gap:9px;}
+    .dcard{padding:12px 13px;}
+    .dcard .v{font-size:16px;}
+    .main{padding:22px 15px 92px;}
+    section{margin-top:38px;}
+    .sec-head{flex-wrap:wrap;gap:8px;}
+    .sec-head h3{font-size:18px;}
+    .sec-head .tag{margin-left:0;width:100%;}
+    .core-body h4{font-size:14px;}
+    .core-body p{font-size:13px;}
+    .panel{padding:14px 15px;}
+    .panel li{font-size:13px;}
+    .panel h4{font-size:13px;}
+    .callout{padding:14px 15px;}
+    .callout p{font-size:13px;}
+    .foot{gap:6px 14px;font-size:11.5px;}
+    .note{font-size:12px;}
+  }
+
+  :root{--accent:#13c2c2;--accent-ink:#008690;--accent-soft:rgba(19,194,194,.10);--accent-line:rgba(19,194,194,.28);}
+  .tbl-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .tbl-wrap table{margin-top:0;}
+  @media (max-width:820px){ .tbl-wrap{overflow-x:visible;} }
+</style>
+</head>
+<body id="top">
+<div class="scrim" id="scrim"></div>
+
+<div class="m-topbar">
+  <button class="t-btn" id="menuBtn" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+    目录
+  </button>
+  <span class="m-title" id="mTitle">jeecg-study</span>
+  <button class="t-btn" id="topBtn" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/></svg>
+    顶部
+  </button>
+</div>
+
+<div class="shell">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg></span>
+      <h1>jeecg-study</h1>
+      <button class="m-close" id="closeBtn" type="button" aria-label="关闭导航">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="meta-line">20261031 · V1.2 · 数据库设计</div>
+
+    <div class="nav-title">快速跳转</div>
+    <a class="nav-link" href="#top"><span>↑ 页面顶部</span></a>
+    <a class="nav-link" href="#bottom"><span>↓ 页面底部</span></a>
+
+    <div class="nav-title">章节</div>
+    <a class="nav-link" href="#db">库与连接约定</a>
+    <a class="nav-link" href="#conv">建表规约<span class="lv">规约</span></a>
+    <a class="nav-link" href="#er">ER 关系总览<span class="lv">20 表</span></a>
+    <a class="nav-link" href="#base">底座实体表<span class="lv">6 表</span></a>
+    <a class="nav-link" href="#content">内容实体表<span class="lv">10 表</span></a>
+    <a class="nav-link" href="#behavior">行为记录表<span class="lv">3 表</span></a>
+    <a class="nav-link" href="#rel">关联表<span class="lv">V1+</span></a>
+    <a class="nav-link" href="#family">家庭与成员表<span class="lv">4 表</span></a>
+    <a class="nav-link" href="#scope">child_id 数据隔离<span class="lv">8 表</span></a>
+    <a class="nav-link" href="#dict">数据字典</a>
+    <a class="nav-link" href="#index">索引与性能</a>
+    <a class="nav-link" href="#migrate">迁移与初始化</a>
+    <a class="nav-link" href="#seed">种子数据</a>
+
+    <div class="nav-title">表分布</div><div class="mini-rate"><div class="mini-row"><span>底座实体</span><span class="bar"><i style="width:100%;background:#13c2c2"></i></span><span class="n">5</span></div><div class="mini-row"><span>内容实体</span><span class="bar"><i style="width:100%;background:#13c2c2"></i></span><span class="n">10</span></div><div class="mini-row"><span>行为记录</span><span class="bar"><i style="width:100%;background:#13c2c2"></i></span><span class="n">3</span></div><div class="mini-row"><span>关联表</span><span class="bar"><i style="width:60%;background:#b07d12"></i></span><span class="n">V1+</span></div></div>
+  </aside>
+
+  <main class="main">
+    <div class="kicker"><i></i>代码开发 · 数据模型</div>
+    <h2 class="title">数据库设计说明书</h2>
+    <p class="sub">jeecg-study 数据库设计说明书 V1.2。基于 MySQL 8 的单库 jeecg-study（平台表 133 张与业务表同库），给出 23 张业务表的完整 DDL、索引、ER 关系与数据字典，支撑「六模块共享一份学情」「多孩子多家长按 child_id 隔离」与「语境库一次建库两处受益」三个核心目标。</p>
+    <div class="facts"><div class="fact"><b>23</b><span>业务表</span></div><div class="fact"><b>18</b><span>核心实体</span></div><div class="fact"><b>MySQL 8</b><span>数据库</span></div><div class="fact"><b>jeecg-study</b><span>单库名</span></div><div class="fact"><b>10</b><span>模块实体表</span></div><div class="fact"><b>0</b><span>租户字段</span></div></div>
+
+<section id="db">
+  <div class="sec-head"><span class="sec-num">01</span><h3>库与连接约定</h3><span class="tag">怎么连</span></div>
+  <p>库与连接约定</p>
+<h3>1.1 单库策略（V1.1 变更：双库 → 单库）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>库</th>
+<th>内容</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>jeecg-study</code></td>
+<td><strong>平台表</strong>（JeecgBoot 自带 133 张：<code>sys_*</code> <code>qiankun_*</code> <code>onl_*</code> <code>airag_*</code> 等）<strong>+ 业务表</strong>（本文件定义的 17 张）</td>
+<td>JeecgBoot v3.9.2 上游全量脚本（只改库名）+ 本项目业务表</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>为什么改成单库</strong>：</p>
+<ol>
+<li><strong>独立基座</strong>：jeecg-study 使用<strong>自己拉取的 JeecgBoot v3.9.2</strong>（<code>02-代码开发/05-源码/01-JeecgBoot基座/</code>），与 monitorV2 完全隔离，不共享 <code>jeecg-boot</code> 库——共享就谈不上「独立」。</li>
+<li><strong>多用户需要平台表</strong>：家长账号就是 JeecgBoot <code>sys_user</code>，孩子也是 <code>sys_user</code>（角色 <code>study_kid</code>）。平台表与业务表同库，关联查询与事务边界才简单。</li>
+<li><strong>不需要双数据源</strong>：<code>@DS("study")</code> 随之取消（ADR-015 取代 ADR-001）。</li>
+</ol>
+<blockquote>
+<p>⚠️ <strong>这改变了原 ADR-001（双数据源）</strong>。若将来要拆分，只需在 <code>spring.datasource.dynamic.datasource</code> 下新增一个 <code>study</code> 键并给业务 Mapper 加 <code>@DS("study")</code>，<strong>业务代码无需改动</strong>——底座的 dynamic-datasource 已经就位。</p>
+</blockquote>
+<p><strong>平台表来源</strong>：上游 <code>jeecg-boot/db/jeecgboot-mysql-5.7.sql</code>（133 张表 + 7446 条种子数据），
+由 <code>05-公共资源/2026103018-平台库脚本.py</code> <strong>只改库名</strong>生成 <code>03-脚本/01-平台库初始化.sql</code>。
+上游原文件<strong>保持不动</strong>，便于日后对照 v3.9.2 升级。</p>
+<h3>1.2 连接参数</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>主机 / 端口</td>
+<td><code>127.0.0.1:3306</code></td>
+</tr>
+<tr>
+<td>库名</td>
+<td><code>jeecg-study</code>（平台表 + 业务表同库）</td>
+</tr>
+<tr>
+<td>字符集</td>
+<td><code>utf8mb4</code></td>
+</tr>
+<tr>
+<td>排序规则</td>
+<td><code>utf8mb4_unicode_ci</code></td>
+</tr>
+<tr>
+<td>用户</td>
+<td><code>root</code></td>
+</tr>
+<tr>
+<td>密码</td>
+<td>环境变量 <code>DB_PASSWORD</code> 注入（<strong>不入库</strong>；未设置时回落上游默认 <code>root</code>）</td>
+</tr>
+<tr>
+<td>JDBC URL</td>
+<td><code>jdbc:mysql://127.0.0.1:3306/jeecg-study?characterEncoding=UTF-8&amp;useUnicode=true&amp;useSSL=false&amp;tinyInt1isBit=false&amp;allowPublicKeyRetrieval=true&amp;serverTimezone=Asia/Shanghai</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>口令<strong>一律</strong>由环境变量 <code>${DB_PASSWORD}</code> 注入：<code>application-dev.yml</code> 与 <code>application-test.yml</code> 写 <code>${DB_PASSWORD:root}</code>，
+<code>application-prod.yml</code> 写 <code>${DB_PASSWORD}</code>（无缺省，生产必须显式注入）。<strong>真实口令不写入任何入库文件。</strong></p>
+</blockquote>
+<h3>1.3 建库</h3>
+<pre class="cmd"><code class="language-sql">CREATE DATABASE IF NOT EXISTS `jeecg-study`
+  DEFAULT CHARACTER SET utf8mb4
+  DEFAULT COLLATE utf8mb4_unicode_ci;
+
+USE `jeecg-study`;
+</code></pre>
+<blockquote>
+<p><strong>库名是部署参数</strong>：脚本里出现的库名一律是字面量，由部署脚本 <code>migrate.ps1</code> 按环境（dev / test / acc / prod）做替换后再执行。
+<strong>每个脚本自带 <code>USE</code></strong>，因此不依赖调用方预先选库——直接 <code>mysql &lt; 脚本.sql</code> 也能落到正确的库。</p>
+</blockquote>
+</section>
+<section id="conv">
+  <div class="sec-head"><span class="sec-num">02</span><h3>建表规约</h3><span class="tag">统一写法</span></div>
+  <p>建表规约</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>约定</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>表前缀</td>
+<td><code>study_</code></td>
+<td>与平台表隔离，便于识别</td>
+</tr>
+<tr>
+<td>主键</td>
+<td><code>id varchar(32)</code>，<strong>不用自增</strong></td>
+<td>内容 ID 具备业务语义（<code>KPT-MA-0417</code>），且跨库可引用</td>
+</tr>
+<tr>
+<td>业务 ID</td>
+<td>内容表用 <code>xxx_code varchar(32)</code> 存业务 ID（如 <code>KPT-MA-0417</code>），<code>id</code> 存 UUID</td>
+<td>业务 ID 对外暴露且稳定，<code>id</code> 对内关联</td>
+</tr>
+<tr>
+<td>逻辑删除</td>
+<td><code>del_flag tinyint default 0</code></td>
+<td>JeecgBoot 底座约定</td>
+</tr>
+<tr>
+<td>审计字段</td>
+<td><code>create_by / create_time / update_by / update_time</code></td>
+<td>JeecgBoot 底座约定，<code>create_time</code>/<code>update_time</code> 用 <code>datetime</code></td>
+</tr>
+<tr>
+<td>时间</td>
+<td>一律 <code>datetime</code>，<strong>不用 <code>timestamp</code></strong></td>
+<td>避免 2038 问题与隐式时区转换</td>
+</tr>
+<tr>
+<td>金额/分数</td>
+<td><code>decimal</code></td>
+<td>浮点误差</td>
+</tr>
+<tr>
+<td>JSON 字段</td>
+<td><code>json</code> 类型</td>
+<td>MySQL 8 原生支持；半结构化内容（母题五段、拆解六层）</td>
+</tr>
+<tr>
+<td>状态字段</td>
+<td><code>tinyint</code> + 枚举注释</td>
+<td>避免 MySQL <code>ENUM</code> 改值时的锁表与迁移痛苦</td>
+</tr>
+<tr>
+<td>索引</td>
+<td>每个外键列建索引；组合索引遵循最左前缀</td>
+<td>—</td>
+</tr>
+<tr>
+<td>注释</td>
+<td><strong>每张表、每个字段必须有 <code>COMMENT</code></strong></td>
+<td>交接与排错的基础</td>
+</tr>
+<tr>
+<td>命名</td>
+<td>全小写下划线</td>
+<td>与 JeecgBoot 底座一致</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>注意</strong>：本库<strong>不建</strong> <code>tenant_id</code> 列。系统是<strong>多家庭多用户但不做多租户</strong>（PRD N-05 改写版）：隔离维度是 <code>child_id</code>（孩子），不是租户。预留租户字段是典型的过度设计。</p>
+</blockquote>
+</section>
+<section id="er">
+  <div class="sec-head"><span class="sec-num">03</span><h3>ER 关系总览</h3><span class="tag">一张图</span></div>
+  <p>ER 关系总览</p>
+<pre class="cmd"><code>                        ┌────────────────────┐
+                        │ study_context      │  全局上下文（省/学段/年级/教材）
+                        └─────────┬──────────┘
+                                  │ 1:N
+                        ┌─────────▼──────────┐
+        ┌───────────────▶│ study_knowledge_   │  坐标树（4 层，版本化）
+        │                │ point              │
+        │                └─────────┬──────────┘
+        │                          │ 1:N（被引用）
+        │      ┌───────────┬───────┴───────┬───────────┬────────────┐
+        │      │           │               │           │            │
+   ┌────▼────┐│  ┌────────▼─────┐  ┌──────▼──────┐ ┌──▼───────┐ ┌──▼────────┐
+   │study_   ││  │study_        │  │study_       │ │study_    │ │study_    │
+   │question ││  │mother_       │  │word         │ │grammar_  │ │writing_  │
+   │         ││  │question      │  │             │ │point     │ │          │
+   └────┬────┘│  └──────┬───────┘  └──────┬──────┘ └──┬───────┘ └──┬────────┘
+        │     │         │                 │           │          │
+        │     │         │ 变式生成         │           │          │
+        │     │    ┌────▼──────┐          │           │          │
+        │     └───▶│study_     │          │           │          │
+        │          │question_  │          │           │          │
+        │          │variant    │          │           │          │
+        │          └───────────┘          │           │          │
+        │                                 │           │          │
+        └─────────────┬───────────────────┴───────────┴──────────┘
+                      │ 1:N（所有模块的错题都进这一个池子）
+            ┌─────────▼──────────┐
+            │ study_error_pool   │  统一错题池
+            └─────────┬──────────┘
+                      │ 1:N
+            ┌─────────▼──────────┐
+            │ study_review_      │  统一复习排期（一条队列管全部模块）
+            │ schedule           │
+            └────────────────────┘
+
+    ┌──────────────────┐   ┌──────────────────────┐   ┌────────────────────┐
+    │ study_practice_  │   │ study_eye_usage     │   │ study_parent_      │
+    │ record（按月分表）│   │ 用眼记录              │   │ feedback（家长反馈）│
+    └──────────────────┘   └──────────────────────┘   └────────────────────┘
+</code></pre>
+<p><strong>关键设计</strong>：<code>study_error_pool</code> 是<strong>唯一</strong>的错题存放处。六模块的内容表通过 <code>content_id</code> + <code>content_type</code> 指向它，<strong>不各自建错题表</strong>。这是 PRD F-WRG-04 与《系统设计说明书》G-01 的数据层实现。</p>
+</section>
+<section id="base">
+  <div class="sec-head"><span class="sec-num">04</span><h3>底座实体表</h3><span class="tag">P0</span></div>
+  <p>底座实体表</p>
+<h3>4.1 study_context — 全局上下文</h3>
+<pre class="cmd"><code class="language-sql">CREATE TABLE `study_context` (
+  `id`               varchar(32)  NOT NULL COMMENT '主键',
+  `context_code`     varchar(32)  NOT NULL COMMENT '上下文编码',
+  `province_code`    varchar(16)  NOT NULL COMMENT '省级行政区编码',
+  `province_name`    varchar(32)  NOT NULL COMMENT '省级行政区名称',
+  `stage_code`       varchar(16)  NOT NULL COMMENT '学段编码 PRIMARY/JUNIOR/SENIOR',
+  `grade_code`       varchar(16)  NOT NULL COMMENT '年级编码 G1..G12',
+  `textbook_version_id` varchar(32) NOT NULL COMMENT '教材版本ID',
+  `eye_interval_min` int          NOT NULL DEFAULT 15 COMMENT '护眼提醒间隔(分钟)',
+  `is_current`       tinyint      NOT NULL DEFAULT 0 COMMENT '是否当前生效 1是 0否',
+  `effective_from`   datetime     NOT NULL COMMENT '生效时间',
+  `del_flag`         tinyint      NOT NULL DEFAULT 0 COMMENT '删除标记 0正常 1删除',
+  `create_by`        varchar(50)  DEFAULT NULL COMMENT '创建人',
+  `create_time`      datetime     DEFAULT NULL COMMENT '创建时间',
+  `update_by`        varchar(50)  DEFAULT NULL COMMENT '更新人',
+  `update_time`      datetime     DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_context_code` (`context_code`),
+  KEY `idx_context_current` (`is_current`, `del_flag`),
+  KEY `idx_context_scope` (`province_code`, `stage_code`, `grade_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='全局上下文(地区/学段/年级/教材版本)';
+</code></pre>
+<p><strong>设计说明</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>is_current</code></td>
+<td>全表最多一行 <code>is_current=1</code>；切换上下文时旧行置 0，<strong>不删除</strong></td>
+</tr>
+<tr>
+<td>历史隔离</td>
+<td>练习记录、错题携带 <code>context_id</code>，切换上下文后历史记录仍属旧上下文（系统设计 5.1）</td>
+</tr>
+<tr>
+<td><code>eye_interval_min</code></td>
+<td>护眼间隔按学段配置（F-EYE-04）</td>
+</tr>
+<tr>
+<td>单上下文约束</td>
+<td>应用层保证「同时只有一行 is_current=1」，数据库层不加唯一约束（避免切换过程中的写冲突）</td>
+</tr>
+</tbody>
+</table></div>
+<h3>4.2 study_textbook_version — 教材版本维表</h3>
+<pre class="cmd"><code class="language-sql">CREATE TABLE `study_textbook_version` (
+  `id`            varchar(32) NOT NULL COMMENT '主键',
+  `version_code`  varchar(32) NOT NULL COMMENT '教材版本编码',
+  `version_name`  varchar(32) NOT NULL COMMENT '教材版本名称',
+  `publisher`     varchar(64) DEFAULT NULL COMMENT '出版社',
+  `region_scope`  varchar(128) DEFAULT NULL COMMENT '适用地区(逗号分隔)',
+  `stage_code`    varchar(16) NOT NULL COMMENT '适用学段',
+  `sort_no`       int         NOT NULL DEFAULT 0 COMMENT '排序号',
+  `del_flag`      tinyint     NOT NULL DEFAULT 0 COMMENT '删除标记',
+  `create_by`     varchar(50) DEFAULT NULL COMMENT '创建人',
+  `create_time`   datetime    DEFAULT NULL COMMENT '创建时间',
+  `update_by`     varchar(50) DEFAULT NULL COMMENT '更新人',
+  `update_time`   datetime    DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_version_code` (`version_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='教材版本维表(人教/苏教/北师大/浙教/沪教/京教/鲁教)';
+</code></pre>
+<p><strong>首版内置 7 个版本</strong>（PRD F-REG-03 要求全支持）：<code>RENJIAO</code> 人教版、<code>SUJIAO</code> 苏教版、<code>BEISHIDA</code> 北师大版、<code>ZHEJIAO</code> 浙教版、<code>HUJIAO</code> 沪教版、<code>JINGJIAO</code> 京教版、<code>LUJIAO</code> 鲁教版。</p>
+<h3>4.3 study_knowledge_point — 坐标树</h3>
+<pre class="cmd"><code class="language-sql">CREATE TABLE `study_knowledge_point` (
+  `id`              varchar(32)  NOT NULL COMMENT '主键',
+  `point_code`      varchar(32)  NOT NULL COMMENT '业务ID KPT-{学科码}-{序号}',
+  `parent_id`       varchar(32)  DEFAULT NULL COMMENT '父节点ID',
+  `level`           tinyint      NOT NULL COMMENT '层级 1考纲 2学科 3单元 4考点',
+  `subject_code`    varchar(16)  NOT NULL COMMENT '学科编码 MA/CH/EN/CN',
+  `name`            varchar(128) NOT NULL COMMENT '名称',
+  `path`            varchar(512) DEFAULT NULL COMMENT '物化路径 /id/id/id/',
+  `question_type`   varchar(64)  DEFAULT NULL COMMENT '考点:题型',
+  `score_weight`    decimal(5,2) DEFAULT NULL COMMENT '考点:分值权重',
+  `error_types`     varchar(256) DEFAULT NULL COMMENT '考点:常见错误类型(逗号分隔)',
+  `mother_question_code` varchar(32) DEFAULT NULL COMMENT '考点:对应母题业务ID',
+  `version`         varchar(16)  NOT NULL DEFAULT 'v1' COMMENT '节点版本',
+  `effective_from`  date         NOT NULL COMMENT '生效日期',
+  `invalid_at`      date         DEFAULT NULL COMMENT '失效日期(NULL=现行)',
+  `status`          tinyint      NOT NULL DEFAULT 1 COMMENT '状态 1现行 0失效',
+  `sort_no`         int          NOT NULL DEFAULT 0 COMMENT '排序号',
+  `del_flag`        tinyint      NOT NULL DEFAULT 0 COMMENT '删除标记',
+  `create_by`       varchar(50)  DEFAULT NULL COMMENT '创建人',
+  `create_time`     datetime     DEFAULT NULL COMMENT '创建时间',
+  `update_by`       varchar(50)  DEFAULT NULL COMMENT '更新人',
+  `update_time`     datetime     DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_point_code` (`point_code`),
+  KEY `idx_kp_parent` (`parent_id`, `status`),
+  KEY `idx_kp_subject` (`subject_code`, `level`, `status`),
+  KEY `idx_kp_context` (`effective_from`, `invalid_at`),
+  KEY `idx_kp_mother` (`mother_question_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='坐标树节点(地区考纲/学科/单元/考点, 四层, 版本化)';
+</code></pre>
+<p><strong>设计说明</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>四层</td>
+<td><code>level</code> 1=地区考纲，2=学科，3=单元/章节，4=考点。<code>parent_id</code> 为空表示根</td>
+</tr>
+<tr>
+<td><code>path</code> 物化路径</td>
+<td>用于一次查询取子树：<code>path LIKE '/rootId/%'</code></td>
+</tr>
+<tr>
+<td><strong>版本化</strong></td>
+<td>考纲调整时<strong>插入新版本节点</strong>，旧节点置 <code>invalid_at</code> 与 <code>status=0</code>，<strong>不 UPDATE 不 DELETE</strong>（PRD F-REG-05）</td>
+</tr>
+<tr>
+<td><code>point_code</code> 唯一</td>
+<td>业务 ID 永久不变，即使节点失效也不复用（系统设计 5.3）</td>
+</tr>
+<tr>
+<td><code>error_types</code></td>
+<td>考点级常见错因；由真实错题反推后回填</td>
+</tr>
+<tr>
+<td>母题外键</td>
+<td>用 <code>mother_question_code</code> 业务 ID 而非 <code>id</code>，便于跨库与人工核对</td>
+</tr>
+</tbody>
+</table></div>
+<h3>4.4 study_error_pool — 统一错题池（核心表）</h3>
+<pre class="cmd"><code class="language-sql">CREATE TABLE `study_error_pool` (
+  `id`              varchar(32)  NOT NULL COMMENT '主键',
+  `error_code`      varchar(32)  NOT NULL COMMENT '业务ID ERR-{序号}',
+  `context_id`      varchar(32)  NOT NULL COMMENT '所属全局上下文',
+  `source_module`   varchar(16)  NOT NULL COMMENT '来源模块 ERROR/WORD/MATH/GRAMMAR/WRITING',
+  `content_type`    varchar(24)  NOT NULL COMMENT '内容类型 QUESTION/WORD/SENTENCE/PARAGRAPH',
+  `content_id`      varchar(32)  NOT NULL COMMENT '关联内容业务ID',
+  `content_snapshot` json         DEFAULT NULL COMMENT '内容快照(题干/选项/答案)',
+  `knowledge_point_code` varchar(32) DEFAULT NULL COMMENT '所属考点业务ID',
+  `subject_code`    varchar(16)  DEFAULT NULL COMMENT '学科编码',
+  `error_cause`     varchar(16)  NOT NULL COMMENT '错因 CONCEPT/READING/CALC/METHOD/TIME',
+  `raw_answer`      varchar(1024) DEFAULT NULL COMMENT '孩子原始作答',
+  `correct_answer`  varchar(1024) DEFAULT NULL COMMENT '正确答案',
+  `judge_source`    varchar(16)  NOT NULL DEFAULT 'rule' COMMENT '判定来源 rule/rule+model',
+  `mastery_state`   tinyint      NOT NULL DEFAULT 1 COMMENT '掌握度 1未知 2学习中 3熟悉 4掌握',
+  `correct_streak`  int          NOT NULL DEFAULT 0 COMMENT '连续做对次数',
+  `review_status`   tinyint      NOT NULL DEFAULT 1 COMMENT '复习状态 1待复习 2已移出',
+  `next_review_at`  date         DEFAULT NULL COMMENT '下次复习日期',
+  `last_review_at`  datetime     DEFAULT NULL COMMENT '上次复习时间',
+  `archived_at`     datetime     DEFAULT NULL COMMENT '移出时间',
+  `upgrade_flag`    tinyint      NOT NULL DEFAULT 0 COMMENT '跨线升级标记(课内→课外)',
+  `source_ref`      varchar(256) DEFAULT NULL COMMENT '版权来源说明/出处',
+  `copyright_type`  varchar(16)  NOT NULL DEFAULT 'SELF' COMMENT '版权类型 SELF/PUBLIC/LICENSE',
+  `del_flag`        tinyint      NOT NULL DEFAULT 0 COMMENT '删除标记',
+  `create_by`       varchar(50)  DEFAULT NULL COMMENT '创建人',
+  `create_time`     datetime     DEFAULT NULL COMMENT '创建时间',
+  `update_by`       varchar(50)  DEFAULT NULL COMMENT '更新人',
+  `update_time`     datetime     DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_error_code` (`error_code`),
+  KEY `idx_err_review` (`review_status`, `next_review_at`),
+  KEY `idx_err_content` (`content_type`, `content_id`),
+  KEY `idx_err_kp` (`knowledge_point_code`),
+  KEY `idx_err_module` (`source_module`, `create_time`),
+  KEY `idx_err_cause` (`error_cause`),
+  KEY `idx_err_context` (`context_id`),
+  KEY `idx_err_upgrade` (`upgrade_flag`, `review_status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='统一错题池(全模块错题唯一存放处)';
+</code></pre>
+<p><strong>设计说明</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>唯一错题池</strong></td>
+<td>全库唯一一张错题表。各模块<strong>不得</strong>另建错题表（PRD F-WRG-04）</td>
+</tr>
+<tr>
+<td><code>error_cause</code> NOT NULL</td>
+<td>缺失直接抛 4001 错误，<strong>不允许</strong>空错因入库（PRD F-WRG-01）</td>
+</tr>
+<tr>
+<td><code>judge_source</code></td>
+<td>只有 <code>rule</code> / <code>rule+model</code> 两种取值，<strong>不存在</strong> <code>model</code>（红线 R-02 的数据层保险）</td>
+</tr>
+<tr>
+<td><code>content_snapshot</code></td>
+<td>存快照，避免内容修订后错题失真；同时支撑「原始作答对照」</td>
+</tr>
+<tr>
+<td><code>mastery_state</code></td>
+<td>考点级掌握度在本表冗余一份便于队列查询；权威值在 <code>study_kp_mastery</code></td>
+</tr>
+<tr>
+<td><code>next_review_at</code></td>
+<td>排期写入与错题写入同事务（N-04）</td>
+</tr>
+<tr>
+<td><code>upgrade_flag</code></td>
+<td>课内背错的词置 1，课外线查询时加权（F-WRD-05）</td>
+</tr>
+<tr>
+<td><code>copyright_type</code></td>
+<td>自编 / 公开 / 授权。导入非自编题目时<strong>必须</strong>填 <code>source_ref</code>（PRD F-WRG-06）</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong><code>judge_source</code> 强约束</strong>：只有 <code>rule</code> / <code>rule+model</code> 两种取值，<strong>不存在</strong> <code>model</code>。可在数据库层加 <code>CHECK</code> 约束做第二道保险（MySQL 8.0.16+ 支持 CHECK）。</p>
+</blockquote>
+<h3>4.5 study_review_schedule — 统一复习排期</h3>
+<pre class="cmd"><code class="language-sql">CREATE TABLE `study_review_schedule` (
+  `id`             varchar(32) NOT NULL COMMENT '主键',
+  `error_code`     varchar(32) NOT NULL COMMENT '错题业务ID',
+  `context_id`     varchar(32) NOT NULL COMMENT '全局上下文',
+  `source_module`  varchar(16) NOT NULL COMMENT '来源模块',
+  `schedule_date`  date        NOT NULL COMMENT '计划复习日期',
+  `sort_score`     decimal(10,4) NOT NULL DEFAULT 0 COMMENT '排序分(薄弱度×遗忘风险)',
+  `queue_date`     date        DEFAULT NULL COMMENT '物化队列日期(NULL=未物化)',
+  `seq_no`         int         NOT NULL DEFAULT 0 COMMENT '队列内序号',
+  `status`         tinyint     NOT NULL DEFAULT 1 COMMENT '状态 1待复习 2已完成 3已顺延',
+  `completed_at`   datetime    DEFAULT NULL COMMENT '完成时间',
+  `del_flag`       tinyint     NOT NULL DEFAULT 0 COMMENT '删除标记',
+  `create_by`      varchar(50) DEFAULT NULL COMMENT '创建人',
+  `create_time`    datetime    DEFAULT NULL COMMENT '创建时间',
+  `update_by`      varchar(50) DEFAULT NULL COMMENT '更新人',
+  `update_time`    datetime    DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_schedule_error_date` (`error_code`, `schedule_date`),
+  KEY `idx_sched_queue` (`queue_date`, `status`, `sort_score`),
+  KEY `idx_sched_date` (`schedule_date`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='统一复习排期(一条队列管全部模块)';
+</code></pre>
+<p><strong>设计说明</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>唯一键</td>
+<td><code>(error_code, schedule_date)</code> —— 同一条错题同一天只排一次</td>
+</tr>
+<tr>
+<td><code>sort_score</code></td>
+<td>薄弱度 × 遗忘风险，降序排前（系统设计 6.2）</td>
+</tr>
+<tr>
+<td><code>queue_date</code></td>
+<td>物化到某天后当天顺序不变；为 NULL 表示尚未进入某日队列</td>
+</tr>
+<tr>
+<td>单日上限 50</td>
+<td>超出的顺延到次日，由应用层控制（PRD 未定义上限，此处定为 50）</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>排期状态机</strong>（对应系统设计 6.1）：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>当前</th>
+<th>动作</th>
+<th>下次复习</th>
+<th>移出</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>当天</td>
+<td>答错</td>
+<td>当天</td>
+<td>—</td>
+</tr>
+<tr>
+<td>+1 天</td>
+<td>答对</td>
+<td>+3 天</td>
+<td>—</td>
+</tr>
+<tr>
+<td>+3 天</td>
+<td>答对</td>
+<td>+7 天</td>
+<td>—</td>
+</tr>
+<tr>
+<td>+7 天</td>
+<td>答对</td>
+<td>—</td>
+<td><strong>连续三次做对即移出</strong></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>移出阈值 = 3（连续三次做对）。取 2 会让 <code>+7 天</code> 档在业务上不可达，故不取。
+<code>+14 天</code>档在业务阶梯中不出现，仅作为 <code>nextIntervalDays(4)</code> 的策略层保留定义。</p>
+</blockquote>
+<h3>4.6 study_id_sequence — 统一业务ID分配器</h3>
+<p>内容 ID 有业务语义（<code>KPT-MA-0417</code> / <code>CHD-0001</code>），必须集中分配、<strong>失效后不回收</strong>。
+序号由本表原子分配，避免各处 <code>max(id)+1</code> 造成的并发重复。</p>
+<pre class="cmd"><code class="language-sql">CREATE TABLE `study_id_sequence` (
+  `id`          varchar(32) NOT NULL COMMENT '主键',
+  `prefix`      varchar(16) NOT NULL COMMENT '业务ID前缀 KPT/QST/MTH/WRD/GRP/WRT/ERR/CHD',
+  `next_value`  bigint      NOT NULL DEFAULT 1 COMMENT '下一个可用序号',
+  `step`        int         NOT NULL DEFAULT 1 COMMENT '步长',
+  `del_flag`    tinyint     NOT NULL DEFAULT 0 COMMENT '删除标记 0正常 1删除',
+  `create_by`   varchar(50) DEFAULT NULL COMMENT '创建人',
+  `create_time` datetime    DEFAULT NULL COMMENT '创建时间',
+  `update_by`   varchar(50) DEFAULT NULL COMMENT '更新人',
+  `update_time` datetime    DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_prefix` (`prefix`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='统一业务ID分配器';
+</code></pre>
+<!--update-begin---author:mavis ---date:2026-10-31  for：【F-GRM-05 / F-GRM-04】登记 SCT / GAM 业务ID前缀----------- -->
+
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>前缀</th>
+<th>业务对象</th>
+<th>样例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>KPT</code></td>
+<td>考点</td>
+<td><code>KPT-MA-0417</code></td>
+</tr>
+<tr>
+<td><code>QST</code></td>
+<td>题目</td>
+<td><code>QST-000123</code></td>
+</tr>
+<tr>
+<td><code>MTH</code></td>
+<td>母题</td>
+<td><code>MTH-000021</code></td>
+</tr>
+<tr>
+<td><code>WRD</code></td>
+<td>单词</td>
+<td><code>WRD-003512</code></td>
+</tr>
+<tr>
+<td><code>GRP</code></td>
+<td>语法点</td>
+<td><code>GRP-000045</code></td>
+</tr>
+<tr>
+<td><code>WRT</code></td>
+<td>写作拆解</td>
+<td><code>WRT-000012</code></td>
+</tr>
+<tr>
+<td><code>ERR</code></td>
+<td>错题</td>
+<td><code>ERR-000234</code></td>
+</tr>
+<tr>
+<td><code>CHD</code></td>
+<td>孩子</td>
+<td><code>CHD-000003</code></td>
+</tr>
+<tr>
+<td><code>SCT</code></td>
+<td>例句语境（F-GRM-05）</td>
+<td><code>SCT-000123</code></td>
+</tr>
+<tr>
+<td><code>GAM</code></td>
+<td>玩法题目（F-GRM-04）</td>
+<td><code>GAM-000026</code></td>
+</tr>
+</tbody>
+</table></div>
+<!--update-end---author:mavis ---date:2026-10-31  for：【F-GRM-05 / F-GRM-04】登记 SCT / GAM 业务ID前缀----------- -->
+
+<blockquote>
+<p><strong>分配规则</strong>：序号<strong>只增不复用</strong>——删除的孩子的 <code>CHD-000003</code> 永远不会被重新分配出去，
+否则历史错题、家长反馈里的 childCode 会指向另一个孩子。</p>
+</blockquote>
+</section>
+<section id="content">
+  <div class="sec-head"><span class="sec-num">05</span><h3>内容实体表</h3><span class="tag">各模块</span></div>
+  <p>内容实体表</p>
+<h3>5.1 study_question — 题目</h3>
+<pre class="cmd"><code class="language-sql">CREATE TABLE `study_question` (
+  `id`             varchar(32)  NOT NULL COMMENT '主键',
+  `question_code`  varchar(32)  NOT NULL COMMENT '业务ID QST-{来源}-{年份}-{序号}',
+  `question_type`  varchar(24)  NOT NULL COMMENT '题型 SINGLE/FILL/NUMERIC/EXPRESSION/WORD/SENTENCE',
+  `subject_code`   varchar(16)  NOT NULL COMMENT '学科编码',
+  `knowledge_point_code` varchar(32) DEFAULT NULL COMMENT '所属考点业务ID',
+  `stem`           text         NOT NULL COMMENT '题干',
+  `options`        json         DEFAULT NULL COMMENT '选项 [{key,text}]',
+  `answer`         varchar(512) NOT NULL COMMENT '正确答案',
+  `answer_tolerance` decimal(10,4) DEFAULT NULL COMMENT '数值容差',
+  `analysis`       text         DEFAULT NULL COMMENT '解析',
+  `difficulty`     tinyint      NOT NULL DEFAULT 3 COMMENT '难度 1-5',
+  `source_type`    varchar(16)  NOT NULL DEFAULT 'SELF' COMMENT '来源 SELF/PUBLIC/LICENSE',
+  `source_ref`     varchar(256) DEFAULT NULL COMMENT '出处',
+  `copyright_type` varchar(16)  NOT NULL DEFAULT 'SELF' COMMENT '版权类型',
+  `mother_question_code` varchar(32) DEFAULT NULL COMMENT '若为变式:所属母题业务ID',
+  `variant_layer`  tinyint      DEFAULT NULL COMMENT '变式层级 1换数字 2换情境 3逆向',
+  `status`         tinyint      NOT NULL DEFAULT 1 COMMENT '状态 1启用 0停用',
+  `del_flag`       tinyint      NOT NULL DEFAULT 0 COMMENT '删除标记',
+  `create_by`      varchar(50)  DEFAULT NULL COMMENT '创建人',
+  `create_time`    datetime     DEFAULT NULL COMMENT '创建时间',
+  `update_by`      varchar(50)  DEFAULT NULL COMMENT '更新人',
+  `update_time`    datetime     DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_question_code` (`question_code`),
+  KEY `idx_q_kp` (`knowledge_point_code`),
+  KEY `idx_q_type` (`question_type`, `subject_code`),
+  KEY `idx_q_mother` (`mother_question_code`),
+  KEY `idx_q_source` (`source_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='题目(统一题目实体)';
+</code></pre>
+<h3>5.2 study_mother_question — 母题（五段结构）</h3>
+<pre class="cmd"><code class="language-sql">CREATE TABLE `study_mother_question` (
+  `id`               varchar(32) NOT NULL COMMENT '主键',
+  `mother_code`      varchar(32) NOT NULL COMMENT '业务ID MTH-{学科码}-{序号}',
+  `title`            varchar(128) NOT NULL COMMENT '第1段:题型名',
+  `condition_types`  json        NOT NULL COMMENT '第2段:已知条件类型(数组)',
+  `key_relation`     text        NOT NULL COMMENT '第3段:关键关系(过关口述对象)',
+  `steps`            json        NOT NULL COMMENT '第4段:解题步骤链(数组)',
+  `pitfalls`         json        NOT NULL COMMENT '第5段:易错点清单(数组)',
+  `subject_code`     varchar(16) NOT NULL COMMENT '学科编码',
+  `knowledge_point_code` varchar(32) DEFAULT NULL COMMENT '所属考点业务ID',
+  `pass_variant_count` tinyint   NOT NULL DEFAULT 3 COMMENT '过关所需变式全对数',
+  `variant_count`    tinyint     NOT NULL DEFAULT 0 COMMENT '已生成变式数',
+  `order_no`         int         NOT NULL DEFAULT 0 COMMENT '闯关顺序(考纲优先级)',
+  `status`           tinyint     NOT NULL DEFAULT 1 COMMENT '状态 1启用 0停用',
+  `del_flag`         tinyint     NOT NULL DEFAULT 0 COMMENT '删除标记',
+  `create_by`        varchar(50) DEFAULT NULL COMMENT '创建人',
+  `create_time`      datetime    DEFAULT NULL COMMENT '创建时间',
+  `update_by`        varchar(50) DEFAULT NULL COMMENT '更新人',
+  `update_time`      datetime    DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_mother_code` (`mother_code`),
+  KEY `idx_m_kp` (`knowledge_point_code`),
+  KEY `idx_m_order` (`order_no`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='数学母题(五段固定结构)';
+</code></pre>
+<p><strong>五段结构与字段对应</strong>（PRD F-MTH-01）：标题→<code>title</code>；已知条件类型→<code>condition_types</code>；关键关系→<code>key_relation</code>；解题步骤链→<code>steps</code>；易错点清单→<code>pitfalls</code>。</p>
+<p><strong><code>key_relation</code> 是过关口述的对象</strong>——关卡判定时用它匹配孩子的口述内容（F-MTH-03）。</p>
+<h3>5.3 study_question_variant — 变式题</h3>
+<pre class="cmd"><code class="language-sql">CREATE TABLE `study_question_variant` (
+  `id`              varchar(32) NOT NULL COMMENT '主键',
+  `variant_code`    varchar(32) NOT NULL COMMENT '业务ID QST-VAR-{母题码}-{层级}-{序号}',
+  `mother_code`     varchar(32) NOT NULL COMMENT '母题业务ID',
+  `layer`           tinyint     NOT NULL COMMENT '变式层级 1换数字 2换情境 3逆向',
+  `question_code`   varchar(32) DEFAULT NULL COMMENT '生成的题目业务ID',
+  `params_snapshot` json        DEFAULT NULL COMMENT '参数替换快照',
+  `stem`            text        NOT NULL COMMENT '题干',
+  `answer`          varchar(512) NOT NULL COMMENT '答案(确定性计算所得)',
+  `answer_tolerance` decimal(10,4) DEFAULT NULL COMMENT '数值容差',
+  `generated_by`    varchar(16) NOT NULL DEFAULT 'RULE' COMMENT '生成方式 RULE/RULE+MODEL',
+  `status`          tinyint     NOT NULL DEFAULT 1 COMMENT '状态 1启用 0停用',
+  `del_flag`        tinyint     NOT NULL DEFAULT 0 COMMENT '删除标记',
+  `create_by`       varchar(50) DEFAULT NULL COMMENT '创建人',
+  `create_time`     datetime    DEFAULT NULL COMMENT '创建时间',
+  `update_by`       varchar(50) DEFAULT NULL COMMENT '更新人',
+  `update_time`     datetime    DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_variant_code` (`variant_code`),
+  KEY `idx_var_mother` (`mother_code`, `layer`),
+  KEY `idx_var_question` (`question_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='母题变式(换数字/换情境/逆向三层)';
+</code></pre>
+<blockquote>
+<p><strong><code>generated_by</code> 的意义</strong>：结构变换是确定性的（RULE），只有自然语言表述可能用到模型（RULE+MODEL）。答案一律由规则算得——这是红线 R-02 在变式生成上的落地。</p>
+</blockquote>
+<h3>5.4 study_word — 单词</h3>
+<pre class="cmd"><code class="language-sql">CREATE TABLE `study_word` (
+  `id`             varchar(32) NOT NULL COMMENT '主键',
+  `word_code`      varchar(32) NOT NULL COMMENT '业务ID WRD-{首字母}-{序号}',
+  `spelling`       varchar(64) NOT NULL COMMENT '拼写',
+  `phonetic`       varchar(64) DEFAULT NULL COMMENT '音标',
+  `meaning`        varchar(256) NOT NULL COMMENT '释义',
+  `line_type`      varchar(8)  NOT NULL COMMENT '线别 IN课内 OUT课外',
+  `textbook_version_id` varchar(32) DEFAULT NULL COMMENT '教材版本ID(课内必填)',
+  `unit_code`      varchar(32) DEFAULT NULL COMMENT '教材单元编码(课内)',
+  `unit_order`     int         DEFAULT NULL COMMENT '单元内顺序',
+  `knowledge_point_code` varchar(32) DEFAULT NULL COMMENT '所属考点业务ID',
+  `pos`            varchar(32) DEFAULT NULL COMMENT '词性',
+  `context_sentence` text      DEFAULT NULL COMMENT '例句(与语境库共用)',
+  `frequency`      int         NOT NULL DEFAULT 0 COMMENT '词频',
+  `memory_strength` decimal(6,4) NOT NULL DEFAULT 0 COMMENT '记忆强度S',
+  `decay_lambda`   decimal(6,4) NOT NULL DEFAULT 2.0000 COMMENT '衰减系数λ',
+  `feedback_count` int         NOT NULL DEFAULT 0 COMMENT '反馈次数',
+  `last_feedback`  varchar(8)  DEFAULT NULL COMMENT '最近反馈档 KNOWN/VAGUE/FORGOT/FAMILIAR',
+  `known_flag`     tinyint     NOT NULL DEFAULT 0 COMMENT '熟词标记(熟词过滤结果)',
+  `next_review_at` date        DEFAULT NULL COMMENT '下次复习日期',
+  `status`         tinyint     NOT NULL DEFAULT 1 COMMENT '状态 1启用 0停用',
+  `del_flag`       tinyint     NOT NULL DEFAULT 0 COMMENT '删除标记',
+  `create_by`      varchar(50) DEFAULT NULL COMMENT '创建人',
+  `create_time`    datetime    DEFAULT NULL COMMENT '创建时间',
+  `update_by`      varchar(50) DEFAULT NULL COMMENT '更新人',
+  `update_time`    datetime    DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_word_code` (`word_code`),
+  UNIQUE KEY `uk_word_spelling_line` (`spelling`, `line_type`),
+  KEY `idx_word_unit` (`textbook_version_id`, `unit_code`, `unit_order`),
+  KEY `idx_word_line` (`line_type`, `status`),
+  KEY `idx_word_review` (`next_review_at`),
+  KEY `idx_word_kp` (`knowledge_point_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='单词(课内/课外双线, 含遗忘参数)';
+</code></pre>
+<p><strong>设计说明</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>line_type</code></td>
+<td><code>IN</code> 课内 / <code>OUT</code> 课外。<strong>同一词可同时存在于两条线</strong>（课内词升级为课外优先项）</td>
+</tr>
+<tr>
+<td><code>memory_strength</code> / <code>decay_lambda</code></td>
+<td>记忆强度 S 与衰减系数 λ，对应墨墨的双动态变量模型（竞品分析 C-18）</td>
+</tr>
+<tr>
+<td><code>last_feedback</code></td>
+<td>四档：KNOWN 认识 / VAGUE 模糊 / FORGOT 忘记 / FAMILIAR 熟知，<strong>不是对/错</strong>（F-WRD-04）</td>
+</tr>
+<tr>
+<td><code>known_flag</code></td>
+<td>熟词过滤结果；1 表示已被词汇量测试判定为掌握</td>
+</tr>
+<tr>
+<td><code>next_review_at</code></td>
+<td>单词自己的 SRS 复习日期，与错题池排期<strong>并联</strong>：进入统一队列时以错题池为准</td>
+</tr>
+</tbody>
+</table></div>
+<h3>5.5 study_grammar_point — 语法点</h3>
+<pre class="cmd"><code class="language-sql">CREATE TABLE `study_grammar_point` (
+  `id`             varchar(32) NOT NULL COMMENT '主键',
+  `grammar_code`   varchar(32) NOT NULL COMMENT '业务ID GRP-{序号}',
+  `title`          varchar(128) NOT NULL COMMENT '语法点名称',
+  `rule`           varchar(512) NOT NULL COMMENT '最小讲解(一句话规则)',
+  `example`        text        NOT NULL COMMENT '同类例句',
+  `counter_example` text       NOT NULL COMMENT '反例',
+  `exam_type`      varchar(64) DEFAULT NULL COMMENT '对应中考题型(单选/完形/语法填空/书面表达)',
+  `subject_code`   varchar(16) NOT NULL DEFAULT 'EN' COMMENT '学科编码',
+  `knowledge_point_code` varchar(32) DEFAULT NULL COMMENT '所属考点业务ID',
+  `transform_variants` json    DEFAULT NULL COMMENT '句子变形器五种表达',
+  `status`         tinyint     NOT NULL DEFAULT 1 COMMENT '状态 1启用 0停用',
+  `del_flag`       tinyint     NOT NULL DEFAULT 0 COMMENT '删除标记',
+  `create_by`      varchar(50) DEFAULT NULL COMMENT '创建人',
+  `create_time`    datetime    DEFAULT NULL COMMENT '创建时间',
+  `update_by`      varchar(50) DEFAULT NULL COMMENT '更新人',
+  `update_time`    datetime    DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_grammar_code` (`grammar_code`),
+  KEY `idx_grp_kp` (`knowledge_point_code`),
+  KEY `idx_grp_exam` (`exam_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='英语语法点(最小讲解/例句/反例/考纲题型)';
+</code></pre>
+<blockquote>
+<p><strong><code>rule</code> / <code>example</code> / <code>counter_example</code> 三件套必须预先入库</strong>，不现生成（系统设计 8.5）。这样「错误即入口」的弹窗是<strong>秒开</strong>的，不依赖模型。</p>
+</blockquote>
+<h3>5.6 study_writing — 写作与拆解</h3>
+<pre class="cmd"><code class="language-sql">CREATE TABLE `study_writing` (
+  `id`             varchar(32) NOT NULL COMMENT '主键',
+  `writing_code`   varchar(32) NOT NULL COMMENT '业务ID WRT-{层级码}-{序号}',
+  `layer`          varchar(16) NOT NULL COMMENT '层级 HOOK/OPEN/MATERIAL/STRUCT/HAND/END',
+  `title`          varchar(128) NOT NULL COMMENT '标题',
+  `content`        text        NOT NULL COMMENT '正文内容',
+  `teaching_point` text        DEFAULT NULL COMMENT '可迁移的写法说明',
+  `prompt_question` varchar(512) DEFAULT NULL COMMENT '换到你的题目上会怎么写(提示题)',
+  `subject_code`   varchar(16) NOT NULL DEFAULT 'CN' COMMENT '学科编码',
+  `genre`          varchar(32) DEFAULT NULL COMMENT '体裁(写人/写事/写物/写景/抒情)',
+  `stage_code`     varchar(16) DEFAULT NULL COMMENT '适用学段',
+  `knowledge_point_code` varchar(32) DEFAULT NULL COMMENT '所属考点业务ID',
+  `reference_code` varchar(32) DEFAULT NULL COMMENT '被对照的佳作业务ID',
+  `source_ref`     varchar(256) DEFAULT NULL COMMENT '范文出处(公开发表作品须标注)',
+  `copyright_type` varchar(16) NOT NULL DEFAULT 'PUBLIC' COMMENT '版权类型',
+  `status`         tinyint     NOT NULL DEFAULT 1 COMMENT '状态 1启用 0停用',
+  `del_flag`       tinyint     NOT NULL DEFAULT 0 COMMENT '删除标记',
+  `create_by`      varchar(50) DEFAULT NULL COMMENT '创建人',
+  `create_time`    datetime    DEFAULT NULL COMMENT '创建时间',
+  `update_by`      varchar(50) DEFAULT NULL COMMENT '更新人',
+  `update_time`    datetime    DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_writing_code` (`writing_code`),
+  KEY `idx_wrt_layer` (`layer`, `status`),
+  KEY `idx_wrt_genre` (`genre`, `stage_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='语文写作拆解库(六层结构)';
+</code></pre>
+<p><strong>六层对应</strong>（PRD F-WRT-01）：<code>HOOK</code> 题目钩子 / <code>OPEN</code> 开篇三句 / <code>MATERIAL</code> 选材角度 / <code>STRUCT</code> 结构图 / <code>HAND</code> 三个手法例句 / <code>END</code> 结尾回扣。</p>
+<h3>5.7 study_writing_scenario — 写作情境库</h3>
+<!--update-begin---author:mavis ---date:2026-10-31  for：【F-WRT-03】新增写作情境库表（内容表）----------- -->
+
+<blockquote>
+<p><strong>需求</strong>：F-WRT-03《素材改情境库》——<strong>给情境不给金句，强制填自己的经历</strong>。
+同一主题（如「坚持」）下给<strong>不同处境、不同年龄、不同细节</strong>的情境。</p>
+<p><strong>表性质</strong>：<strong>内容表（全局共享）</strong>，<strong>没有 <code>child_id</code> 列</strong>。
+情境是「所有人共享的素材供给」；孩子写出来的内容落在 <code>study_writing</code>（该表带 <code>child_id</code>）。</p>
+<p><strong>DDL 位置</strong>：增量脚本 <code>02-代码开发/02-数据库/03-脚本/12-writing-scenario.sql</code>。
+按《脚本约定》铁律 2「变更走增量脚本，不改历史脚本」，本表<strong>不回改</strong> <code>02-schema.sql</code>，
+因此本节以<strong>字段说明表</strong>的形式登记完整结构，执行依据在增量脚本里。
+配套清理脚本：<code>13-writing-scenario-cleanup.sql</code>。</p>
+</blockquote>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>必填</th>
+<th>业务含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>varchar(32)</td>
+<td>是</td>
+<td>主键（32 位 UUID，由 <code>IdWorker.get32UUID()</code> / <code>REPLACE(UUID(),'-','')</code> 生成）</td>
+</tr>
+<tr>
+<td><code>scenario_code</code></td>
+<td>varchar(32)</td>
+<td>是</td>
+<td><strong>业务ID</strong>，全局唯一，形如 <code>SEED-SCN-{主题码}-{序号}</code>。种子数据统一 <code>SEED</code> 前缀，便于一键清理</td>
+</tr>
+<tr>
+<td><code>theme_code</code></td>
+<td>varchar(32)</td>
+<td>是</td>
+<td><strong>主题编码</strong>：PERSIST 坚持 / GROWTH 成长 / TRUST 信任 / LOSS 失去 / CHOICE 选择 / FIRSTTIME 第一次。同一主题码下的多条记录就是「同一主题的不同处境」</td>
+</tr>
+<tr>
+<td><code>theme_name</code></td>
+<td>varchar(64)</td>
+<td>是</td>
+<td><strong>主题名称</strong>（中文展示用，随编码冗余一份，避免前端再查一次字典）</td>
+</tr>
+<tr>
+<td><code>title</code></td>
+<td>varchar(128)</td>
+<td>是</td>
+<td><strong>情境标题</strong>：用一句话点出处境（不是金句，也不是范文句）</td>
+</tr>
+<tr>
+<td><code>situation_desc</code></td>
+<td>text</td>
+<td>是</td>
+<td><strong>处境描述</strong>：时间 / 地点 / 人物 / 阻力四要素，交代清楚「事情发生在什么条件下」</td>
+</tr>
+<tr>
+<td><code>age_stage</code></td>
+<td>varchar(32)</td>
+<td>是</td>
+<td><strong>年龄段</strong>：小学低年级 / 小学中年级 / 小学高年级 / 初中。同一主题下不同年龄段给不同细节</td>
+</tr>
+<tr>
+<td><code>age_min</code></td>
+<td>tinyint</td>
+<td>是</td>
+<td><strong>年龄下限</strong>，用于按孩子年龄筛掉明显不合适的处境</td>
+</tr>
+<tr>
+<td><code>age_max</code></td>
+<td>tinyint</td>
+<td>是</td>
+<td><strong>年龄上限</strong>，同上</td>
+</tr>
+<tr>
+<td><code>detail_clue</code></td>
+<td>text</td>
+<td>否</td>
+<td><strong>细节线索</strong>：JSON 数组文本，每条只给<strong>可观察的物与动作</strong>（如「擦得只剩半块的橡皮」），<strong>不给成句的表达</strong></td>
+</tr>
+<tr>
+<td><code>stage_code</code></td>
+<td>varchar(16)</td>
+<td>是</td>
+<td><strong>适用学段</strong> G1…G9（与 <code>study_writing.stage_code</code> 同一套编码）</td>
+</tr>
+<tr>
+<td><code>genre</code></td>
+<td>varchar(32)</td>
+<td>否</td>
+<td><strong>适用文体</strong>：写事 / 写人 / 写物 / 写景 / 抒情（与 <code>study_writing.genre</code> 同一套取值）</td>
+</tr>
+<tr>
+<td><code>difficulty</code></td>
+<td>tinyint</td>
+<td>是</td>
+<td><strong>难度层级</strong> 1…5。1 = 处境简单、线索直给；5 = 需要自己补出转折与细节</td>
+</tr>
+<tr>
+<td><code>prompt_question</code></td>
+<td>varchar(512)</td>
+<td>否</td>
+<td><strong>写作提示题</strong>：把处境转成一个必须回答的问题，<strong>引导孩子填自己的经历</strong></td>
+</tr>
+<tr>
+<td><code>restriction_note</code></td>
+<td>varchar(512)</td>
+<td>否</td>
+<td><strong>限制条件</strong>：如「只写你自己身上发生过的事，不要写别人的故事」</td>
+</tr>
+<tr>
+<td><code>forbidden_words</code></td>
+<td>varchar(512)</td>
+<td>否</td>
+<td><strong>禁用提示</strong>：如「不要写成口号」「不要引用别人作品里的句子」——<strong>从字段层面守住「给情境不给金句」</strong></td>
+</tr>
+<tr>
+<td><code>order_weight</code></td>
+<td>int</td>
+<td>是</td>
+<td><strong>中性排序权重</strong>：同主题内的呈现先后。<br><strong>不叫分数、也不叫名次</strong>，避免与 R-04 的语义混淆</td>
+</tr>
+<tr>
+<td><code>source_ref</code></td>
+<td>varchar(256)</td>
+<td>否</td>
+<td><strong>出处</strong>：自编情境填「本项目自编情境」；非自编必须标注来源</td>
+</tr>
+<tr>
+<td><code>copyright_type</code></td>
+<td>varchar(16)</td>
+<td>是</td>
+<td><strong>版权类型</strong> SELF / PUBLIC / LICENSE（与全库同一套取值）</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>tinyint</td>
+<td>是</td>
+<td><strong>状态</strong> 1 启用 / 0 停用。停用的情境不进入列表</td>
+</tr>
+<tr>
+<td><code>del_flag</code></td>
+<td>tinyint</td>
+<td>是</td>
+<td><strong>删除标记</strong> 0 正常 / 1 删除（逻辑删除）</td>
+</tr>
+<tr>
+<td><code>create_by</code> / <code>create_time</code></td>
+<td>varchar(50) / datetime</td>
+<td>否</td>
+<td>创建审计字段</td>
+</tr>
+<tr>
+<td><code>update_by</code> / <code>update_time</code></td>
+<td>varchar(50) / datetime</td>
+<td>否</td>
+<td>更新审计字段</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>索引</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>索引</th>
+<th>列</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PRIMARY</code></td>
+<td><code>id</code></td>
+<td>主键</td>
+</tr>
+<tr>
+<td><code>uk_scenario_code</code></td>
+<td><code>scenario_code</code></td>
+<td>业务ID 唯一；种子数据幂等插入靠它兜底</td>
+</tr>
+<tr>
+<td><code>idx_scn_theme</code></td>
+<td><code>theme_code</code>, <code>status</code>, <code>order_weight</code></td>
+<td>按主题取情境并按中性权重排序（主查询路径）</td>
+</tr>
+<tr>
+<td><code>idx_scn_stage</code></td>
+<td><code>stage_code</code>, <code>status</code></td>
+<td>按学段过滤</td>
+</tr>
+<tr>
+<td><code>idx_scn_age</code></td>
+<td><code>age_min</code>, <code>age_max</code></td>
+<td>按年龄区间筛掉不合适的处境</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>种子数据规格</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>规格</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>规模</td>
+<td><strong>≥ 24 条</strong>：6 个主题 × 每主题 4 种处境</td>
+</tr>
+<tr>
+<td>同主题差异</td>
+<td>同一主题下 4 条<strong>处境不同、年龄段不同（小学低 / 中 / 高年级、初中）、细节线索不同、难度不同</strong></td>
+</tr>
+<tr>
+<td>内容红线</td>
+<td>只写处境与可观察细节；<strong>不出现可以直接抄走的句子</strong>；不出现别人的真实经历</td>
+</tr>
+<tr>
+<td>版权</td>
+<td>全部自编（<code>copyright_type = SELF</code>），<code>source_ref</code> 标「本项目自编情境」</td>
+</tr>
+<tr>
+<td>幂等</td>
+<td><code>INSERT ... ON DUPLICATE KEY UPDATE</code>，重复执行只更新不重复插</td>
+</tr>
+<tr>
+<td>清理</td>
+<td><code>13-writing-scenario-cleanup.sql</code>：按 <code>scenario_code LIKE 'SEED%'</code> 删除（保留结构）</td>
+</tr>
+</tbody>
+</table></div>
+<!--update-end---author:mavis ---date:2026-10-31  for：【F-WRT-03】新增写作情境库表（内容表）----------- -->
+
+<h3>5.8 study_sentence_context — 例句语境库（背单词与语法共用）</h3>
+<!--update-begin---author:mavis ---date:2026-10-31  for：【F-GRM-05】新增例句语境库（内容表）----------- -->
+
+<blockquote>
+<p><strong>需求</strong>：F-GRM-05《语境库复用》——与模块③（背单词）<strong>共用同一批例句库</strong>：
+同一个词在<strong>课文 / 真题 / 原声素材</strong>三种语境下的不同用法，<strong>一次建库三处受益</strong>。</p>
+<p><strong>表性质</strong>：<strong>内容表（全局共享）</strong>，<strong>没有 <code>child_id</code> 列</strong>。
+例句是「所有人共享的素材供给」；孩子的作答落在 <code>study_error_pool</code> 与 <code>study_grammar_game_record</code>。</p>
+<p><strong>DDL 位置</strong>：增量脚本 <code>02-代码开发/02-数据库/03-脚本/14-grammar-context-game.sql</code>。
+按《脚本约定》铁律 2「变更走增量脚本，不改历史脚本」，本表<strong>不回改</strong> <code>02-schema.sql</code>，
+因此本节以<strong>字段说明表</strong>的形式登记完整结构，执行依据在增量脚本里。
+配套清理脚本：<code>15-grammar-context-game-cleanup.sql</code>。</p>
+<p><strong>「同一批例句」怎么保证</strong>：主例句（<code>context_type=TEXTBOOK</code>）的正文<strong>直接取</strong>背单词域
+<code>study_word.context_sentence</code>，<strong>不是复制一份</strong>；两边的对应关系落在 <code>study_word_context</code>。
+因此语法域查到的例句编码与数量，与背单词域关联表里的编码与数量<strong>必然一致</strong>（自动化用例逐条断言）。</p>
+</blockquote>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>必填</th>
+<th>业务含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>varchar(32)</td>
+<td>是</td>
+<td>主键（32 位 UUID，<code>IdWorker.get32UUID()</code> 生成）</td>
+</tr>
+<tr>
+<td><code>sentence_code</code></td>
+<td>varchar(32)</td>
+<td>是</td>
+<td><strong>业务ID</strong>，全局唯一，形如 <code>SCT-000001</code>。种子数据带 <code>SEED-</code> 主键前缀便于一键清理</td>
+</tr>
+<tr>
+<td><code>sentence</code></td>
+<td>text</td>
+<td>是</td>
+<td><strong>例句正文（唯一语料）</strong>。同一句只在本表存一份，别处引用</td>
+</tr>
+<tr>
+<td><code>zh_meaning</code></td>
+<td>varchar(256)</td>
+<td>否</td>
+<td><strong>中文意思</strong>。主例句取词条释义；真题 / 原声句取<strong>句子级</strong>翻译（语法变形闯关靠它出题）</td>
+</tr>
+<tr>
+<td><code>context_type</code></td>
+<td>varchar(16)</td>
+<td>是</td>
+<td><strong>语境类型</strong> TEXTBOOK 课文 / EXAM 真题 / ORIGINAL 原声素材（§10.1）</td>
+</tr>
+<tr>
+<td><code>word_code</code></td>
+<td>varchar(32)</td>
+<td>否</td>
+<td><strong>关联词条业务ID</strong>。纯语法例句（不挂在某个词上）可空</td>
+</tr>
+<tr>
+<td><code>grammar_code</code></td>
+<td>varchar(32)</td>
+<td>否</td>
+<td><strong>关联语法点业务ID</strong>（<code>study_grammar_point.grammar_code</code>），可空</td>
+</tr>
+<tr>
+<td><code>usage_note</code></td>
+<td>varchar(256)</td>
+<td>否</td>
+<td><strong>用法说明</strong>：同一个词在不同语境下的差别（如「口语里更随意」）</td>
+</tr>
+<tr>
+<td><code>source_ref</code></td>
+<td>varchar(256)</td>
+<td>否</td>
+<td><strong>出处</strong>：非自编内容必填（TC-02-03 / 4006）</td>
+</tr>
+<tr>
+<td><code>copyright_type</code></td>
+<td>varchar(16)</td>
+<td>是</td>
+<td><strong>版权类型</strong> SELF / PUBLIC / LICENSE（与全库同一套取值）</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>tinyint</td>
+<td>是</td>
+<td><strong>状态</strong> 1 启用 / 0 停用</td>
+</tr>
+<tr>
+<td><code>del_flag</code></td>
+<td>tinyint</td>
+<td>是</td>
+<td><strong>删除标记</strong> 0 正常 / 1 删除（逻辑删除）</td>
+</tr>
+<tr>
+<td><code>create_by</code> / <code>create_time</code></td>
+<td>varchar(50) / datetime</td>
+<td>否</td>
+<td>创建审计字段</td>
+</tr>
+<tr>
+<td><code>update_by</code> / <code>update_time</code></td>
+<td>varchar(50) / datetime</td>
+<td>否</td>
+<td>更新审计字段</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>索引</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>索引</th>
+<th>列</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PRIMARY</code></td>
+<td><code>id</code></td>
+<td>主键</td>
+</tr>
+<tr>
+<td><code>uk_sentence_code</code></td>
+<td><code>sentence_code</code></td>
+<td>业务ID 唯一；种子数据幂等插入靠它兜底</td>
+</tr>
+<tr>
+<td><code>idx_sc_word</code></td>
+<td><code>word_code</code>, <code>context_type</code>, <code>status</code></td>
+<td><strong>按词查例句</strong>（背单词域与语法域共用路径，主查询）</td>
+</tr>
+<tr>
+<td><code>idx_sc_grammar</code></td>
+<td><code>grammar_code</code>, <code>status</code></td>
+<td>按语法点查例句</td>
+</tr>
+<tr>
+<td><code>idx_sc_type</code></td>
+<td><code>context_type</code>, <code>status</code></td>
+<td>按语境类型过滤</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>种子数据规格</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>规格</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>规模</td>
+<td><strong>108 条例句</strong> = 36 个课内外词 × 3 类语境（课文 36 / 真题 36 / 原声素材 36）</td>
+</tr>
+<tr>
+<td>主例句</td>
+<td>正文<strong>取自</strong> <code>study_word.context_sentence</code>（脚本里 <code>INSERT ... SELECT</code>），保证与背单词域<strong>同一句</strong></td>
+</tr>
+<tr>
+<td>真题句</td>
+<td>中考真题风格改写，带句子级中文意思与用法说明</td>
+</tr>
+<tr>
+<td>原声句</td>
+<td>日常口语 / 场景对话风格，带句子级中文意思与用法说明</td>
+</tr>
+<tr>
+<td>版权</td>
+<td>全部自编（<code>copyright_type = SELF</code>）</td>
+</tr>
+<tr>
+<td>幂等</td>
+<td><code>INSERT ... ON DUPLICATE KEY UPDATE</code>，重复执行只更新不重复插</td>
+</tr>
+<tr>
+<td>清理</td>
+<td><code>15-grammar-context-game-cleanup.sql</code>：按 <code>id LIKE 'SEED%'</code> 删除（保留结构）</td>
+</tr>
+</tbody>
+</table></div>
+<!--update-end---author:mavis ---date:2026-10-31  for：【F-GRM-05】新增例句语境库（内容表）----------- -->
+
+<h3>5.9 study_word_context — 词条 ↔ 例句关联</h3>
+<!--update-begin---author:mavis ---date:2026-10-31  for：【F-GRM-05】新增词条与例句关联表（内容表）----------- -->
+
+<blockquote>
+<p><strong>需求</strong>：F-GRM-05《语境库复用》——这一张表就是「<strong>同一批例句</strong>」的连接处。
+背单词域与语法域都通过它找例句，所以两边看到的<strong>例句编码与数量必然一致</strong>。</p>
+<p><strong>表性质</strong>：<strong>内容表（全局共享）</strong>，<strong>没有 <code>child_id</code> 列</strong>。
+<strong>DDL 位置</strong>：增量脚本 <code>14-grammar-context-game.sql</code>（同 §5.8）。</p>
+</blockquote>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>必填</th>
+<th>业务含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>varchar(32)</td>
+<td>是</td>
+<td>主键（32 位 UUID）</td>
+</tr>
+<tr>
+<td><code>word_code</code></td>
+<td>varchar(32)</td>
+<td>是</td>
+<td><strong>词条业务ID</strong>（<code>study_word.word_code</code>）</td>
+</tr>
+<tr>
+<td><code>sentence_code</code></td>
+<td>varchar(32)</td>
+<td>是</td>
+<td><strong>例句业务ID</strong>（<code>study_sentence_context.sentence_code</code>）</td>
+</tr>
+<tr>
+<td><code>relation_type</code></td>
+<td>varchar(16)</td>
+<td>是</td>
+<td><strong>关联类型</strong> MAIN 主例句 / EXTEND 拓展用法（§10.1）。MAIN 那一行的正文就是背单词域 <code>context_sentence</code> 那一句</td>
+</tr>
+<tr>
+<td><code>sort_no</code></td>
+<td>int</td>
+<td>是</td>
+<td><strong>展示顺序</strong>：主例句 1，真题句 2，原声句 3</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>tinyint</td>
+<td>是</td>
+<td><strong>状态</strong> 1 启用 / 0 停用</td>
+</tr>
+<tr>
+<td><code>del_flag</code></td>
+<td>tinyint</td>
+<td>是</td>
+<td><strong>删除标记</strong> 0 正常 / 1 删除</td>
+</tr>
+<tr>
+<td><code>create_by</code> / <code>create_time</code></td>
+<td>varchar(50) / datetime</td>
+<td>否</td>
+<td>创建审计字段</td>
+</tr>
+<tr>
+<td><code>update_by</code> / <code>update_time</code></td>
+<td>varchar(50) / datetime</td>
+<td>否</td>
+<td>更新审计字段</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>索引</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>索引</th>
+<th>列</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PRIMARY</code></td>
+<td><code>id</code></td>
+<td>主键</td>
+</tr>
+<tr>
+<td><code>uk_wc</code></td>
+<td><code>word_code</code>, <code>sentence_code</code></td>
+<td>一个词与同一句例句只关联一次；种子数据幂等插入靠它兜底</td>
+</tr>
+<tr>
+<td><code>idx_wc_word</code></td>
+<td><code>word_code</code>, <code>relation_type</code>, <code>sort_no</code></td>
+<td><strong>按词取例句并排序</strong>（主查询路径）</td>
+</tr>
+<tr>
+<td><code>idx_wc_sentence</code></td>
+<td><code>sentence_code</code></td>
+<td>由例句反查词条</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>种子数据规格</strong>：<strong>108 条关联</strong> = 36 词 × 3 条（MAIN 1 条 + EXTEND 2 条）。</p>
+<!--update-end---author:mavis ---date:2026-10-31  for：【F-GRM-05】新增词条与例句关联表（内容表）----------- -->
+
+<h3>5.10 study_grammar_game_question — 语法玩法题库</h3>
+<!--update-begin---author:mavis ---date:2026-10-31  for：【F-GRM-04】新增语法玩法题库（内容表）----------- -->
+
+<blockquote>
+<p><strong>需求</strong>：F-GRM-04《趣味玩法》——句子侦探与语法变形闯关的<strong>题库</strong>。</p>
+<p><strong>表性质</strong>：<strong>内容表（全局共享）</strong>，<strong>没有 <code>child_id</code> 列</strong>。
+<strong>DDL 位置</strong>：增量脚本 <code>14-grammar-context-game.sql</code>。</p>
+<p><strong>题库只存组合关系，不存例句正文</strong>：正例句指向语境库 <code>study_sentence_context.sentence_code</code>，
+只有「这一关的错句」是玩法自己的题目素材——性质同 <code>study_question.answer</code>，
+<strong>服务端持有，取题接口不下发</strong>（R-01 反搜题）。</p>
+</blockquote>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>必填</th>
+<th>业务含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>varchar(32)</td>
+<td>是</td>
+<td>主键（32 位 UUID）</td>
+</tr>
+<tr>
+<td><code>question_code</code></td>
+<td>varchar(32)</td>
+<td>是</td>
+<td><strong>业务ID</strong>，全局唯一，形如 <code>GAM-000001</code></td>
+</tr>
+<tr>
+<td><code>game_type</code></td>
+<td>varchar(16)</td>
+<td>是</td>
+<td><strong>玩法类型</strong> DETECTIVE 句子侦探 / TRANSFORM 语法变形闯关（§10.1）</td>
+</tr>
+<tr>
+<td><code>grammar_code</code></td>
+<td>varchar(32)</td>
+<td>否</td>
+<td><strong>关联语法点业务ID</strong>，可空（题库与语法点解耦，内容维护时可后挂）</td>
+</tr>
+<tr>
+<td><code>sentence_code</code></td>
+<td>varchar(32)</td>
+<td>否</td>
+<td><strong>目标表达所在的语境例句业务ID</strong>（TRANSFORM 用：取它的中文意思出题、正文作参考表达）</td>
+</tr>
+<tr>
+<td><code>clean_sentence_codes</code></td>
+<td>json</td>
+<td>否</td>
+<td><strong>正例句业务ID列表</strong>（DETECTIVE 用，3 条，指向语境库）。格式 <code>["SCT-000101","SCT-000102","SCT-000103"]</code></td>
+</tr>
+<tr>
+<td><code>wrong_sentence</code></td>
+<td>text</td>
+<td>否</td>
+<td><strong>这一关的错句</strong>（DETECTIVE 用）。<strong>服务端专用，取题接口不下发</strong></td>
+</tr>
+<tr>
+<td><code>wrong_position</code></td>
+<td>tinyint</td>
+<td>否</td>
+<td><strong>错句在第几句</strong>（1…4，DETECTIVE 用）。只存位置，不存哪句对</td>
+</tr>
+<tr>
+<td><code>difficulty</code></td>
+<td>tinyint</td>
+<td>是</td>
+<td><strong>难度</strong> 1…3</td>
+</tr>
+<tr>
+<td><code>judge_source</code></td>
+<td>varchar(16)</td>
+<td>是</td>
+<td><strong>判定来源</strong>，恒为 <code>rule</code>（R-02：判定层零 AI 依赖）</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>tinyint</td>
+<td>是</td>
+<td><strong>状态</strong> 1 启用 / 0 停用</td>
+</tr>
+<tr>
+<td><code>del_flag</code></td>
+<td>tinyint</td>
+<td>是</td>
+<td><strong>删除标记</strong> 0 正常 / 1 删除</td>
+</tr>
+<tr>
+<td><code>create_by</code> / <code>create_time</code></td>
+<td>varchar(50) / datetime</td>
+<td>否</td>
+<td>创建审计字段</td>
+</tr>
+<tr>
+<td><code>update_by</code> / <code>update_time</code></td>
+<td>varchar(50) / datetime</td>
+<td>否</td>
+<td>更新审计字段</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>索引</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>索引</th>
+<th>列</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PRIMARY</code></td>
+<td><code>id</code></td>
+<td>主键</td>
+</tr>
+<tr>
+<td><code>uk_gq_code</code></td>
+<td><code>question_code</code></td>
+<td>业务ID 唯一；种子数据幂等插入靠它兜底</td>
+</tr>
+<tr>
+<td><code>idx_gq_type</code></td>
+<td><code>game_type</code>, <code>status</code>, <code>difficulty</code></td>
+<td><strong>按玩法取候选题并按难度排序</strong>（主查询路径）</td>
+</tr>
+<tr>
+<td><code>idx_gq_grammar</code></td>
+<td><code>grammar_code</code></td>
+<td>按语法点反查题目</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>种子数据规格</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>玩法</th>
+<th>规模</th>
+<th>构成</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>句子侦探</td>
+<td><strong>14 关</strong></td>
+<td>每关 1 句错句（逐条对过规则库：被且仅被一条确定性规则命中）+ 3 句正例句（指向语境库）</td>
+</tr>
+<tr>
+<td>语法变形闯关</td>
+<td><strong>12 关</strong></td>
+<td>每关指向语境库一真题句（带句子级中文意思）</td>
+</tr>
+</tbody>
+</table></div>
+<!--update-end---author:mavis ---date:2026-10-31  for：【F-GRM-04】新增语法玩法题库（内容表）----------- -->
+</section>
+<section id="behavior">
+  <div class="sec-head"><span class="sec-num">06</span><h3>行为记录表</h3><span class="tag">流水</span></div>
+  <p>行为记录表</p>
+<h3>6.1 study_practice_record_yyyymm — 作答记录（按月分表）</h3>
+<pre class="cmd"><code class="language-sql">CREATE TABLE `study_practice_record_202610` (
+  `id`             varchar(32) NOT NULL COMMENT '主键',
+  `context_id`     varchar(32) NOT NULL COMMENT '全局上下文',
+  `source_module`  varchar(16) NOT NULL COMMENT '来源模块',
+  `content_type`   varchar(24) NOT NULL COMMENT '内容类型',
+  `content_id`     varchar(32) NOT NULL COMMENT '内容业务ID',
+  `knowledge_point_code` varchar(32) DEFAULT NULL COMMENT '考点业务ID',
+  `answer`         varchar(1024) DEFAULT NULL COMMENT '孩子作答',
+  `correct`        tinyint     NOT NULL COMMENT '是否正确 1是 0否',
+  `judge_source`   varchar(16) NOT NULL DEFAULT 'rule' COMMENT '判定来源',
+  `error_cause`    varchar(16) DEFAULT NULL COMMENT '错因(答错时必填)',
+  `error_code`     varchar(32) DEFAULT NULL COMMENT '生成的错题业务ID',
+  `duration_ms`    int         DEFAULT NULL COMMENT '本题耗时(毫秒)',
+  `step_tags`      json        DEFAULT NULL COMMENT '步骤级错因打标(F-MTH-04)',
+  `practice_date`  date        NOT NULL COMMENT '练习日期',
+  `create_by`      varchar(50) DEFAULT NULL COMMENT '创建人',
+  `create_time`    datetime    DEFAULT NULL COMMENT '创建时间',
+  `update_by`      varchar(50) DEFAULT NULL COMMENT '更新人',
+  `update_time`    datetime    DEFAULT NULL COMMENT '更新时间',
+  `del_flag`       tinyint     NOT NULL DEFAULT 0 COMMENT '删除标记 0正常 1删除',
+  PRIMARY KEY (`id`),
+  KEY `idx_pr_date` (`practice_date`, `source_module`),
+  KEY `idx_pr_content` (`content_type`, `content_id`),
+  KEY `idx_pr_kp` (`knowledge_point_code`),
+  KEY `idx_pr_error` (`error_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='作答记录(按月分表)';
+</code></pre>
+<blockquote>
+<p><strong>分表说明</strong>：按 <code>yyyyMM</code> 命名，跨月自动切换。查询跨月时由应用层 UNION 或引入中间视图。当月表在月初由脚本自动创建（见第 12 章）。</p>
+</blockquote>
+<h3>6.2 study_eye_usage — 用眼记录</h3>
+<pre class="cmd"><code class="language-sql">CREATE TABLE `study_eye_usage` (
+  `id`            varchar(32) NOT NULL COMMENT '主键',
+  `context_id`    varchar(32) NOT NULL COMMENT '全局上下文',
+  `session_id`    varchar(32) NOT NULL COMMENT '学习会话ID',
+  `start_at`      datetime    NOT NULL COMMENT '会话开始',
+  `end_at`        datetime    DEFAULT NULL COMMENT '会话结束',
+  `active_minutes` int        NOT NULL DEFAULT 0 COMMENT '累计有效用眼分钟(服务端心跳累计)',
+  `heartbeat_count` int       NOT NULL DEFAULT 0 COMMENT '心跳次数',
+  `rest_count`    int         NOT NULL DEFAULT 0 COMMENT '休息提醒触发次数',
+  `rest_confirmed` int        NOT NULL DEFAULT 0 COMMENT '休息确认次数',
+  `blue_light_on` tinyint     NOT NULL DEFAULT 0 COMMENT '蓝光过滤状态',
+  `usage_date`    date        NOT NULL COMMENT '日期',
+  `del_flag`      tinyint     NOT NULL DEFAULT 0 COMMENT '删除标记',
+  `create_by`     varchar(50) DEFAULT NULL COMMENT '创建人',
+  `create_time`   datetime    DEFAULT NULL COMMENT '创建时间',
+  `update_by`     varchar(50) DEFAULT NULL COMMENT '更新人',
+  `update_time`   datetime    DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_eye_session` (`session_id`),
+  KEY `idx_eye_date` (`usage_date`, `context_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用眼记录(服务端心跳统计)';
+</code></pre>
+<blockquote>
+<p><strong>用眼时长以服务端心跳为准</strong>（系统设计 8.8），客户端关闭页面不会漏记；客户端上报间隔 30 秒。</p>
+</blockquote>
+<h3>6.3 study_grammar_game_record — 语法玩法作答记录</h3>
+<!--update-begin---author:mavis ---date:2026-10-31  for：【F-GRM-04】新增语法玩法作答记录（行为表，必带 child_id）----------- -->
+
+<blockquote>
+<p><strong>需求</strong>：F-GRM-04《趣味玩法》——闯关进度与作答留痕。</p>
+<p><strong>表性质</strong>：<strong>行为表</strong>，<code>child_id</code> <strong>必填</strong>：闯关记录是<strong>某个孩子</strong>的，
+孩子只看得到自己的（ADR-018 / R-04）。内容表不带 <code>child_id</code>，这张表带——别搞混。</p>
+<p><strong>DDL 位置</strong>：增量脚本 <code>02-代码开发/02-数据库/03-脚本/14-grammar-context-game.sql</code>。</p>
+</blockquote>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>必填</th>
+<th>业务含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>varchar(32)</td>
+<td>是</td>
+<td>主键（32 位 UUID）</td>
+</tr>
+<tr>
+<td><code>child_id</code></td>
+<td>varchar(32)</td>
+<td>是</td>
+<td><strong>所属孩子</strong>（<code>study_child.id</code>）。多用户隔离的唯一维度</td>
+</tr>
+<tr>
+<td><code>game_type</code></td>
+<td>varchar(16)</td>
+<td>是</td>
+<td><strong>玩法类型</strong> DETECTIVE / TRANSFORM</td>
+</tr>
+<tr>
+<td><code>question_code</code></td>
+<td>varchar(32)</td>
+<td>是</td>
+<td><strong>题目业务ID</strong>（<code>study_grammar_game_question.question_code</code>）</td>
+</tr>
+<tr>
+<td><code>grammar_code</code></td>
+<td>varchar(32)</td>
+<td>否</td>
+<td><strong>关联语法点业务ID</strong>，可空</td>
+</tr>
+<tr>
+<td><code>submitted</code></td>
+<td>varchar(512)</td>
+<td>否</td>
+<td><strong>孩子的作答</strong>：句子侦探填孩子指出的那一句；变形闯关填孩子写的句子</td>
+</tr>
+<tr>
+<td><code>correct</code></td>
+<td>tinyint</td>
+<td>是</td>
+<td><strong>是否通过</strong> 1 是 / 0 否。<strong>不叫分数、不叫名次</strong>（R-04）</td>
+</tr>
+<tr>
+<td><code>judge_source</code></td>
+<td>varchar(16)</td>
+<td>是</td>
+<td><strong>判定来源</strong>，恒为 <code>rule</code>（R-02）</td>
+</tr>
+<tr>
+<td><code>error_cause</code></td>
+<td>varchar(16)</td>
+<td>否</td>
+<td><strong>错因</strong>（答错时填，五维之一）</td>
+</tr>
+<tr>
+<td><code>error_code</code></td>
+<td>varchar(32)</td>
+<td>否</td>
+<td><strong>统一错题池里的错题业务ID</strong>（答错时写入 <code>study_error_pool</code> 后回填）</td>
+</tr>
+<tr>
+<td><code>duration_ms</code></td>
+<td>int</td>
+<td>否</td>
+<td><strong>本关耗时</strong>（毫秒）</td>
+</tr>
+<tr>
+<td><code>play_date</code></td>
+<td>date</td>
+<td>是</td>
+<td><strong>作答日期</strong>（由数据库 <code>CURDATE()</code> 落库，避免应用与数据库时区漂移）</td>
+</tr>
+<tr>
+<td><code>del_flag</code></td>
+<td>tinyint</td>
+<td>是</td>
+<td><strong>删除标记</strong> 0 正常 / 1 删除</td>
+</tr>
+<tr>
+<td><code>create_by</code> / <code>create_time</code></td>
+<td>varchar(50) / datetime</td>
+<td>否</td>
+<td>创建审计字段</td>
+</tr>
+<tr>
+<td><code>update_by</code> / <code>update_time</code></td>
+<td>varchar(50) / datetime</td>
+<td>否</td>
+<td>更新审计字段</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>索引</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>索引</th>
+<th>列</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PRIMARY</code></td>
+<td><code>id</code></td>
+<td>主键</td>
+</tr>
+<tr>
+<td><code>idx_ggr_child</code></td>
+<td><code>child_id</code>, <code>play_date</code></td>
+<td>某个孩子的闯关流水（主查询路径）</td>
+</tr>
+<tr>
+<td><code>idx_ggr_question</code></td>
+<td><code>child_id</code>, <code>question_code</code></td>
+<td>某个孩子某一关的作答明细</td>
+</tr>
+<tr>
+<td><code>idx_ggr_type</code></td>
+<td><code>game_type</code>, <code>play_date</code></td>
+<td>按玩法与日期统计</td>
+</tr>
+</tbody>
+</table></div>
+<!--update-end---author:mavis ---date:2026-10-31  for：【F-GRM-04】新增语法玩法作答记录（行为表，必带 child_id）----------- -->
+</section>
+<section id="rel">
+  <div class="sec-head"><span class="sec-num">07</span><h3>关联表</h3><span class="tag">扩展</span></div>
+  <p>关联表</p>
+<blockquote>
+<p>V1 及以后按需新增，首版不建。</p>
+</blockquote>
+<!--update-begin---author:mavis ---date:2026-10-31  for：【F-GRM-05】语境库两表已落地到内容实体表----------- -->
+
+<blockquote>
+<p><strong>已落地</strong>：V3 预留的 <code>study_sentence_context</code>（例句语境库）与 <code>study_word_context</code>（词条 ↔ 例句关联）
+已于 2026-10-31 落地，登记在 §5.8 / §5.9（内容实体表），
+执行依据是增量脚本 <code>03-脚本/14-grammar-context-game.sql</code>。</p>
+</blockquote>
+<!--update-end---author:mavis ---date:2026-10-31  for：【F-GRM-05】语境库两表已落地到内容实体表----------- -->
+
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>表名</th>
+<th>用途</th>
+<th>引入版本</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>study_kp_mastery</code></td>
+<td>考点级掌握度权威表</td>
+<td>V1</td>
+</tr>
+<tr>
+<td><code>study_question_kp</code></td>
+<td>题目 ↔ 考点 多对多</td>
+<td>V2</td>
+</tr>
+<tr>
+<td><code>study_ai_feedback</code></td>
+<td>AI 讲解申诉记录（「我不同意」）</td>
+<td>V2</td>
+</tr>
+<tr>
+<td><code>study_parent_operation_log</code></td>
+<td>家长操作留痕</td>
+<td>V0</td>
+</tr>
+<tr>
+<td><code>study_explanation_cache</code></td>
+<td>AI 讲解缓存</td>
+<td>V1</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="family">
+  <div class="sec-head"><span class="sec-num">08</span><h3>家庭与成员表</h3><span class="tag">多用户</span></div>
+  <p>家庭与成员表</p>
+<blockquote>
+<p><strong>多家庭 / 多孩子 / 多家长</strong>（V0 前置）。家长↔孩子是<strong>多对多</strong>。
+孩子也是一个 JeecgBoot <code>sys_user</code>（角色 <code>study_kid</code>），只是用 <strong>PIN</strong> 代替密码登录，因此复用底座 Shiro/JWT 全套能力。
+家长凭据走底座原生 <code>POST /sys/login</code>，不新增接口。</p>
+</blockquote>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>表名</th>
+<th>用途</th>
+<th>关键约束</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>study_family</code></td>
+<td>家庭（聚合根）</td>
+<td><code>family_code</code> 存<strong>哈希</strong>，明文仅生成时返回一次</td>
+</tr>
+<tr>
+<td><code>study_family_member</code></td>
+<td>家庭成员（家长）</td>
+<td><code>UNIQUE(family_id, user_id)</code></td>
+</tr>
+<tr>
+<td><code>study_child</code></td>
+<td>孩子档案（含登录账号与 PIN）</td>
+<td><code>UNIQUE(user_id)</code>、<code>UNIQUE(child_code)</code></td>
+</tr>
+<tr>
+<td><code>study_parent_child_rel</code></td>
+<td><strong>家长↔孩子多对多关系</strong></td>
+<td><code>UNIQUE(parent_user_id, child_id)</code></td>
+</tr>
+</tbody>
+</table></div>
+<pre class="cmd"><code class="language-sql">CREATE TABLE `study_family` (
+  `id`                varchar(32)  NOT NULL COMMENT '主键',
+  `family_code`       varchar(64)  NOT NULL COMMENT '家庭码哈希(孩子端登录用,明文仅生成时返回)',
+  `family_code_salt`  varchar(45)  NOT NULL COMMENT '家庭码盐',
+  `family_name`       varchar(64)  NOT NULL DEFAULT '我的家庭' COMMENT '家庭名称',
+  `status`            tinyint      NOT NULL DEFAULT 1 COMMENT '状态 1正常 2冻结',
+  `del_flag`          tinyint      NOT NULL DEFAULT 0 COMMENT '删除标记 0正常 1删除',
+  `create_by`         varchar(50)  DEFAULT NULL COMMENT '创建人',
+  `create_time`       datetime     DEFAULT NULL COMMENT '创建时间',
+  `update_by`         varchar(50)  DEFAULT NULL COMMENT '更新人',
+  `update_time`       datetime     DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_family_code` (`family_code`),
+  KEY `idx_family_status` (`status`, `del_flag`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='家庭(多孩子多家长的聚合根)';
+
+CREATE TABLE `study_family_member` (
+  `id`             varchar(32) NOT NULL COMMENT '主键',
+  `family_id`      varchar(32) NOT NULL COMMENT '所属家庭',
+  `user_id`        varchar(32) NOT NULL COMMENT '家长账号 sys_user.id',
+  `member_role`    varchar(16) NOT NULL DEFAULT 'PARENT' COMMENT '成员角色 OWNER创建者 PARENT家长',
+  `relation_label` varchar(16) DEFAULT NULL COMMENT '与孩子的关系 妈妈/爸爸/爷爷/奶奶/其他',
+  `status`         tinyint     NOT NULL DEFAULT 1 COMMENT '状态 1正常 2已退出',
+  `del_flag`       tinyint     NOT NULL DEFAULT 0 COMMENT '删除标记 0正常 1删除',
+  `create_by`      varchar(50) DEFAULT NULL COMMENT '创建人',
+  `create_time`    datetime    DEFAULT NULL COMMENT '创建时间',
+  `update_by`      varchar(50) DEFAULT NULL COMMENT '更新人',
+  `update_time`    datetime    DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_family_user` (`family_id`, `user_id`),
+  KEY `idx_member_user` (`user_id`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='家庭成员(家长)';
+
+CREATE TABLE `study_child` (
+  `id`              varchar(32)  NOT NULL COMMENT '主键',
+  `child_code`      varchar(32)  NOT NULL COMMENT '业务ID CHD-{序号}',
+  `family_id`       varchar(32)  NOT NULL COMMENT '所属家庭',
+  `user_id`         varchar(32)  NOT NULL COMMENT '孩子的登录账号 sys_user.id(角色 study_kid)',
+  `nickname`        varchar(32)  NOT NULL COMMENT '昵称(学习端显示)',
+  `avatar`          varchar(255) DEFAULT NULL COMMENT '头像',
+  `gender`          tinyint      NOT NULL DEFAULT 0 COMMENT '性别 0未知 1男 2女',
+  `birthday`        date         DEFAULT NULL COMMENT '生日(仅本人可见,不参与任何比较)',
+  `grade_code`      varchar(16)  DEFAULT NULL COMMENT '默认年级 G1..G12',
+  `pin_hash`        varchar(255) NOT NULL COMMENT 'PIN哈希',
+  `pin_salt`        varchar(45)  NOT NULL COMMENT 'PIN盐',
+  `pin_fail_count`  int          NOT NULL DEFAULT 0 COMMENT 'PIN连续失败次数',
+  `pin_lock_until`  datetime     DEFAULT NULL COMMENT 'PIN锁定截止(失败5次锁10分钟)',
+  `status`          tinyint      NOT NULL DEFAULT 1 COMMENT '状态 1正常 2停用',
+  `del_flag`        tinyint      NOT NULL DEFAULT 0 COMMENT '删除标记 0正常 1删除',
+  `create_by`       varchar(50)  DEFAULT NULL COMMENT '创建人',
+  `create_time`     datetime     DEFAULT NULL COMMENT '创建时间',
+  `update_by`       varchar(50)  DEFAULT NULL COMMENT '更新人',
+  `update_time`     datetime     DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_child_code` (`child_code`),
+  UNIQUE KEY `uk_child_user` (`user_id`),
+  KEY `idx_child_family` (`family_id`, `status`, `del_flag`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='孩子档案(含PIN登录凭据)';
+
+CREATE TABLE `study_parent_child_rel` (
+  `id`             varchar(32) NOT NULL COMMENT '主键',
+  `parent_user_id` varchar(32) NOT NULL COMMENT '家长账号 sys_user.id',
+  `child_id`       varchar(32) NOT NULL COMMENT '孩子 study_child.id',
+  `relation_label` varchar(16) DEFAULT NULL COMMENT '关系 妈妈/爸爸/爷爷/奶奶/其他',
+  `is_primary`     tinyint     NOT NULL DEFAULT 0 COMMENT '是否主家长 1是 0否',
+  `status`         tinyint     NOT NULL DEFAULT 1 COMMENT '状态 1生效 2已解除',
+  `del_flag`       tinyint     NOT NULL DEFAULT 0 COMMENT '删除标记 0正常 1删除',
+  `create_by`      varchar(50) DEFAULT NULL COMMENT '创建人',
+  `create_time`    datetime    DEFAULT NULL COMMENT '创建时间',
+  `update_by`      varchar(50) DEFAULT NULL COMMENT '更新人',
+  `update_time`    datetime    DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_parent_child` (`parent_user_id`, `child_id`),
+  KEY `idx_rel_child` (`child_id`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='家长与孩子多对多关系';
+</code></pre>
+<h3>8.1 多对多的语义边界</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>规则</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>一个家长可关联<strong>多个</strong>孩子</td>
+<td><code>study_parent_child_rel</code> 多行</td>
+</tr>
+<tr>
+<td>一个孩子可被<strong>多个</strong>家长关联</td>
+<td><code>study_parent_child_rel</code> 多行，<code>relation_label</code> 区分关系</td>
+</tr>
+<tr>
+<td>孩子归属<strong>唯一家庭</strong></td>
+<td><code>study_child.family_id</code> 单值</td>
+</tr>
+<tr>
+<td>家长可属于<strong>一个</strong>家庭</td>
+<td><code>study_family_member</code> 唯一索引 <code>(family_id, user_id)</code>；需换家庭先退出</td>
+</tr>
+<tr>
+<td>解除关联<strong>立即生效</strong></td>
+<td><code>status=2</code> 后家长端列表与数据范围同时失效</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section id="scope">
+  <div class="sec-head"><span class="sec-num">09</span><h3>child_id 数据隔离</h3><span class="tag">越权防线</span></div>
+  <p>child_id 数据隔离</p>
+<blockquote>
+<p><strong>多用户的核心防线</strong>：家长只能看到与自己关联的孩子的数据。
+<strong>内容/知识库全局共享</strong>（教材版本、考点树、题库、母题、词库、语法点 —— 内容供给成本高，家庭内共享合理）；
+<strong>学习行为/数据按孩子隔离</strong>（上下文、错题池、排期、变式、作文、作答记录、用眼统计）。</p>
+</blockquote>
+<!--update-begin---author:mavis ---date:2026-10-31  for：【F-GRM-04 / F-GRM-05】补语境库与玩法表的隔离口径----------- -->
+
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>表</th>
+<th>加 <code>child_id</code></th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>study_context</code></td>
+<td>✅</td>
+<td>不同孩子的年级/教材版本可不同</td>
+</tr>
+<tr>
+<td><code>study_error_pool</code></td>
+<td>✅</td>
+<td>错题是孩子的</td>
+</tr>
+<tr>
+<td><code>study_review_schedule</code></td>
+<td>✅</td>
+<td>排期是孩子的</td>
+</tr>
+<tr>
+<td><code>study_question_variant</code></td>
+<td>✅</td>
+<td>变式由某孩子的错题生成</td>
+</tr>
+<tr>
+<td><code>study_writing</code></td>
+<td>✅</td>
+<td>作文是孩子的作品</td>
+</tr>
+<tr>
+<td><code>study_practice_record_202610</code></td>
+<td>✅</td>
+<td>作答记录是孩子的</td>
+</tr>
+<tr>
+<td><code>study_eye_usage</code></td>
+<td>✅</td>
+<td>用眼统计是孩子的</td>
+</tr>
+<tr>
+<td><code>study_writing_scenario</code></td>
+<td>❌</td>
+<td>写作情境库是<strong>全局共享的内容素材</strong>（内容表不按孩子隔离，F-WRT-03）</td>
+</tr>
+<tr>
+<td><code>study_grammar_game_record</code></td>
+<td>✅</td>
+<td>闯关记录是<strong>某个孩子</strong>的（F-GRM-04，行为表必带 <code>child_id</code>）</td>
+</tr>
+<tr>
+<td><code>study_sentence_context</code> / <code>study_word_context</code> / <code>study_grammar_game_question</code></td>
+<td>❌</td>
+<td>语境库、词句关联与玩法题库都是<strong>全局共享的内容素材</strong>（F-GRM-05 / F-GRM-04）</td>
+</tr>
+<tr>
+<td>其余内容表（教材版本 / 坐标树 / 题目 / 母题 / 词库 / 语法点）</td>
+<td>❌</td>
+<td>全局共享</td>
+</tr>
+</tbody>
+</table></div>
+<!--update-end---author:mavis ---date:2026-10-31  for：【F-GRM-04 / F-GRM-05】补语境库与玩法表的隔离口径----------- -->
+
+<blockquote>
+<p><strong>存量数据兼容</strong>：<code>child_id</code> 一律<strong>可空</strong>，NULL 表示「未归属」；应用层对已登录用户<strong>强制</strong>补 <code>child_id</code> 条件。
+变更走<strong>增量脚本</strong> <code>04-fix.sql</code>，不改历史建表脚本。</p>
+</blockquote>
+<pre class="cmd"><code class="language-sql">ALTER TABLE `study_context` ADD COLUMN `child_id` varchar(32) DEFAULT NULL COMMENT '所属孩子 study_child.id(多用户隔离)' AFTER `id`;
+ALTER TABLE `study_context` ADD KEY `idx_context_child` (`child_id`, `del_flag`);
+
+ALTER TABLE `study_error_pool` ADD COLUMN `child_id` varchar(32) DEFAULT NULL COMMENT '所属孩子 study_child.id(多用户隔离)' AFTER `id`;
+ALTER TABLE `study_error_pool` ADD KEY `idx_error_child` (`child_id`, `del_flag`);
+
+ALTER TABLE `study_review_schedule` ADD COLUMN `child_id` varchar(32) DEFAULT NULL COMMENT '所属孩子 study_child.id(多用户隔离)' AFTER `id`;
+ALTER TABLE `study_review_schedule` ADD KEY `idx_schedule_child` (`child_id`, `del_flag`);
+
+ALTER TABLE `study_question_variant` ADD COLUMN `child_id` varchar(32) DEFAULT NULL COMMENT '所属孩子 study_child.id(多用户隔离)' AFTER `id`;
+ALTER TABLE `study_question_variant` ADD KEY `idx_variant_child` (`child_id`, `del_flag`);
+
+ALTER TABLE `study_writing` ADD COLUMN `child_id` varchar(32) DEFAULT NULL COMMENT '所属孩子 study_child.id(多用户隔离)' AFTER `id`;
+ALTER TABLE `study_writing` ADD KEY `idx_writing_child` (`child_id`, `del_flag`);
+
+ALTER TABLE `study_practice_record_202610` ADD COLUMN `child_id` varchar(32) DEFAULT NULL COMMENT '所属孩子 study_child.id(多用户隔离)' AFTER `id`;
+ALTER TABLE `study_practice_record_202610` ADD KEY `idx_record_child` (`child_id`, `del_flag`);
+
+ALTER TABLE `study_eye_usage` ADD COLUMN `child_id` varchar(32) DEFAULT NULL COMMENT '所属孩子 study_child.id(多用户隔离)' AFTER `id`;
+ALTER TABLE `study_eye_usage` ADD KEY `idx_eye_child` (`child_id`, `del_flag`);
+</code></pre>
+<h3>9.1 越权判定</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>判定</th>
+<th>返回</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>家长 A 请求孩子 B 的数据</td>
+<td><code>child_id</code> 不在 <code>study_parent_child_rel</code> 交集内</td>
+<td><strong>4010 越权</strong>（不是 404，避免探测）</td>
+</tr>
+<tr>
+<td>家长 A 传孩子 B 的 <code>childCode</code></td>
+<td>同上</td>
+<td><strong>4010</strong></td>
+</tr>
+<tr>
+<td>孩子 A 请求孩子 B 的数据</td>
+<td>JWT 的 <code>childId</code> 与请求不符</td>
+<td><strong>4010</strong></td>
+</tr>
+<tr>
+<td>家长 A 不在目标家庭</td>
+<td><code>study_family_member</code> 无记录</td>
+<td><strong>4010</strong></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>实现约定</strong>：家长侧 <code>child_id</code> 集合必须由 <code>ChildScopeHelper.childIdsOf(userId)</code> <strong>实时查关系表</strong>得到，
+与前端传入的 <code>childId</code> <strong>求交集</strong>后才能进 where 条件。<strong>不得</strong>直接信任前端参数。</p>
+</blockquote>
+</section>
+<section id="dict">
+  <div class="sec-head"><span class="sec-num">10</span><h3>数据字典</h3><span class="tag">枚举值</span></div>
+  <p>数据字典</p>
+<!--update-begin---author:mavis ---date:2026-10-31  for：【F-GRM-05 / F-GRM-04】补语境库与玩法的枚举取值----------- -->
+
+<h3>10.1 枚举值汇总</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>取值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>study_context.stage_code</code></td>
+<td>PRIMARY / JUNIOR / SENIOR</td>
+<td>小学 / 初中 / 高中</td>
+</tr>
+<tr>
+<td><code>study_context.grade_code</code></td>
+<td>G1…G12</td>
+<td>年级</td>
+</tr>
+<tr>
+<td><code>study_knowledge_point.level</code></td>
+<td>1 / 2 / 3 / 4</td>
+<td>考纲 / 学科 / 单元 / 考点</td>
+</tr>
+<tr>
+<td><code>study_knowledge_point.subject_code</code></td>
+<td>MA / CH / EN / CN</td>
+<td>数学 / 语文 / 英语 / 语文写作场景复用 CN</td>
+</tr>
+<tr>
+<td><code>study_knowledge_point.status</code></td>
+<td>1 / 0</td>
+<td>现行 / 失效</td>
+</tr>
+<tr>
+<td><code>study_error_pool.source_module</code></td>
+<td>ERROR / WORD / MATH / GRAMMAR / WRITING</td>
+<td>来源模块</td>
+</tr>
+<tr>
+<td><code>study_error_pool.content_type</code></td>
+<td>QUESTION / WORD / SENTENCE / PARAGRAPH</td>
+<td>内容类型</td>
+</tr>
+<tr>
+<td><code>study_error_pool.error_cause</code></td>
+<td>CONCEPT / READING / CALC / METHOD / TIME</td>
+<td><strong>概念不清 / 审题偏差 / 计算失误 / 方法不会 / 时间不够</strong></td>
+</tr>
+<tr>
+<td><code>study_error_pool.judge_source</code></td>
+<td>rule / rule+model</td>
+<td>判定来源（<strong>无 model 单独取值</strong>）</td>
+</tr>
+<tr>
+<td><code>study_error_pool.mastery_state</code></td>
+<td>1 / 2 / 3 / 4</td>
+<td>未知 / 学习中 / 熟悉 / 掌握</td>
+</tr>
+<tr>
+<td><code>study_error_pool.review_status</code></td>
+<td>1 / 2</td>
+<td>待复习 / 已移出</td>
+</tr>
+<tr>
+<td><code>study_error_pool.copyright_type</code></td>
+<td>SELF / PUBLIC / LICENSE</td>
+<td>自编 / 公开 / 授权</td>
+</tr>
+<tr>
+<td><code>study_question.question_type</code></td>
+<td>SINGLE / FILL / NUMERIC / EXPRESSION / WORD / SENTENCE</td>
+<td>题型</td>
+</tr>
+<tr>
+<td><code>study_question_variant.layer</code></td>
+<td>1 / 2 / 3</td>
+<td>换数字 / 换情境 / 逆向</td>
+</tr>
+<tr>
+<td><code>study_word.line_type</code></td>
+<td>IN / OUT</td>
+<td>课内 / 课外</td>
+</tr>
+<tr>
+<td><code>study_word.last_feedback</code></td>
+<td>KNOWN / VAGUE / FORGOT / FAMILIAR</td>
+<td>认识 / 模糊 / 忘记 / 熟知</td>
+</tr>
+<tr>
+<td><code>study_writing.layer</code></td>
+<td>HOOK / OPEN / MATERIAL / STRUCT / HAND / END</td>
+<td>拆解六层</td>
+</tr>
+<tr>
+<td><code>study_sentence_context.context_type</code></td>
+<td>TEXTBOOK / EXAM / ORIGINAL</td>
+<td><strong>课文 / 真题 / 原声素材</strong>（F-GRM-05 的三类语境）</td>
+</tr>
+<tr>
+<td><code>study_word_context.relation_type</code></td>
+<td>MAIN / EXTEND</td>
+<td><strong>主例句 / 拓展用法</strong>。MAIN 那行就是背单词域 <code>context_sentence</code> 那一句</td>
+</tr>
+<tr>
+<td><code>study_grammar_game_question.game_type</code></td>
+<td>DETECTIVE / TRANSFORM</td>
+<td><strong>句子侦探 / 语法变形闯关</strong>（F-GRM-04）</td>
+</tr>
+<tr>
+<td><code>study_grammar_game_question.judge_source</code></td>
+<td>rule</td>
+<td>恒为 <code>rule</code>（R-02：玩法判定零 AI 依赖）</td>
+</tr>
+<tr>
+<td><code>study_grammar_game_record.game_type</code></td>
+<td>DETECTIVE / TRANSFORM</td>
+<td>同题库</td>
+</tr>
+<tr>
+<td><code>study_grammar_game_record.correct</code></td>
+<td>1 / 0</td>
+<td><strong>是否通过</strong>（不是分数、不是名次，R-04）</td>
+</tr>
+<tr>
+<td><code>study_writing_scenario.theme_code</code></td>
+<td>PERSIST / GROWTH / TRUST / LOSS / CHOICE / FIRSTTIME</td>
+<td>情境主题（坚持 / 成长 / 信任 / 失去 / 选择 / 第一次）</td>
+</tr>
+<tr>
+<td><code>study_writing_scenario.age_stage</code></td>
+<td>小学低年级 / 小学中年级 / 小学高年级 / 初中</td>
+<td>年龄段</td>
+</tr>
+<tr>
+<td><code>study_writing_scenario.stage_code</code></td>
+<td>G1…G9</td>
+<td>适用学段</td>
+</tr>
+<tr>
+<td><code>study_writing_scenario.genre</code></td>
+<td>写事 / 写人 / 写物 / 写景 / 抒情</td>
+<td>适用文体</td>
+</tr>
+<tr>
+<td><code>study_writing_scenario.difficulty</code></td>
+<td>1…5</td>
+<td>难度层级（不是分数，也不是名次）</td>
+</tr>
+<tr>
+<td><code>study_writing_scenario.copyright_type</code></td>
+<td>SELF / PUBLIC / LICENSE</td>
+<td>版权类型</td>
+</tr>
+<tr>
+<td><code>study_review_schedule.status</code></td>
+<td>1 / 2 / 3</td>
+<td>待复习 / 已完成 / 已顺延</td>
+</tr>
+</tbody>
+</table></div>
+<h3>10.2 错因码与教学对应</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>码</th>
+<th>名称</th>
+<th>教学含义</th>
+<th>对应母题打标</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CONCEPT</code></td>
+<td>概念不清</td>
+<td>概念/定义没掌握</td>
+<td>公式记错</td>
+</tr>
+<tr>
+<td><code>READING</code></td>
+<td>审题偏差</td>
+<td>题意理解偏</td>
+<td>审题偏差</td>
+</tr>
+<tr>
+<td><code>CALC</code></td>
+<td>计算失误</td>
+<td>会但算错</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>METHOD</code></td>
+<td>方法不会</td>
+<td>不会用这个方法</td>
+<td>步骤跳步</td>
+</tr>
+<tr>
+<td><code>TIME</code></td>
+<td>时间不够</td>
+<td>会做但超时</td>
+<td>—</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>映射依据：竞品分析 C-28（错因维度由真实错题反推）与 C-06（讯飞错误类型二分）。首版固定五维，V1 后按 <code>study_error_pool.error_cause</code> 的实际分布评估扩展。</p>
+</blockquote>
+<!--update-end---author:mavis ---date:2026-10-31  for：【F-GRM-05 / F-GRM-04】补语境库与玩法的枚举取值----------- -->
+</section>
+<section id="index">
+  <div class="sec-head"><span class="sec-num">11</span><h3>索引与性能</h3><span class="tag">查询路径</span></div>
+  <p>索引与性能</p>
+<!--update-begin---author:mavis ---date:2026-10-31  for：【F-GRM-05 / F-GRM-04】补语境库与玩法的索引与查询路径----------- -->
+
+<h3>11.1 关键查询路径</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>查询</th>
+<th>SQL 要点</th>
+<th>命中索引</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>今日复习队列</td>
+<td><code>WHERE review_status=1 AND next_review_at &lt;= today ORDER BY 薄弱度×遗忘风险</code></td>
+<td><code>idx_err_review</code></td>
+</tr>
+<tr>
+<td>队列物化</td>
+<td><code>WHERE queue_date=? AND status=1 ORDER BY sort_score DESC</code></td>
+<td><code>idx_sched_queue</code></td>
+</tr>
+<tr>
+<td>某考点的错题</td>
+<td><code>WHERE knowledge_point_code=?</code></td>
+<td><code>idx_err_kp</code></td>
+</tr>
+<tr>
+<td>错因分布统计</td>
+<td><code>GROUP BY error_cause</code></td>
+<td><code>idx_err_cause</code></td>
+</tr>
+<tr>
+<td>课内单元词表</td>
+<td><code>WHERE textbook_version_id=? AND unit_code=? ORDER BY unit_order</code></td>
+<td><code>idx_word_unit</code></td>
+</tr>
+<tr>
+<td>课外到期词</td>
+<td><code>WHERE line_type='OUT' AND next_review_at&lt;=? AND known_flag=0</code></td>
+<td><code>idx_word_review</code></td>
+</tr>
+<tr>
+<td>坐标树子树</td>
+<td><code>WHERE path LIKE '/rootId/%' AND status=1</code></td>
+<td><code>idx_kp_parent</code> + <code>path</code></td>
+</tr>
+<tr>
+<td>母题及变式</td>
+<td><code>WHERE mother_code=? ORDER BY layer</code></td>
+<td><code>idx_var_mother</code></td>
+</tr>
+<tr>
+<td>错题内容追溯</td>
+<td><code>WHERE content_type=? AND content_id=?</code></td>
+<td><code>idx_err_content</code></td>
+</tr>
+<tr>
+<td>写作情境清单</td>
+<td><code>WHERE theme_code=? AND status=1 ORDER BY order_weight, scenario_code</code></td>
+<td><code>idx_scn_theme</code></td>
+</tr>
+<tr>
+<td>按词查例句</td>
+<td><code>JOIN study_word_context w + study_sentence_context c ON c.sentence_code=w.sentence_code WHERE w.word_code=?</code></td>
+<td><code>idx_wc_word</code></td>
+</tr>
+<tr>
+<td>按玩法取候选题</td>
+<td><code>WHERE game_type=? AND status=1 ORDER BY difficulty, question_code, id</code></td>
+<td><code>idx_gq_type</code></td>
+</tr>
+<tr>
+<td>孩子闯关进度</td>
+<td><code>WHERE child_id=? AND game_type=? ORDER BY question_code</code></td>
+<td><code>idx_ggr_child</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3>11.2 性能设计</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>措施</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>坐标树全量缓存</td>
+<td>Redis <code>study:kp:tree:{contextId}</code>，节点 &lt; 5000，命中 &lt; 50ms；变更主动失效</td>
+</tr>
+<tr>
+<td>队列物化</td>
+<td>每日首次访问时物化，当天顺序不变，避免每次查都算排序分</td>
+</tr>
+<tr>
+<td>作答记录分表</td>
+<td>按月分表，避免单表膨胀（3 年约 36 张表）</td>
+</tr>
+<tr>
+<td>快照存 JSON</td>
+<td>错题快照直接存 JSON，避免每次 join 内容表</td>
+</tr>
+<tr>
+<td>无分页深翻</td>
+<td>错题池按 <code>next_review_at</code> 走索引，不做深度分页</td>
+</tr>
+</tbody>
+</table></div>
+<h3>11.3 容量估算</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>表</th>
+<th>3 年预估</th>
+<th>单行均值</th>
+<th>预估大小</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>study_error_pool</code></td>
+<td>≤ 20,000</td>
+<td>~1 KB</td>
+<td>~20 MB</td>
+</tr>
+<tr>
+<td><code>study_practice_record_*</code></td>
+<td>≤ 500,000</td>
+<td>~0.5 KB</td>
+<td>~250 MB（分表后单表 ~7 MB）</td>
+</tr>
+<tr>
+<td><code>study_question</code></td>
+<td>≤ 10,000</td>
+<td>~2 KB</td>
+<td>~20 MB</td>
+</tr>
+<tr>
+<td><code>study_word</code></td>
+<td>≤ 30,000</td>
+<td>~1 KB</td>
+<td>~30 MB</td>
+</tr>
+<tr>
+<td><code>study_knowledge_point</code></td>
+<td>≤ 5,000 × 3 版本</td>
+<td>~0.3 KB</td>
+<td>~5 MB</td>
+</tr>
+<tr>
+<td><code>study_review_schedule</code></td>
+<td>≤ 100,000</td>
+<td>~0.2 KB</td>
+<td>~20 MB</td>
+</tr>
+<tr>
+<td><strong>合计</strong></td>
+<td>—</td>
+<td>—</td>
+<td><strong>&lt; 400 MB</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>家庭私有部署场景下无需分库分表，<code>practice_record</code> 的按月分表是唯一必要的分区手段。</p>
+<!--update-end---author:mavis ---date:2026-10-31  for：【F-GRM-05 / F-GRM-04】补语境库与玩法的索引与查询路径----------- -->
+</section>
+<section id="migrate">
+  <div class="sec-head"><span class="sec-num">12</span><h3>迁移与初始化</h3><span class="tag">脚本规范</span></div>
+  <p>迁移与初始化</p>
+<!--update-begin---author:mavis ---date:2026-10-31  for：【F-GRM-05 / F-GRM-04】登记语境库与玩法的增量脚本与执行顺序----------- -->
+
+<h3>12.1 脚本规范</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>约定</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>目录</td>
+<td><code>02-代码开发/02-数据库/03-脚本/</code>（<strong>SQL 真源唯一一处</strong>）</td>
+</tr>
+<tr>
+<td>文件</td>
+<td><code>01-平台库初始化.sql</code> · <code>02-schema.sql</code> · <code>03-init.sql</code> · <code>04-fix.sql</code> · <code>05-partition.sql</code> · <code>06-cleanup.sql</code> · <code>12-writing-scenario.sql</code> · <code>13-writing-scenario-cleanup.sql</code> · <code>14-grammar-context-game.sql</code> · <code>15-grammar-context-game-cleanup.sql</code></td>
+</tr>
+<tr>
+<td>幂等</td>
+<td>建表一律 <code>CREATE TABLE IF NOT EXISTS</code>；插数据一律 <code>INSERT ... ON DUPLICATE KEY UPDATE</code>；<strong>改结构用 <code>information_schema</code> 判定后再执行</strong>（见下方说明）</td>
+</tr>
+<tr>
+<td>禁止</td>
+<td><strong>不修改已发布的脚本</strong>，只追加新脚本</td>
+</tr>
+<tr>
+<td>注释</td>
+<td>每个脚本头部写明：作用、前置版本、是否可回滚、回滚方法</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>约束</strong>：SQL 真源只在 <code>02-代码开发/02-数据库/03-脚本/</code> 一处。部署包里的 SQL 由打包脚本镜像同步，<strong>不要</strong>在部署包里手工改。</p>
+<p><strong>改结构的幂等写法</strong>：MySQL 的 <code>ALTER TABLE ... ADD COLUMN IF NOT EXISTS</code> 需要 <strong>8.0.29+</strong>，本项目目标环境下限是 8.0，因此统一用
+<code>information_schema</code> 判定 + <code>PREPARE</code> 动态执行。<strong>这条规则由 <code>05-公共资源/2026103017-DDL提取.py</code> 在生成时强制落地</strong>——
+源稿里写普通 <code>ALTER TABLE</code> 即可，提取器会自动改写成幂等形态。</p>
+</blockquote>
+<h3>12.2 初始化顺序</h3>
+<pre class="cmd"><code>01-平台库初始化.sql       平台表 133 张 + 种子 7446 条（单库，先建平台表）
+02-schema.sql              建表（18 张业务表 + 1 张迁移记录表，含 4 张家庭与成员表）
+03-init.sql                业务种子（教材版本 / 首个上下文 / 枚举字典 / 坐标树骨架）
+04-fix.sql                 增量：7 张行为表加 child_id
+05-partition.sql           创建当月 practice_record 分表
+06-cleanup.sql             种子数据清理
+12-writing-scenario.sql    增量：写作情境库建表 + 种子（F-WRT-03，独立增量脚本）
+13-writing-scenario-cleanup.sql  增量：写作情境库种子清理（F-WRT-03）
+14-grammar-context-game.sql     增量：语境库 + 玩法题库建表与种子（F-GRM-05 / F-GRM-04）
+15-grammar-context-game-cleanup.sql  增量：语境库与玩法题库种子清理（F-GRM-05 / F-GRM-04）
+</code></pre>
+<blockquote>
+<p><strong>为什么 12 / 13、14 / 15 是独立增量脚本</strong>：铁律 2「变更走增量脚本，不改历史脚本」。
+<code>02-schema.sql</code> / <code>06-cleanup.sql</code> 已在新环境执行过，回改会导致环境间 schema 不一致；
+因此新表走独立增量脚本，清理语句也不塞回 <code>06-cleanup.sql</code>，而是配套一个单独的清理脚本。</p>
+<p><strong>14 号脚本建 4 张表</strong>：<code>study_sentence_context</code> / <code>study_word_context</code> /
+<code>study_grammar_game_question</code>（内容表，无 <code>child_id</code>）+ <code>study_grammar_game_record</code>（行为表，必带 <code>child_id</code>）。
+它依赖 <code>study_word</code> 的既有种子（主例句直接取 <code>study_word.context_sentence</code>），
+因此<strong>必须排在 <code>09-seed-content.sql</code> 之后执行</strong>。</p>
+</blockquote>
+<h3>12.3 分表维护</h3>
+<pre class="cmd"><code class="language-sql">-- 每月 1 日由定时任务执行（幂等）
+SET @table = CONCAT('study_practice_record_', DATE_FORMAT(NOW(), '%Y%m'));
+
+SET @ddl = CONCAT(
+  'CREATE TABLE IF NOT EXISTS `', @table, '` (',
+  '  `id` varchar(32) NOT NULL COMMENT ''主键'',',
+  '  `child_id` varchar(32) DEFAULT NULL COMMENT ''所属孩子 study_child.id(多用户隔离)'',',
+  '  `context_id` varchar(32) NOT NULL COMMENT ''全局上下文'',',
+  '  `source_module` varchar(16) NOT NULL COMMENT ''来源模块'',',
+  '  `content_type` varchar(24) NOT NULL COMMENT ''内容类型'',',
+  '  `content_id` varchar(32) NOT NULL COMMENT ''内容业务ID'',',
+  '  `knowledge_point_code` varchar(32) DEFAULT NULL COMMENT ''考点业务ID'',',
+  '  `answer` varchar(1024) DEFAULT NULL COMMENT ''孩子作答'',',
+  '  `correct` tinyint NOT NULL COMMENT ''是否正确'',',
+  '  `judge_source` varchar(16) NOT NULL DEFAULT ''rule'' COMMENT ''判定来源'',',
+  '  `error_cause` varchar(16) DEFAULT NULL COMMENT ''错因'',',
+  '  `error_code` varchar(32) DEFAULT NULL COMMENT ''错题业务ID'',',
+  '  `duration_ms` int DEFAULT NULL COMMENT ''耗时毫秒'',',
+  '  `step_tags` json DEFAULT NULL COMMENT ''步骤错因打标'',',
+  '  `practice_date` date NOT NULL COMMENT ''练习日期'',',
+  '  `create_by` varchar(50) DEFAULT NULL COMMENT ''创建人'',',
+  '  `create_time` datetime DEFAULT NULL COMMENT ''创建时间'',',
+  '  `update_by` varchar(50) DEFAULT NULL COMMENT ''更新人'',',
+  '  `update_time` datetime DEFAULT NULL COMMENT ''更新时间'',',
+  '  `del_flag` tinyint NOT NULL DEFAULT 0 COMMENT ''删除标记 0正常 1删除'',',
+  '  PRIMARY KEY (`id`),',
+  '  KEY `idx_record_child` (`child_id`, `del_flag`),',
+  '  KEY `idx_pr_date` (`practice_date`, `source_module`),',
+  '  KEY `idx_pr_content` (`content_type`, `content_id`),',
+  '  KEY `idx_pr_kp` (`knowledge_point_code`),',
+  '  KEY `idx_pr_error` (`error_code`)',
+  ') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT=''作答记录(按月分表)'';'
+);
+
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+</code></pre>
+<h3>12.4 迁移记录表</h3>
+<p>每次执行脚本后登记一条（脚本名 + 内容 SHA-256 + 执行时间）。<strong>登记后禁止再改该脚本</strong>——要改就追加新脚本。</p>
+<pre class="cmd"><code class="language-sql">CREATE TABLE `study_schema_migration` (
+  `id`           varchar(32) NOT NULL COMMENT '主键',
+  `script_name`  varchar(128) NOT NULL COMMENT '脚本文件名',
+  `checksum`     char(64) NOT NULL COMMENT '脚本内容 SHA-256，防止事后改脚本',
+  `applied_at`   datetime NOT NULL COMMENT '执行时间',
+  `duration_ms`  int DEFAULT NULL COMMENT '耗时毫秒',
+  `del_flag`     tinyint NOT NULL DEFAULT 0 COMMENT '删除标记',
+  `create_by`    varchar(50) DEFAULT NULL COMMENT '创建人',
+  `create_time`  datetime DEFAULT NULL COMMENT '创建时间',
+  `update_by`    varchar(50) DEFAULT NULL COMMENT '更新人',
+  `update_time`  datetime DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_script_name` (`script_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='迁移执行记录';
+</code></pre>
+<!--update-end---author:mavis ---date:2026-10-31  for：【F-GRM-05 / F-GRM-04】登记语境库与玩法的增量脚本与执行顺序----------- -->
+</section>
+<section id="seed">
+  <div class="sec-head"><span class="sec-num">13</span><h3>种子数据</h3><span class="tag">首次可跑</span></div>
+  <p>种子数据</p>
+<!--update-begin---author:mavis ---date:2026-10-31  for：【F-GRM-05 / F-GRM-04】补语境库与玩法题库的种子规格与清理口径----------- -->
+
+<h3>13.1 首版必须有的数据</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>类别</th>
+<th>数量</th>
+<th>内容</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>教材版本</td>
+<td>7</td>
+<td>人教/苏教/北师大/浙教/沪教/京教/鲁教</td>
+<td>F-REG-03</td>
+</tr>
+<tr>
+<td>全局上下文</td>
+<td>1</td>
+<td>省 + 学段 + 年级 + 教材版本</td>
+<td>首次启动即用</td>
+</tr>
+<tr>
+<td>坐标树</td>
+<td>≥ 200 节点</td>
+<td>一个年级的数学学科完整四层</td>
+<td>V0 地基验证</td>
+</tr>
+<tr>
+<td>母题</td>
+<td>≥ 20</td>
+<td>小学应用题，覆盖 ≥ 5 个题型</td>
+<td>V2 验证（首批可更小）</td>
+</tr>
+<tr>
+<td>单词</td>
+<td>≥ 300</td>
+<td>课内某单元 + 课外高频词</td>
+<td>V1 验证</td>
+</tr>
+<tr>
+<td>语法点</td>
+<td>≥ 20</td>
+<td>含中考题型标注</td>
+<td>V3 验证</td>
+</tr>
+<tr>
+<td>写作拆解</td>
+<td>≥ 10</td>
+<td>六层各 ≥ 1 条</td>
+<td>V4 验证</td>
+</tr>
+<tr>
+<td>写作情境</td>
+<td>≥ 24</td>
+<td>6 个主题 × 每主题 4 种不同处境 / 年龄 / 细节</td>
+<td>F-WRT-03 验证（给处境不给金句）</td>
+</tr>
+<tr>
+<td>例句语境</td>
+<td>108</td>
+<td>36 词 × 3 类语境（课文 / 真题 / 原声素材），主例句与背单词域同源</td>
+<td>F-GRM-05 验证（同一批例句）</td>
+</tr>
+<tr>
+<td>玩法题库</td>
+<td>26 关</td>
+<td>句子侦探 14 关 + 语法变形闯关 12 关</td>
+<td>F-GRM-04 验证（判定确定性）</td>
+</tr>
+<tr>
+<td>题目</td>
+<td>≥ 100</td>
+<td>覆盖全部题型</td>
+<td>判定策略验证</td>
+</tr>
+</tbody>
+</table></div>
+<h3>13.2 种子数据原则</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>原则</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>版权安全</td>
+<td>题目与范文只用自编或公开授权（OpenStax、CC 授权教材、教育考试院公开样题）；范文用公开发表的获奖作品并标注出处</td>
+</tr>
+<tr>
+<td>结构映射不做内容复制</td>
+<td>教材同步只映射结构，不复制教材正文</td>
+</tr>
+<tr>
+<td>可重置</td>
+<td>种子数据带独立前缀（如 <code>SEED_</code>），一键清理脚本可全部清除</td>
+</tr>
+<tr>
+<td>幂等</td>
+<td>重复执行不产生重复数据</td>
+</tr>
+<tr>
+<td>不含真实个人信息</td>
+<td>全部为虚构/公开数据</td>
+</tr>
+</tbody>
+</table></div>
+<h3>13.3 清理脚本</h3>
+<pre class="cmd"><code class="language-sql">-- 清理全部种子数据（保留结构）
+DELETE FROM study_error_pool       WHERE error_code LIKE 'SEED%';
+DELETE FROM study_review_schedule  WHERE error_code LIKE 'SEED%';
+DELETE FROM study_question_variant WHERE variant_code LIKE 'SEED%';
+DELETE FROM study_question         WHERE question_code LIKE 'SEED%';
+DELETE FROM study_mother_question  WHERE mother_code LIKE 'SEED%';
+DELETE FROM study_word             WHERE word_code LIKE 'SEED%';
+DELETE FROM study_grammar_point    WHERE grammar_code LIKE 'SEED%';
+DELETE FROM study_writing          WHERE writing_code LIKE 'SEED%';
+DELETE FROM study_knowledge_point  WHERE point_code LIKE 'SEED%';
+</code></pre>
+<blockquote>
+<p><strong>写作情境库的清理语句不在上面这段里</strong>：<code>06-cleanup.sql</code> 是已登记的历史脚本，
+按铁律 2 不回改。<code>study_writing_scenario</code> 的清理放在配套的增量脚本
+<code>13-writing-scenario-cleanup.sql</code>（按 <code>scenario_code LIKE 'SEED%'</code> 删除，保留结构）。</p>
+<p><strong>语境库与玩法题库的清理语句同样不在上面这段里</strong>：
+<code>study_sentence_context</code> / <code>study_word_context</code> / <code>study_grammar_game_question</code> /
+<code>study_grammar_game_record</code> 的种子清理放在 <code>15-grammar-context-game-cleanup.sql</code>
+（按 <code>id LIKE 'SEED%'</code> 删除，<strong>先删行为表再删内容表</strong>；保留结构）。</p>
+</blockquote>
+<!--update-end---author:mavis ---date:2026-10-31  for：【F-GRM-05 / F-GRM-04】补语境库与玩法题库的种子规格与清理口径----------- -->
+</section>
+
+    <div id="bottom"></div>
+    <footer class="foot"><span>jeecg-study · 数据库设计说明书 V1.0</span><span>2026-10-30</span><span>库：MySQL 8 / jeecg-study（平台表在 jeecg-boot）</span><span>上游：系统设计说明书 · 产品需求说明书</span></footer>
+  </main>
+
+</div>
+
+<button class="m-fab" id="fab" type="button">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/></svg>
+  目录
+</button>
+
+
+<script>
+(function(){
+  var BRAND = (document.getElementById('mTitle')||{}).textContent || '文档';
+  var links   = Array.prototype.slice.call(document.querySelectorAll('.nav-link'));
+  var pairs   = links.map(function(l){
+    var id = l.getAttribute('href').replace('#','');
+    var isJump = (id === 'top' || id === 'bottom');
+    return { link:l, sec: isJump ? null : document.getElementById(id) };
+  });
+  var sidebar = document.querySelector('.sidebar');
+  var scrim   = document.getElementById('scrim');
+  var fab     = document.getElementById('fab');
+  var mTitle  = document.getElementById('mTitle');
+  var panelOpen = false;
+
+  function isMobile(){ return window.matchMedia('(max-width:1000px)').matches; }
+  function openPanel(){
+    panelOpen = true;
+    if (sidebar) sidebar.classList.add('open');
+    if (scrim)   scrim.classList.add('show');
+  }
+  function closePanel(){
+    panelOpen = false;
+    if (sidebar) sidebar.classList.remove('open');
+    if (scrim)   scrim.classList.remove('show');
+  }
+  function togglePanel(){ panelOpen ? closePanel() : openPanel(); }
+
+  function onScroll(){
+    var y = window.scrollY + 140, idx = -1;
+    for (var i=0;i<pairs.length;i++){
+      if (pairs[i].sec && pairs[i].sec.offsetTop <= y) { idx = i; }
+    }
+    if (idx < 0) { idx = 0; for (var j=0;j<pairs.length;j++){ if (pairs[j].sec){ idx = j; break; } } }
+
+    pairs.forEach(function(p,i){ if (p.sec) p.link.classList.toggle('active', i === idx); });
+
+    if (mTitle) {
+      mTitle.textContent = window.scrollY < 40
+        ? BRAND
+        : pairs[idx].link.textContent.replace(/[↑↓]\s*/g,'').trim();
+    }
+    // 下滑后导航不可见 → 收起来为悬浮按钮
+    if (fab) fab.classList.toggle('show', window.scrollY > 80);
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', onScroll);
+  onScroll();
+
+  // 导航点击：顶/底跳转 或 锚点定位
+  pairs.forEach(function(p){
+    p.link.addEventListener('click', function(e){
+      e.preventDefault();
+      var href = p.link.getAttribute('href');
+      if (href === '#top') {
+        window.scrollTo({top:0, behavior:'smooth'});
+      } else if (href === '#bottom') {
+        window.scrollTo({top:document.documentElement.scrollHeight, behavior:'smooth'});
+      } else if (p.sec) {
+        window.scrollTo({top: p.sec.getBoundingClientRect().top + window.scrollY - 18, behavior:'smooth'});
+        history.replaceState(null,'',href);
+      }
+      closePanel();
+    });
+  });
+
+  var menuBtn  = document.getElementById('menuBtn');
+  var closeBtn = document.getElementById('closeBtn');
+  var topBtn   = document.getElementById('topBtn');
+  if (menuBtn)  menuBtn.addEventListener('click', togglePanel);
+  if (closeBtn) closeBtn.addEventListener('click', closePanel);
+  if (fab)      fab.addEventListener('click', togglePanel);
+  if (scrim)    scrim.addEventListener('click', closePanel);
+  if (topBtn)   topBtn.addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closePanel(); });
+
+  // 移动端表格卡片：为每个单元格补列名标签
+  Array.prototype.forEach.call(document.querySelectorAll('table'), function(t){
+    var heads = Array.prototype.map.call(t.querySelectorAll('thead th'), function(th){
+      return th.textContent.trim();
+    });
+    Array.prototype.forEach.call(t.querySelectorAll('tbody tr'), function(tr){
+      Array.prototype.forEach.call(tr.children, function(td,i){
+        if (heads[i]) td.setAttribute('data-label', heads[i]);
+      });
+    });
+  });
+})();
+</script>
+
+</body>
+</html>
