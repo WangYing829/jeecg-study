@@ -386,12 +386,21 @@ def cmd_restore(args):
 
     print("1) clone 上游 %s @ %s" % (UPSTREAM_URL, UPSTREAM_TAG))
     os.makedirs(os.path.dirname(target) or ".", exist_ok=True)
+    # `-c core.longpaths=true`：上游的代码模板目录（`${bussiPackage}/${entityPackage}/...`）
+    # 路径超 260 字符，不开这个开关 checkout 会报 "Filename too long"。
     p = subprocess.run(
-        ["git", "clone", "--branch", UPSTREAM_TAG, "--depth", "1", UPSTREAM_URL, target],
+        ["git", "-c", "core.longpaths=true", "clone", "--branch", UPSTREAM_TAG,
+         "--depth", "1", UPSTREAM_URL, target],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace",
     )
     if p.returncode != 0:
-        die("clone 失败：%s" % (p.stderr or "").strip())
+        err = (p.stderr or "").strip()
+        if "Filename too long" in err or "checkout failed" in err:
+            die("clone 成功但 **checkout 失败：路径超长**（Windows MAX_PATH 260）。\n"
+                "     上游最长路径约 250 字符，目标目录越短越安全。\n"
+                "     请换到更短的目录重试，例如：--target C:\\jb\n"
+                "     （已确知可用的组合：短路径 + core.longpaths=true）")
+        die("clone 失败：%s" % err)
 
     # overlay 清单
     txt_path = os.path.join(overlay_root, LIST_TXT)
