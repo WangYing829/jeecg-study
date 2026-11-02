@@ -471,11 +471,11 @@
 <section id="list">
   <div class="sec-head"><span class="sec-num">02</span><h3>页面清单总表</h3><span class="tag">施工单</span></div>
   <p>页面清单总表</p>
-<h3>2.1 实现状态与路由真源（2026-10-31 更新）</h3>
+<h3>2.1 实现状态与路由真源（2026-11-02 更新）</h3>
 <blockquote>
-<p>⚠ <strong>本表是 V1.1 的规划态清单</strong>（40 个页面）。截至 2026-10-31：
-<strong>已实现并上线 10 个页面</strong>，其余 30 个页面<strong>接口已就绪、界面待开发</strong>。
-<strong>已上线页面的路由以菜单种子为准</strong>（<code>02-代码开发/02-数据库/03-脚本/07/16/17-*.sql</code> 的 <code>sys_permission</code> 行），
+<p>⚠ <strong>本表是 V1.1 的规划态清单</strong>（40 个页面）。截至 2026-11-02：
+<strong>已实现并上线 23 个页面</strong>，其余 17 个页面<strong>接口已就绪、界面待开发</strong>。
+<strong>已上线页面的路由以菜单种子为准</strong>（<code>02-代码开发/02-数据库/03-脚本/07/16/17/22-*.sql</code> 的 <code>sys_permission</code> 行），
 <strong>不在</strong>前端路由文件中 —— 上游 <code>transformObjToRoute</code>（<code>src/router/helper/routeHelper.ts:139-162</code>）对 DB 菜单一律挂管理端 <code>LAYOUT</code>。</p>
 </blockquote>
 <div class="tbl-wrap"><table>
@@ -547,6 +547,14 @@
 <td>✅ 已上线（F-EYE-01…04）</td>
 </tr>
 <tr>
+<td>38</td>
+<td>孩子登录页（两步）</td>
+<td><strong><code>/study/kid/login</code></strong></td>
+<td><code>study/kid/login/index</code></td>
+<td>孩子</td>
+<td>✅ 已上线（<strong>静态路由</strong>，见下方说明）</td>
+</tr>
+<tr>
 <td>32</td>
 <td>家长端总览（学习报告）</td>
 <td><strong><code>/study-parent/report</code></strong></td>
@@ -571,35 +579,117 @@
 <td>✅ 已上线</td>
 </tr>
 <tr>
-<td>38</td>
-<td>孩子登录页（两步）</td>
-<td>—</td>
-<td>—</td>
-<td>孩子</td>
-<td>⬜ 接口已就绪，界面待开发</td>
-</tr>
-<tr>
-<td>35/36/37</td>
-<td>家庭与成员 / 孩子档案 / 关联管理</td>
-<td>—</td>
-<td>—</td>
+<td>35</td>
+<td>家庭与成员管理</td>
+<td><strong><code>/study-parent/family</code></strong></td>
+<td><code>study/parent/family/index</code></td>
 <td>家长</td>
-<td>⬜ 接口已就绪，界面待开发</td>
+<td>✅ 已上线</td>
 </tr>
 <tr>
-<td>1…9</td>
-<td>管理端维护页（9 个）</td>
-<td>—</td>
-<td>—</td>
+<td>36</td>
+<td>孩子档案编辑</td>
+<td><strong><code>/study-parent/child</code></strong></td>
+<td><code>study/parent/child/index</code></td>
+<td>家长</td>
+<td>✅ 已上线</td>
+</tr>
+<tr>
+<td>37</td>
+<td>孩子关联管理</td>
+<td><strong><code>/study-parent/child/:code/relations</code></strong></td>
+<td><code>study/parent/child/relations</code></td>
+<td>家长</td>
+<td>✅ 已上线（<code>hidden=1</code>，从档案页进）</td>
+</tr>
+<tr>
+<td>1</td>
+<td>全局上下文配置</td>
+<td><strong><code>/study/manage/context</code></strong></td>
+<td><code>study/manage/context/index</code></td>
 <td>管理</td>
-<td>⬜ 接口已就绪，界面待开发</td>
+<td>✅ 已上线</td>
+</tr>
+<tr>
+<td>2</td>
+<td>坐标树浏览器</td>
+<td><strong><code>/study/manage/coordinate</code></strong></td>
+<td><code>study/manage/coordinate/index</code></td>
+<td>管理</td>
+<td>✅ 已上线</td>
+</tr>
+<tr>
+<td>3</td>
+<td>考点维护</td>
+<td><strong><code>/study/manage/coordinate/:code</code></strong></td>
+<td><code>study/manage/coordinate/detail</code></td>
+<td>管理</td>
+<td>✅ 已上线（<code>hidden=1</code>）</td>
+</tr>
+<tr>
+<td>4</td>
+<td>考点版本历史</td>
+<td><strong><code>/study/manage/coordinate/:code/history</code></strong></td>
+<td><code>study/manage/coordinate/history</code></td>
+<td>管理</td>
+<td>✅ 已上线（<code>hidden=1</code>）</td>
+</tr>
+<tr>
+<td>5</td>
+<td>题目维护</td>
+<td><strong><code>/study/manage/question</code></strong></td>
+<td><code>study/manage/question/index</code></td>
+<td>管理</td>
+<td>✅ 已上线</td>
+</tr>
+<tr>
+<td>6</td>
+<td>母题维护</td>
+<td><strong><code>/study/manage/mother</code></strong></td>
+<td><code>study/manage/mother/index</code></td>
+<td>管理</td>
+<td>✅ 已上线</td>
+</tr>
+<tr>
+<td>7</td>
+<td>词表维护</td>
+<td><strong><code>/study/manage/word</code></strong></td>
+<td><code>study/manage/word/index</code></td>
+<td>管理</td>
+<td>✅ 已上线</td>
+</tr>
+<tr>
+<td>8</td>
+<td>语法点维护</td>
+<td><strong><code>/study/manage/grammar</code></strong></td>
+<td><code>study/manage/grammar/index</code></td>
+<td>管理</td>
+<td>✅ 已上线</td>
+</tr>
+<tr>
+<td>9</td>
+<td>拆解库维护</td>
+<td><strong><code>/study/manage/writing</code></strong></td>
+<td><code>study/manage/writing/index</code></td>
+<td>管理</td>
+<td>✅ 已上线</td>
 </tr>
 </tbody>
 </table></div>
 <blockquote>
+<p><strong>孩子端登录页是唯一的静态路由</strong>（ADR-039）：孩子没有账号密码，只有家庭码 + PIN，
+登录页必须在<strong>无登录态</strong>下可达；而动态菜单（<code>sys_permission</code> → <code>queryByUser</code>）<strong>要先有 token 才下发</strong>，
+挂在菜单里的页面孩子根本进不去。因此它走 <code>jeecgboot-vue3/src/router/routes/index.ts</code> 的
+<code>StudyKidLoginRoute</code>（<code>meta.ignoreAuth = true</code>，进 <code>basicRoutes</code>），
+<strong>不</strong>在 <code>sys_permission</code> 里再建一行 —— 同一个 path 注册两次会让 vue-router 行为不可预期。
+断言 <code>StudyInterfacePageTest#kidLoginMustBeStaticRoute</code> 同时守这两头（有静态路由 + 不在 DB 里）。</p>
+<p><strong>带 <code>:code</code> 的三级路由一律 <code>hidden=1</code></strong>：DB 菜单的 <code>url</code> 原样就是 vue-router 的 path
+（<code>SysPermissionController:794</code>），侧边栏渲染出来会是一个字面量 <code>:code</code> 的死链。
+这些页面从上级页面按钮进入。</p>
 <p><strong>家长端为什么不用 <code>layouts/parent</code></strong>：上游动态菜单<strong>永远无法用自定义布局</strong>（见 <code>routeHelper.ts:139-162</code>），
 因此家长端改用 <code>StudyParentShell</code> <strong>全屏固定层</strong>（<code>position: fixed; inset: 0; z-index: 1100</code>）压住管理端外壳，
-并自带 3 项页面导航与登出（ADR-033）。上文 §6.4 关于 <code>layouts/parent/index.vue</code> 的规划<strong>已被此决策取代</strong>。
+并自带页面导航与登出（ADR-033）。上文 §6.4 关于 <code>layouts/parent/index.vue</code> 的规划<strong>已被此决策取代</strong>。
+导航项已从 3 个扩到 5 个（新增「家庭成员」「孩子档案」；「关联管理」是档案页的下一级，不进 nav）。
 用户操作说明见《用户手册 · 系统功能使用说明》，开发规范见《技术手册 · 系统开发使用说明》。</p>
 </blockquote>
 <h3>2.2 规划态清单（40 个页面）</h3>
@@ -622,8 +712,8 @@
 <td><code>/study/manage/context</code></td>
 <td>管理</td>
 <td>V0</td>
-<td><code>StudyContextForm</code></td>
-<td><code>GET/POST /context</code></td>
+<td><code>ManageContentPage</code>（form 模式）</td>
+<td><code>GET /context/list</code>、<code>POST /context</code>、<code>GET /textbook-versions</code></td>
 </tr>
 <tr>
 <td>2</td>
@@ -631,7 +721,7 @@
 <td><code>/study/manage/coordinate</code></td>
 <td>管理</td>
 <td>V0</td>
-<td><code>StudyCategoryTree</code></td>
+<td><code>ManageContentPage</code>（tree 模式）</td>
 <td><code>GET /knowledge-points/tree</code></td>
 </tr>
 <tr>
@@ -640,8 +730,8 @@
 <td><code>/study/manage/coordinate/:code</code></td>
 <td>管理</td>
 <td>V0</td>
-<td><code>StudyDataList</code> + 表单</td>
-<td><code>PUT /knowledge-points/{code}</code></td>
+<td><code>ManageContentPage</code>（form 模式）</td>
+<td><code>GET/PUT /knowledge-points/{code}</code></td>
 </tr>
 <tr>
 <td>4</td>
@@ -649,7 +739,7 @@
 <td><code>/study/manage/coordinate/:code/history</code></td>
 <td>管理</td>
 <td>V1</td>
-<td><code>StudyDataList</code></td>
+<td><code>ManageContentPage</code>（list 模式）</td>
 <td><code>GET /knowledge-points/{code}/history</code></td>
 </tr>
 <tr>
@@ -658,8 +748,8 @@
 <td><code>/study/manage/question</code></td>
 <td>管理</td>
 <td>V0</td>
-<td><code>StudyDataList</code></td>
-<td><code>GET /error-pool</code> 等复用</td>
+<td><code>ManageContentPage</code>（list 模式）</td>
+<td><code>GET /knowledge-points/tree</code>、<code>GET /knowledge-points/search</code></td>
 </tr>
 <tr>
 <td>6</td>
@@ -667,8 +757,8 @@
 <td><code>/study/manage/mother</code></td>
 <td>管理</td>
 <td>V2</td>
-<td><code>StudyDataList</code> + <code>MotherEditor</code></td>
-<td><code>/math/mother/*</code></td>
+<td><code>ManageContentPage</code>（list 模式）</td>
+<td><code>GET /math/mother/list</code>、<code>GET /math/mother/{code}</code></td>
 </tr>
 <tr>
 <td>7</td>
@@ -676,8 +766,8 @@
 <td><code>/study/manage/word</code></td>
 <td>管理</td>
 <td>V1</td>
-<td><code>StudyDataList</code></td>
-<td><code>/word/line/{t}/list</code></td>
+<td><code>ManageContentPage</code>（list 模式）</td>
+<td><code>GET /word/line/{t}/list</code></td>
 </tr>
 <tr>
 <td>8</td>
@@ -685,8 +775,8 @@
 <td><code>/study/manage/grammar</code></td>
 <td>管理</td>
 <td>V3</td>
-<td><code>StudyDataList</code></td>
-<td><code>/grammar/points</code></td>
+<td><code>ManageContentPage</code>（list 模式）</td>
+<td><code>GET /grammar/points</code></td>
 </tr>
 <tr>
 <td>9</td>
@@ -694,8 +784,8 @@
 <td><code>/study/manage/writing</code></td>
 <td>管理</td>
 <td>V4</td>
-<td><code>StudyDataList</code></td>
-<td><code>/writing/dissections</code></td>
+<td><code>ManageContentPage</code>（list 模式）</td>
+<td><code>GET /writing/dissections</code></td>
 </tr>
 <tr>
 <td>10</td>
@@ -925,37 +1015,37 @@
 <tr>
 <td>35</td>
 <td>家庭与成员管理</td>
-<td><code>/study/parent/family</code></td>
+<td><code>/study-parent/family</code></td>
 <td>家长</td>
 <td>V0</td>
-<td><code>FamilyMemberList</code> + 表单</td>
+<td><code>study/parent/family/index.vue</code> + <code>StudyParentShell</code></td>
 <td><code>GET/PUT /family</code>、<code>/family/members</code>、<code>/family/code/reset</code></td>
 </tr>
 <tr>
 <td>36</td>
 <td>孩子档案编辑</td>
-<td><code>/study/parent/child/:code</code></td>
+<td><code>/study-parent/child</code></td>
 <td>家长</td>
 <td>V0</td>
-<td><code>ChildProfileForm</code></td>
+<td><code>study/parent/child/index.vue</code> + <code>StudyParentShell</code></td>
 <td><code>GET/PUT /children/{code}</code>、<code>/children/{code}/pin/reset</code></td>
 </tr>
 <tr>
 <td>37</td>
 <td>孩子关联管理</td>
-<td><code>/study/parent/child/:code/relations</code></td>
+<td><code>/study-parent/child/:code/relations</code></td>
 <td>家长</td>
 <td>V0</td>
-<td><code>StudyDataList</code></td>
+<td><code>study/parent/child/relations.vue</code> + <code>StudyParentShell</code></td>
 <td><code>GET/POST /children/{code}/relations</code></td>
 </tr>
 <tr>
 <td>38</td>
 <td>孩子登录页（两步）</td>
-<td><code>/study/kid/login</code></td>
+<td><code>/study/kid/login</code>（<strong>静态路由</strong>）</td>
 <td>孩子</td>
 <td>V0</td>
-<td><code>KidLoginForm</code></td>
+<td><code>study/kid/login/index.vue</code></td>
 <td><code>POST /kid/lookup</code>、<code>/kid/login</code></td>
 </tr>
 <tr>
@@ -1005,6 +1095,11 @@
 <blockquote>
 <p>全部遵循《产品设计规范》第 9.1 节列表页骨架：<strong><code>PageWrapper</code>（内容区 margin:16px）→ <code>useListPage</code> + <code>BasicTable</code></strong>（查询区 / 工具栏 / 分页 / 表格设置均由组件内置）→（可选）统计区 → 操作列插槽 <code>StudyActionColumn</code> → 弹窗。
 <strong>禁止</strong>手写 <code>a-table</code>、<strong>禁止</strong>另做分页组件、<strong>禁止</strong>把查询表单与表格混排（规范 9.1 / 8.2 / 8.9）。</p>
+<p>⚠ <strong>实现口径（ADR-041）</strong>：9 个内容维护页的读接口返回的是<strong>裸数组 / <code>{items,total}</code></strong>，
+不是 <code>useListPage</code> 期望的 <code>{records,total}</code> 服务端分页体 ⇒ 统一走
+<code>ManageContentPage.vue</code> 内核的 <strong><code>BasicTable</code> 本地数据模式</strong>（<code>dataSource</code> + 组件内置分页），
+<strong>不硬套 <code>useListPage</code></strong>（硬套会让分页看起来对、实际取不到数）。
+表格列由薄配置页提供，操作列由内核统一补齐并走 <code>StudyActionColumn</code>；管理端表单沿用基座默认 <code>horizontal</code>。</p>
 </blockquote>
 <h3>3.1 全局上下文配置</h3>
 <div class="tbl-wrap"><table>
@@ -1629,7 +1724,7 @@
 </tr>
 <tr>
 <td>布局</td>
-<td>家长端独立布局（<code>layouts/parent</code>，规范 9.6）；列表部分复用 <code>BasicTable</code> 但<strong>不套</strong>管理端 <code>PageWrapper</code>/<code>a-card</code> 壳；<code>showTableSetting: false</code>；本页属写操作页，操作列保留「移除」「重置家庭码」（只读数据页才只留「查看」）</td>
+<td>家长端独立布局（<code>layouts/parent</code>，规范 9.6）；列表部分走 <code>StudyDataList</code>（桌面表格 / ≤992px 转卡片，<strong>不套</strong>管理端 <code>PageWrapper</code>/<code>a-card</code> 壳）；本页属写操作页，操作列保留「移除」（只读数据页才只留「查看」）</td>
 </tr>
 <tr>
 <td>区块</td>
@@ -1637,7 +1732,7 @@
 </tr>
 <tr>
 <td>表格列</td>
-<td>昵称（首列短标签 ≤12 字）、账号名、角色（OWNER / PARENT）、与孩子的关系标签、状态</td>
+<td>关系（<code>StudyEnumTag</code>）、角色（<code>StudyEnumTag</code>）、状态、操作（<code>StudyActionColumn</code>）</td>
 </tr>
 <tr>
 <td>邀请家长</td>
@@ -1645,7 +1740,7 @@
 </tr>
 <tr>
 <td>移除成员</td>
-<td>操作列「移除」走 <code>a-popconfirm</code> 二次确认（危险操作）</td>
+<td>操作列「移除」走 <code>StudyActionColumn</code>（内置 <code>a-popconfirm</code> 二次确认，危险操作）</td>
 </tr>
 <tr>
 <td>重置家庭码</td>
@@ -1653,7 +1748,7 @@
 </tr>
 <tr>
 <td>设计规范落点</td>
-<td>9.6 家长端布局（无顶栏无侧栏）；9.1 表格用 <code>BasicTable</code>（<code>showTableSetting: false</code>）；8.7 操作列用 <code>StudyActionColumn</code>（危险操作二次确认）；8.5 弹窗 <code>:body-style="STUDY_MODAL_BODY_STYLE"</code>；8.6 角色标签用 antd 预设名；6.1 间距 <code>4/8/12/16</code>；12.2 ≤992px 表格转卡片</td>
+<td>9.6 家长端布局（无顶栏无侧栏）；12.2 ≤992px 列表转卡片（<code>StudyDataList</code> 自带）；8.7 操作列用 <code>StudyActionColumn</code>；8.5 弹窗 <code>:body-style="STUDY_MODAL_BODY_STYLE"</code>；8.6 标签色用 antd 预设名（<code>StudyEnumTag</code> 同名同色）；6.1 间距 <code>4/8/12/16</code></td>
 </tr>
 </tbody>
 </table></div>
@@ -1697,7 +1792,7 @@
 </tr>
 <tr>
 <td>设计规范落点</td>
-<td>8.4 窄表单 <code>layout="vertical"</code>（管理端默认 <code>horizontal</code>，此处属窄表单）、短字段 <code>:span="12"</code> / 长文本 <code>:span="24"</code>；6.2 <code>a-row :gutter="16"</code>；8.5 弹窗 <code>:body-style</code>；8.4 输入字号 14px、数字输入最小宽 110px；3.4 次要文字 <code>rgba(0,0,0,0.45)</code>；12.2 ≤992px 移动端单列</td>
+<td>8.4 窄表单 <code>layout="vertical"</code>（管理端默认 <code>horizontal</code>，此处属窄表单）、短字段 <code>:span="12"</code> / 长文本 <code>:span="24"</code>；6.2 <code>a-row :gutter="16"</code>；8.5 弹窗 <code>:body-style</code>；8.4 输入字号 14px、数字输入最小宽 110px；3.4 次要文字走 <code>@text-color-call-out</code> 变量；12.2 ≤992px 移动端单列</td>
 </tr>
 </tbody>
 </table></div>
@@ -1721,11 +1816,11 @@
 </tr>
 <tr>
 <td>布局</td>
-<td>家长端独立布局（规范 9.6）；列表部分复用 <code>BasicTable</code>（<code>showTableSetting: false</code>）；顶部为孩子信息条（昵称 + 头像 + 业务 id <code>CHD-xxx</code>）</td>
+<td>家长端独立布局（规范 9.6）；列表部分走 <code>StudyDataList</code>（桌面表格 / ≤992px 转卡片）；顶部为孩子信息条（昵称 + 头像 + 业务 id <code>CHD-xxx</code>）</td>
 </tr>
 <tr>
 <td>表格列</td>
-<td>家长昵称（首列短标签 ≤12 字）、账号名、关系标签、是否主家长、状态</td>
+<td>关系（<code>StudyEnumTag</code>）、是否主家长、状态、操作（<code>StudyActionColumn</code>）</td>
 </tr>
 <tr>
 <td>添加关联</td>
@@ -2029,6 +2124,7 @@
 <th>组件</th>
 <th>来源</th>
 <th>改动</th>
+<th>本仓状态</th>
 </tr>
 </thead>
 <tbody>
@@ -2036,81 +2132,97 @@
 <td><code>StudyListToolbar</code></td>
 <td><code>Mtv2ListToolbar</code>（语义参考）</td>
 <td>自研；换主题色变量；不含分页（分页归 <code>BasicTable</code>）</td>
+<td>⬜ 规划中</td>
 </tr>
 <tr>
 <td><code>StudyListSummary</code></td>
 <td><code>Mtv2ListSummary</code></td>
 <td>改名 + <code>mtv2-*</code> CSS 变量改 <code>study-*</code></td>
+<td>⬜ 规划中</td>
 </tr>
 <tr>
 <td><code>StudyStatCards</code></td>
 <td><code>Mtv2StatCards</code></td>
 <td>改名</td>
+<td>✅ 已实现</td>
 </tr>
 <tr>
 <td><code>StudyDataList</code></td>
 <td><code>Mtv2DataList</code></td>
-<td>改名</td>
+<td>改名；<strong>新增按列具名插槽</strong> <code>#cell-&lt;列名&gt;</code>（家长端挂标签与操作按钮用）</td>
+<td>✅ 已实现</td>
 </tr>
 <tr>
 <td><code>StudyEnumTag</code></td>
-<td><code>Mtv2EnumTag</code></td>
-<td>改名；<code>EnumTagKind</code> 增补 study 枚举</td>
+<td><code>Mtv2EnumTag</code>（语义参考）</td>
+<td><strong>本仓新建</strong>；同名同色 hash 映射；候选色板只用 antd 预设名且<strong>不含 <code>error</code></strong>（关系/角色不是负面信息）</td>
+<td>✅ 已实现</td>
 </tr>
 <tr>
 <td><code>StudyActionColumn</code></td>
-<td><code>Mtv2ActionColumn</code></td>
-<td>改名</td>
+<td><code>Mtv2ActionColumn</code>（语义参考）</td>
+<td><strong>本仓新建</strong>；≤3 个全行内 / &gt;3 个前 2 个行内其余进「更多」；行内 <code>a-popconfirm</code>、下拉 <code>Modal.confirm</code>；<code>auth</code> 走 <code>hasPermission</code></td>
+<td>✅ 已实现</td>
 </tr>
 <tr>
 <td><code>StudyCategoryTree</code></td>
 <td><code>Mtv2CategoryTree</code></td>
 <td>改名</td>
+<td>⬜ 规划中（坐标树页暂用 <code>a-tree</code>）</td>
 </tr>
 <tr>
 <td><code>StudyHelpDrawer</code></td>
 <td><code>Mtv2HelpDrawer</code></td>
 <td>改名；<code>helpRegistry</code> 独立</td>
+<td>⬜ 规划中</td>
 </tr>
 <tr>
 <td><code>StudyExcelButtons</code></td>
 <td><code>Mtv2ExcelButtons</code>（语义参考）</td>
 <td>自研；<strong>按规范 4.2① 修正颜色</strong>（弃用硬编码 <code>#52c41a</code>/<code>#faad14</code>）；学习端禁用</td>
+<td>⬜ 规划中</td>
 </tr>
 <tr>
 <td><code>StudyTypeFilterPanel</code></td>
 <td><code>Mtv2TypeFilterPanel</code></td>
 <td>改名</td>
+<td>⬜ 规划中</td>
 </tr>
 <tr>
 <td><code>StudyAttachmentPanel</code></td>
 <td><code>Mtv2AttachmentPanel</code></td>
 <td>改名</td>
+<td>⬜ 规划中</td>
 </tr>
 <tr>
 <td><code>StudyPlaceholder</code></td>
 <td><code>Mtv2Placeholder</code></td>
 <td>改名</td>
+<td>⬜ 规划中</td>
 </tr>
 <tr>
 <td><code>StudyLevelTag</code></td>
 <td><code>Mtv2EnumTag</code> 变体</td>
 <td>新增：掌握度四态标签</td>
+<td>⬜ 规划中（改由 <code>StudyEnumTag</code> 的 <code>kind</code> 承载）</td>
 </tr>
 <tr>
 <td><code>StudyCauseTag</code></td>
 <td>新增</td>
 <td>错因五维标签</td>
+<td>⬜ 规划中（改由 <code>StudyEnumTag</code> 的 <code>kind</code> 承载）</td>
 </tr>
 <tr>
 <td><code>StudyModuleTag</code></td>
 <td>新增</td>
 <td>六模块标签</td>
+<td>⬜ 规划中（改由 <code>StudyEnumTag</code> 的 <code>kind</code> 承载）</td>
 </tr>
 <tr>
 <td><code>StudyMasteryBar</code></td>
 <td>新增</td>
 <td>掌握度进度条</td>
+<td>⬜ 规划中</td>
 </tr>
 </tbody>
 </table></div>

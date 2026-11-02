@@ -11,7 +11,13 @@
       </thead>
       <tbody>
         <tr v-for="(row, index) in dataSource" :key="rowKeyOf(row, index)">
-          <td v-for="col in columns" :key="col.key">{{ row[col.key] }}</td>
+          <td
+            v-for="col in columns"
+            :key="col.key"
+            :class="{ 'study-data-list__cell--action': col.key === 'action' }"
+          >
+            <slot :name="cellSlotName(col)" :row="row" :value="row[col.key]">{{ row[col.key] }}</slot>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -21,7 +27,9 @@
       <li v-for="(row, index) in dataSource" :key="rowKeyOf(row, index)" class="study-data-list__card">
         <div v-for="col in columns" :key="col.key" class="study-data-list__field">
           <span class="study-data-list__label">{{ col.title }}</span>
-          <span class="study-data-list__value">{{ row[col.key] }}</span>
+          <span class="study-data-list__value">
+            <slot :name="cellSlotName(col)" :row="row" :value="row[col.key]">{{ row[col.key] }}</slot>
+          </span>
         </div>
       </li>
     </ul>
@@ -52,6 +60,10 @@
    * </ul>
    *
    * <p>窄屏下<b>不做横向滚动</b>（F-16），而是转卡片列表。</p>
+   *
+   * <p><b>按列自定义内容</b>：每列都可以给一个具名插槽 {@code #cell-<列名>}，
+   * 插槽拿到 {@code row} 与 {@code value}。家长端要显示彩色标签与操作按钮时，
+   * 用它挂 {@code StudyEnumTag} 与 {@code StudyActionColumn}，页面就不必手写表格。</p>
    */
   export default defineComponent({
     name: 'StudyDataList',
@@ -71,6 +83,10 @@
       },
     },
     methods: {
+      /** 单元格插槽名 */
+      cellSlotName(col: StudyDataListColumn): string {
+        return `cell-${col.key}`;
+      },
       rowKeyOf(row: Record<string, any>, index: number): string {
         if (typeof this.rowKey === 'function') {
           return String((this.rowKey as (r: Record<string, any>, i: number) => string)(row, index));
@@ -104,6 +120,11 @@
       th {
         font-weight: 500;
         color: @text-color-call-out;
+      }
+
+      /* 操作列不换行（§8.7） */
+      & .study-data-list__cell--action {
+        white-space: nowrap;
       }
     }
 

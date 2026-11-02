@@ -58,6 +58,24 @@ class StudyUiSpecAssertionTest {
     /** 家长端视图目录 */
     private static final String VIEWS_PARENT = "views/study/parent";
 
+    /**
+     * 管理端视图目录。
+     *
+     * <p><b>为什么单独拎出来</b>：《产品设计规范》§1.3 明确
+     * <b>管理端适用第 3–9 章全部</b>，而第 9–10 章是<b>学习端 / 家长端专项</b>。
+     * 因此「学习端不用表格」「学习端不套管理端表单骨架」「学习端一屏一任务」
+     * 这类口径<b>不适用于管理端</b>——管理端恰恰<b>必须</b>用 BasicTable、
+     * 用管理端表单骨架。把它混进学习端集合，等于用学习端口径去卡管理端，
+     * 断言会永远红，而且真正的违规反而被淹没。</p>
+     */
+    private static final String VIEWS_MANAGE = "views/study/manage";
+
+    /** 统一操作列组件（§8.7）：操作列的标题与渲染都收在它里面 */
+    private static final String ACTION_COLUMN_COMPONENT = "components/study/StudyActionColumn.vue";
+
+    /** 枚举彩色标签组件（§8.6）：动态标签色只允许出现在它里面 */
+    private static final String ENUM_TAG_COMPONENT = "components/study/StudyEnumTag.vue";
+
     /** 只给家长端用的自研组件（圆角按管理端上限 8px 收） */
     private static final List<String> PARENT_SHARED_COMPONENTS =
             Arrays.asList("StudyDataList.vue", "StudyStatCards.vue", "StudyParentShell.vue");
@@ -339,18 +357,34 @@ class StudyUiSpecAssertionTest {
     }
 
     @Test
-    @DisplayName("F-07 学习端 / 家长端不使用管理端列表骨架（useListPage + BasicTable）")
+    @DisplayName("F-07 家长端与学习端不套管理端列表骨架（管理端自己必须用 BasicTable）")
     void f07_noAdminListSkeleton() {
         List<String> hits = new ArrayList<>();
-        for (Path file : projectFiles()) {
+        // ① 家长端与学习端：不套管理端列表骨架（useListPage / useListTable / 手写 a-table）
+        for (Path file : parentAndLearningFiles()) {
             String content = read(file);
-            if (content.contains("<a-table") || content.contains("useListPage") || content.contains("useListTable")
-                    || content.contains("BasicTable")) {
+            if (content.contains("useListPage") || content.contains("useListTable")
+                    || content.contains("<a-table")) {
                 hits.add(rel(file));
             }
         }
+        // ② 学习端更进一步：连 BasicTable 都不能用（§9.7 学习端用卡片流，不用表格）
+        for (Path file : learningFiles()) {
+            if (read(file).contains("BasicTable")) {
+                hits.add(rel(file) + " 学习端不得使用 BasicTable");
+            }
+        }
+        // ③ 管理端反过来：列表页必须用 BasicTable，不得手写 a-table（§9.1）
+        List<Path> manageFiles = filesUnder(VIEWS_MANAGE);
+        assertThat(manageFiles).as("扫描有效性：管理端文件集合必须非空，否则会假绿").isNotEmpty();
+        for (Path file : manageFiles) {
+            String content = read(file);
+            if (content.contains("<a-table")) {
+                hits.add(rel(file) + " 管理端列表页必须用 BasicTable（§9.1）");
+            }
+        }
         assertThat(hits)
-                .as("F-07 / §9.1：家长端与学习端不适用管理端列表骨架，列表走 StudyDataList")
+                .as("F-07 / §9.1：家长端与学习端不适用管理端列表骨架；管理端必须用 BasicTable")
                 .isEmpty();
     }
 
@@ -382,17 +416,30 @@ class StudyUiSpecAssertionTest {
     }
 
     @Test
-    @DisplayName("F-10 学习端 / 家长端不得套用管理端表单骨架")
+    @DisplayName("F-10 学习端不套管理端表单骨架；管理端表单必须沿用 horizontal")
     void f10_noAdminFormSkeleton() {
         List<String> hits = new ArrayList<>();
-        for (Path file : projectFiles()) {
+        // ① 学习端不用管理端表单骨架（学习端是卡片流 + 底部主操作条）
+        for (Path file : learningFiles()) {
             String content = read(file);
             if (content.contains("BasicForm") || content.contains("<a-form")) {
                 hits.add(rel(file));
             }
         }
+        // ② 管理端表单沿用基座默认 layout="horizontal"，不得强制改成 vertical（§8.4①）
+        //
+        //   V1.1 已把旧版「表单一律 vertical」的写法改正为「管理端用基座默认 horizontal」，
+        //   管理端再写 :layout="vertical" 属于违反基座默认。
+        for (Path file : filesUnder(VIEWS_MANAGE)) {
+            String content = read(file);
+            if (content.contains("<a-form")
+                    && (content.contains(":layout=\"vertical\"") || content.contains("layout: 'vertical'")
+                            || content.contains("layout=\"vertical\""))) {
+                hits.add(rel(file) + " → 管理端表单必须沿用基座默认 horizontal（§8.4①）");
+            }
+        }
         assertThat(hits)
-                .as("F-10 / §9.1：本项目新增页面不引入管理端表单骨架（管理端表单默认布局那条不适用）")
+                .as("F-10 / §9.1 / §8.4①：学习端不引入管理端表单骨架；管理端表单用默认 horizontal")
                 .isEmpty();
     }
 
@@ -443,14 +490,20 @@ class StudyUiSpecAssertionTest {
     }
 
     @Test
-    @DisplayName("F-14 操作列必须用 StudyActionColumn（本项目页面不手写操作列）")
+    @DisplayName("F-14 操作列必须走 StudyActionColumn（页面不手写操作列）")
     void f14_noHandWrittenActionColumn() {
         List<String> hits = new ArrayList<>();
         for (Path file : projectFiles()) {
+            String path = rel(file);
+            // 组件自身定义操作列标题是规范要求的，不算「手写操作列」
+            if (path.equals(ACTION_COLUMN_COMPONENT)) {
+                continue;
+            }
             String content = read(file);
-            if (content.contains("title: '操作'") || content.contains("title: \"操作\"")
-                    || content.contains(">操作<")) {
-                hits.add(rel(file));
+            boolean hasActionColumn = content.contains("title: '操作'") || content.contains("title: \"操作\"")
+                    || content.contains(">操作<");
+            if (hasActionColumn && !content.contains("StudyActionColumn")) {
+                hits.add(path);
             }
         }
         assertThat(hits).as("F-14 / §8.7：操作列必须走 StudyActionColumn").isEmpty();
@@ -646,9 +699,11 @@ class StudyUiSpecAssertionTest {
     }
 
     @Test
-    @DisplayName("自检 #9 列表页栅格 gutter=16，列宽 12/24（不依赖 antd 响应式列）")
+    @DisplayName("自检 #9 列表页栅格 gutter=16，列宽 12/24，不依赖 antd 响应式断点")
     void checklist09_gridGutterAndColumns() {
         List<String> hits = new ArrayList<>();
+
+        // ① gutter 必须是 16（§6.2）
         for (Path file : projectFiles()) {
             Matcher m = Pattern.compile(":gutter\\s*=\\s*\"?\\[?\\s*(\\d+)").matcher(read(file));
             while (m.find()) {
@@ -656,26 +711,85 @@ class StudyUiSpecAssertionTest {
                     hits.add(rel(file) + " → :gutter=" + m.group(1));
                 }
             }
-            if (read(file).contains("a-row") || read(file).contains("a-col")) {
-                hits.add(rel(file) + " 使用了 antd 栅格（.ant-col 被锁成 100%，列数要自己写媒体查询）");
-            }
         }
-        assertThat(hits).as("§6.2 / §12.1：响应式列自己写媒体查询，不靠 antd 栅格").isEmpty();
-    }
 
-    @Test
-    @DisplayName("自检 #16 标签色只用 antd 预设名")
-    void checklist16_tagColorUsesPresetName() {
-        List<String> hits = new ArrayList<>();
+        // ② 禁 antd 响应式断点属性
+        //
+        //   .ant-col 被锁成 width:100%（src/design/index.less:9），
+        //   靠 xs/sm/md/lg/xl/xxl 自动分列根本不成立——响应式列必须自己写媒体查询（§12.1）。
+        //   ⚠ 旧版断言把 a-row / a-col 一刀切禁掉了，但 §6.2 明确允许
+        //   「a-row :gutter="16" + a-col :span="12|24"」，禁的只是断点属性。
         for (Path file : projectFiles()) {
-            Matcher m = Pattern.compile("<a-tag[^>]*color\\s*=\\s*\"([^\"]*)\"").matcher(read(file));
-            while (m.find()) {
-                if (!ALLOWED_TAG_COLOR.contains(m.group(1))) {
-                    hits.add(rel(file) + " → color=" + m.group(1));
+            String content = read(file);
+            for (String breakpoint : Arrays.asList("xs", "sm", "md", "lg", "xl", "xxl")) {
+                if (content.contains(":" + breakpoint + "=")) {
+                    hits.add(rel(file) + " → 使用了 antd 响应式断点属性 :" + breakpoint);
                 }
             }
         }
-        assertThat(hits).as("§8.6：标签色只用 antd 预设名，不传裸 hex").isEmpty();
+
+        // ③ 列宽只能 12 / 24（§6.2）
+        for (Path file : projectFiles()) {
+            Matcher m = Pattern.compile(":span\\s*=\\s*\"?(\\d+)").matcher(read(file));
+            while (m.find()) {
+                if (!"12".equals(m.group(1)) && !"24".equals(m.group(1))) {
+                    hits.add(rel(file) + " → :span=" + m.group(1));
+                }
+            }
+            Matcher s = Pattern.compile("(?<![\\w-])span\\s*:\\s*(\\d+)").matcher(read(file));
+            while (s.find()) {
+                if (!"12".equals(s.group(1)) && !"24".equals(s.group(1))) {
+                    hits.add(rel(file) + " → span: " + s.group(1));
+                }
+            }
+        }
+
+        assertThat(hits).as("§6.2 / §12.1：gutter=16、列宽 12/24，响应式列自己写媒体查询").isEmpty();
+    }
+
+    @Test
+    @DisplayName("自检 #16 标签色只用 antd 预设名（动态色统一走 StudyEnumTag）")
+    void checklist16_tagColorUsesPresetName() {
+        List<String> hits = new ArrayList<>();
+
+        for (Path file : projectFiles()) {
+            String path = rel(file);
+            String content = read(file);
+            // 逐个 <a-tag> 标签看：动态色（:color）只允许出现在 StudyEnumTag 里
+            Matcher tags = Pattern.compile("<a-tag[^>]*>").matcher(content);
+            while (tags.find()) {
+                String tag = tags.group();
+                Matcher dynamic = Pattern.compile(":color\\s*=\\s*\"([^\"]*)\"").matcher(tag);
+                if (dynamic.find()) {
+                    if (!path.equals(ENUM_TAG_COMPONENT)) {
+                        hits.add(path + " → 动态标签色 " + dynamic.group(1) + "（统一走 StudyEnumTag）");
+                    }
+                    continue;
+                }
+                Matcher literal = Pattern.compile("(?<![:\\w-])color\\s*=\\s*\"([^\"]*)\"").matcher(tag);
+                if (literal.find() && !ALLOWED_TAG_COLOR.contains(literal.group(1))) {
+                    hits.add(path + " → color=" + literal.group(1));
+                }
+            }
+        }
+
+        // StudyEnumTag 的候选色板必须只用 antd 预设名（§8.6 同名同色 hash 映射）
+        Path enumTag = RedLineScanner.frontendRoot().resolve(ENUM_TAG_COMPONENT);
+        assertThat(Files.isRegularFile(enumTag))
+                .as("统一枚举标签组件必须存在：" + ENUM_TAG_COMPONENT)
+                .isTrue();
+        String enumContent = read(enumTag);
+        Matcher arrays = Pattern.compile("\\[[^\\]]*\\]").matcher(enumContent);
+        while (arrays.find()) {
+            Matcher colors = Pattern.compile("'([a-z]+)'").matcher(arrays.group());
+            while (colors.find()) {
+                if (!ALLOWED_TAG_COLOR.contains(colors.group(1))) {
+                    hits.add(ENUM_TAG_COMPONENT + " → 候选色 " + colors.group(1) + " 不在 antd 预设名集合内");
+                }
+            }
+        }
+
+        assertThat(hits).as("§8.6：标签色只用 antd 预设名，不传裸 hex，动态色统一走 StudyEnumTag").isEmpty();
     }
 
     @Test
@@ -707,7 +821,9 @@ class StudyUiSpecAssertionTest {
     void checklist19_forbiddenCopyNotDisguised() {
         List<String> hits = new ArrayList<>();
         for (Path file : projectFiles()) {
-            String content = read(file);
+            // 必须先剥注释：注释里为了说明「不要这么写」而引用的字面量，
+            //   不是用户看得见的文案，不该算违规（本仓既有纪律）
+            String content = stripComments(read(file));
             if (content.contains("数据不存在")) {
                 hits.add(rel(file) + " 含「数据不存在」");
             }
@@ -716,6 +832,7 @@ class StudyUiSpecAssertionTest {
 
         boolean hasForbiddenCopy = parentFiles().stream()
                 .map(StudyUiSpecAssertionTest::read)
+                .map(StudyUiSpecAssertionTest::stripComments)
                 .anyMatch(content -> content.contains("无权查看该孩子的数据"));
         assertThat(hasForbiddenCopy).as("§11.3：家长端必须给出「无权查看该孩子的数据」提示").isTrue();
     }
@@ -940,12 +1057,17 @@ class StudyUiSpecAssertionTest {
     void tc08_21_noHardcodedLightColor() {
         List<String> hits = new ArrayList<>();
         for (Path file : projectFiles()) {
-            Matcher m = Pattern.compile("(?<![-\\w@])white\\b").matcher(read(file));
+            String content = read(file);
+            Matcher m = Pattern.compile("(?<![-\\w@])white\\b").matcher(content);
             while (m.find()) {
-                String context = read(file);
-                int start = Math.max(0, m.start() - 40);
-                String around = context.substring(start, m.start() + 6);
-                if (!around.contains("white-space")) {
+                // white-space 是 CSS 属性名，不是颜色值：
+                //   旧判定是「前后 40 字符里有没有 white-space」，
+                //   而窗口右边界落在 "white-" 之后，完整的 "white-space" 根本不在窗口里
+                //   ⇒ 只要页面写了 white-space: nowrap 就被误判成硬编码亮色。
+                //   正确判据是「这个 white 是不是 white-space 的开头」。
+                if (!content.startsWith("white-space", m.start())) {
+                    int start = Math.max(0, m.start() - 40);
+                    String around = content.substring(start, m.start() + 6);
                     hits.add(rel(file) + " → 出现字面量 white：" + around.trim());
                 }
             }
@@ -966,7 +1088,7 @@ class StudyUiSpecAssertionTest {
                 String value = m.group(2).trim();
                 boolean isVariable = value.startsWith("@") || value.startsWith("var(") || value.startsWith("inherit")
                         || value.startsWith("transparent") || value.startsWith("currentColor")
-                        || value.startsWith("none");
+                        || value.startsWith("none") || isLessColorFunctionOfVariable(value);
                 if (!isVariable) {
                     hits.add(rel(file) + " → " + m.group(1) + ": " + value);
                 }
@@ -1090,19 +1212,32 @@ class StudyUiSpecAssertionTest {
         return out.stream().distinct().sorted().toList();
     }
 
-    /** 学习端（孩子端）范围：layouts/study + views/study（不含 parent） */
+    /**
+     * 学习端（孩子端）范围：layouts/study + views/study（不含 parent、不含 manage）。
+     *
+     * <p>管理端不在这个集合里——理由见 {@link #VIEWS_MANAGE}。</p>
+     */
     private static List<Path> learningFiles() {
         List<Path> out = new ArrayList<>(filesUnder(LAYOUTS_STUDY));
         for (Path file : filesUnder(VIEWS_STUDY)) {
-            if (!rel(file).contains("views/study/parent/")) {
-                out.add(file);
+            String path = rel(file);
+            if (path.contains("views/study/parent/") || path.contains("views/study/manage/")) {
+                continue;
             }
+            out.add(file);
         }
         for (Path file : filesUnder(COMPONENTS_STUDY)) {
             if (!PARENT_SHARED_COMPONENTS.contains(file.getFileName().toString())) {
                 out.add(file);
             }
         }
+        return out.stream().distinct().sorted().toList();
+    }
+
+    /** 家长端 + 学习端（都不适用管理端列表骨架与表单骨架的那一端） */
+    private static List<Path> parentAndLearningFiles() {
+        List<Path> out = new ArrayList<>(learningFiles());
+        out.addAll(parentFiles());
         return out.stream().distinct().sorted().toList();
     }
 
@@ -1122,12 +1257,15 @@ class StudyUiSpecAssertionTest {
         return out;
     }
 
-    /** 学习端页面（views/study 下的 index.vue） */
+    /** 学习端页面（views/study 下的 index.vue，不含 parent、不含 manage） */
     private static List<Path> learningPageFiles() {
         List<Path> out = new ArrayList<>();
         for (Path file : filesUnder(VIEWS_STUDY)) {
             String path = rel(file);
-            if (path.contains("views/study/parent/") || !path.endsWith("index.vue")) {
+            if (path.contains("views/study/parent/") || path.contains("views/study/manage/")) {
+                continue;
+            }
+            if (!path.endsWith("index.vue")) {
                 continue;
             }
             out.add(file);
@@ -1153,6 +1291,41 @@ class StudyUiSpecAssertionTest {
             return true;
         }
         return PARENT_SHARED_COMPONENTS.contains(file.getFileName().toString());
+    }
+
+    /**
+     * 去掉 HTML 注释、块注释与行注释。
+     *
+     * <p><b>字面量扫描类断言必须先剥注释</b>（本仓既有纪律）：
+     * 注释里为了说明「这些字样不能出现」而引用的字样，不是用户看得见的文案，
+     * 不剥注释就会把说明当成违规。</p>
+     *
+     * @param content 原始文本
+     * @return 去掉注释后的文本
+     */
+    private static String stripComments(String content) {
+        String out = content;
+        out = out.replaceAll("(?s)<!--.*?-->", " ");
+        out = out.replaceAll("(?s)/\\*.*?\\*/", " ");
+        out = out.replaceAll("(?m)//[^\\n]*", " ");
+        return out;
+    }
+
+    /**
+     * less 颜色函数作用在<b>变量</b>上（{@code fade(@primary-color, 8%)} 这类）。
+     *
+     * <p>这类写法<b>不是硬编码色值</b>——底色来自 less 变量，改一处全局生效，
+     * 与「直接写 rgba(0,0,0,0.45)」性质不同。旧的判定只认「值以 @ 开头」，
+     * 会把变量派生色误判成硬编码，因此放宽到这里。</p>
+     *
+     * @param value CSS 声明值
+     * @return true = 变量派生的颜色
+     */
+    private static boolean isLessColorFunctionOfVariable(String value) {
+        return Pattern.compile(
+                "^(fade|fadein|fadeout|darken|lighten|saturate|desaturate|spin|mix|shade|tint)\\(\\s*@[^,)]+")
+                .matcher(value)
+                .find();
     }
 
     private static String read(Path file) {
@@ -1184,7 +1357,8 @@ class StudyUiSpecAssertionTest {
     private static List<String> copyHits(List<Path> files, List<String> forbidden) {
         Set<String> hits = new LinkedHashSet<>();
         for (Path file : files) {
-            for (String text : chineseTexts(read(file))) {
+            // 先剥注释：只扫用户真正看得见的文案
+            for (String text : chineseTexts(stripComments(read(file)))) {
                 for (String word : forbidden) {
                     if (text.contains(word)) {
                         hits.add(rel(file) + " → 「" + text.trim() + "」含「" + word + "」");

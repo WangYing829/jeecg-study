@@ -569,8 +569,19 @@
 <blockquote>
 <p><strong>家庭码错了会提示「家庭码不正确」</strong>；这不会泄露家庭是否存在。
 <strong>PIN 连续输错 5 次会锁定 10 分钟</strong>，锁定期间无法登录；家长可在「孩子档案」里重置 PIN。</p>
-<p>⚠ <strong>当前状态</strong>：孩子端<strong>登录页面尚未上线</strong>，目前只有登录接口（<code>/api/v1/study/kid/lookup</code>、<code>/api/v1/study/kid/login</code>）可用。界面版上线后，步骤即与上表一致。</p>
 </blockquote>
+<p><strong>孩子登录页怎么进</strong>：地址 <code>/study/kid/login</code>，<strong>不需要先登录</strong>（这是唯一免登录的页面）。</p>
+<blockquote>
+<p>候选列表里只显示<strong>头像和昵称</strong>——不会显示账号名、生日、年级，也不会显示别的孩子。
+家庭码错误统一提示「家庭码不正确」，<strong>不区分「没有这个家庭」和「码输错了」</strong>。
+PIN 错误提示里<strong>不显示剩余次数</strong>，避免被用来试探。
+<strong>断网时不会说「家庭码不正确」</strong>：页面会明确提示「网络好像断了，检查一下网络后点重试」并给「重试」入口——
+网络问题说成「码输错了」，会让孩子以为自己输错了、家庭码失效了。</p>
+</blockquote>
+<h3>3.2.1 孩子端界面形态</h3>
+<p>孩子端<strong>复用学习端布局</strong>：顶部是轻量顶栏（48px），<strong>主操作固定在底部主操作条</strong>（拇指可达区），
+一屏只留<strong>一个</strong>主按钮（步骤①「下一步」/ 步骤②「进入」）。
+浅色主题固定，不跟随系统暗色开关；登录阶段不启动用眼计时（登录后才开始计时）。</p>
 <h3>3.3 退出</h3>
 <div class="tbl-wrap"><table>
 <thead>
@@ -961,6 +972,10 @@
   <div class="sec-head"><span class="sec-num">08</span><h3>家长端三页</h3><span class="tag">只读</span></div>
   <p>家长端三页</p>
 <p>家长端三页：只读看趋势、可留一句话反馈，看不到任何排名。</p>
+<blockquote>
+<p>本章讲的是家长端的<strong>三个只读数据页</strong>。家长端另外还有三个<strong>管理页</strong>
+（家庭成员 / 孩子档案 / 关联管理），见第 9 章。</p>
+</blockquote>
 <h3>8.1 家长端界面结构</h3>
 <p>顶部条从左到右：</p>
 <div class="tbl-wrap"><table>
@@ -980,8 +995,8 @@
 <td>在<strong>你关联的孩子</strong>之间切换（只能切到已关联的）</td>
 </tr>
 <tr>
-<td><strong>3 项导航</strong></td>
-<td>学习报告 / 错题分析 / 作文反馈（当前页高亮）</td>
+<td><strong>6 项导航</strong></td>
+<td>学习报告 / 错题分析 / 作文反馈 / 家庭成员 / 孩子档案（当前页高亮）</td>
 </tr>
 <tr>
 <td><strong>退出</strong></td>
@@ -990,7 +1005,8 @@
 </tbody>
 </table></div>
 <blockquote>
-<p>家长端<strong>没有侧边菜单</strong>，顶部条就是唯一的页面入口；窄屏下顶部条换两行显示。</p>
+<p>家长端<strong>没有侧边菜单</strong>，顶部条就是唯一的页面入口；窄屏下顶部条换两行显示。
+「关联管理」不在导航里——它是「孩子档案」的下一级，从档案页里的按钮进去。</p>
 </blockquote>
 <h3>8.2 学习报告</h3>
 <div class="tbl-wrap"><table>
@@ -1084,9 +1100,41 @@
 <section id="family">
   <div class="sec-head"><span class="sec-num">09</span><h3>家庭与孩子管理</h3><span class="tag">接口就绪</span></div>
   <p>家庭与孩子管理</p>
-<p>家庭与孩子管理：接口已就绪，界面待上线。</p>
-<h3>9.1 目前能做什么</h3>
-<p><strong>说明</strong>：这一组功能的<strong>后端接口已全部实现并通过自动化测试</strong>，但<strong>管理界面尚未开发</strong>，当前只能通过接口调用或由管理员在后台配置。</p>
+<p>家庭与孩子管理：家长自己就能管——建家庭、加孩子、改档案、配关联、重置码。</p>
+<h3>9.1 三个页面</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>页面</th>
+<th>路由</th>
+<th>能做什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>家庭成员</strong></td>
+<td><code>/study-parent/family</code></td>
+<td>改家庭名称、邀请/移除家长、重置家庭码</td>
+</tr>
+<tr>
+<td><strong>孩子档案</strong></td>
+<td><code>/study-parent/child</code></td>
+<td>改昵称/头像/性别/生日/年级、重置 PIN、停用孩子</td>
+</tr>
+<tr>
+<td><strong>关联管理</strong></td>
+<td><code>/study-parent/child/&lt;孩子的业务 id&gt;/relations</code></td>
+<td>给这个孩子加/解绑家长</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>三个页面都在<strong>家长端顶部条</strong>里（家长端没有侧边菜单，顶部条就是唯一的页面入口）。
+「孩子档案」操作的是<strong>顶部条当前选中的那个孩子</strong>；换孩子只需用顶部条的下拉切换。
+成员 / 关联列表在<strong>窄屏（≤992px）自动转成卡片</strong>，不会左右拖动；断网时页面给出可读提示与「重试」入口，
+<strong>不会把「断网」显示成「找不到这个孩子」</strong>。</p>
+</blockquote>
+<h3>9.2 各功能与状态</h3>
 <div class="tbl-wrap"><table>
 <thead>
 <tr>
@@ -1099,46 +1147,50 @@
 <tr>
 <td>创建家庭</td>
 <td>第一个加入的家长自动成为家庭所有者（OWNER）</td>
-<td>接口 ✅ / 界面 ⬜</td>
+<td>接口 ✅ / 界面 ✅（由管理员在后台建）</td>
 </tr>
 <tr>
 <td>添加 / 移除家长成员</td>
 <td>按底座用户名添加；移除后立即失去查看权限</td>
-<td>接口 ✅ / 界面 ⬜</td>
+<td>接口 ✅ / 界面 ✅</td>
 </tr>
 <tr>
 <td>重置家庭码</td>
 <td>生成新家庭码，<strong>明文仅本次返回一次</strong></td>
-<td>接口 ✅ / 界面 ⬜</td>
+<td>接口 ✅ / 界面 ✅</td>
 </tr>
 <tr>
 <td>新增孩子档案</td>
 <td>同时创建孩子账号并设置 PIN（<strong>PIN 明文仅本次返回</strong>）</td>
-<td>接口 ✅ / 界面 ⬜</td>
+<td>接口 ✅ / 界面 ⬜（当前在后台建）</td>
 </tr>
 <tr>
 <td>编辑孩子档案</td>
 <td>昵称 / 头像 / 年级 / 生日</td>
-<td>接口 ✅ / 界面 ⬜</td>
+<td>接口 ✅ / 界面 ✅</td>
 </tr>
 <tr>
 <td>停用孩子档案</td>
 <td>停用后该孩子无法登录</td>
-<td>接口 ✅ / 界面 ⬜</td>
+<td>接口 ✅ / 界面 ✅</td>
 </tr>
 <tr>
 <td>重置孩子 PIN</td>
 <td>生成新 PIN，<strong>明文仅本次返回</strong></td>
-<td>接口 ✅ / 界面 ⬜</td>
+<td>接口 ✅ / 界面 ✅</td>
 </tr>
 <tr>
 <td>关联 / 解除关联家长</td>
 <td>一家长多孩子、一孩子多家长均可</td>
-<td>接口 ✅ / 界面 ⬜</td>
+<td>接口 ✅ / 界面 ✅</td>
 </tr>
 </tbody>
 </table></div>
-<h3>9.2 账号与密钥的三条硬规则</h3>
+<blockquote>
+<p>「新增孩子档案」目前只有接口与后台入口，<strong>家长端页面还没有「新建孩子」按钮</strong>——
+现有页面做的是「维护已有孩子」，新建仍是管理员在后台完成。</p>
+</blockquote>
+<h3>9.3 账号与密钥的三条硬规则</h3>
 <div class="tbl-wrap"><table>
 <thead>
 <tr>
@@ -1288,6 +1340,11 @@
 <td><code>/study/eye</code></td>
 </tr>
 <tr>
+<td>孩子端</td>
+<td>孩子登录（两步）</td>
+<td><code>/study/kid/login</code>（免登录）</td>
+</tr>
+<tr>
 <td>家长端</td>
 <td>学习报告</td>
 <td><code>/study-parent/report</code></td>
@@ -1302,40 +1359,136 @@
 <td>作文反馈</td>
 <td><code>/study-parent/feedback</code></td>
 </tr>
+<tr>
+<td>家长端</td>
+<td>家庭成员</td>
+<td><code>/study-parent/family</code></td>
+</tr>
+<tr>
+<td>家长端</td>
+<td>孩子档案</td>
+<td><code>/study-parent/child</code></td>
+</tr>
+<tr>
+<td>家长端</td>
+<td>关联管理</td>
+<td><code>/study-parent/child/&lt;code&gt;/relations</code></td>
+</tr>
+<tr>
+<td>管理端</td>
+<td>上下文配置</td>
+<td><code>/study/manage/context</code></td>
+</tr>
+<tr>
+<td>管理端</td>
+<td>坐标树</td>
+<td><code>/study/manage/coordinate</code></td>
+</tr>
+<tr>
+<td>管理端</td>
+<td>考点维护</td>
+<td><code>/study/manage/coordinate/&lt;code&gt;</code></td>
+</tr>
+<tr>
+<td>管理端</td>
+<td>考点版本历史</td>
+<td><code>/study/manage/coordinate/&lt;code&gt;/history</code></td>
+</tr>
+<tr>
+<td>管理端</td>
+<td>题目维护</td>
+<td><code>/study/manage/question</code></td>
+</tr>
+<tr>
+<td>管理端</td>
+<td>母题维护</td>
+<td><code>/study/manage/mother</code></td>
+</tr>
+<tr>
+<td>管理端</td>
+<td>词表维护</td>
+<td><code>/study/manage/word</code></td>
+</tr>
+<tr>
+<td>管理端</td>
+<td>语法点维护</td>
+<td><code>/study/manage/grammar</code></td>
+</tr>
+<tr>
+<td>管理端</td>
+<td>拆解库维护</td>
+<td><code>/study/manage/writing</code></td>
+</tr>
 </tbody>
 </table></div>
-<h3>11.2 尚未上线的界面</h3>
+<h3>11.2 管理端内容维护页：能改什么、不能改什么</h3>
+<p>9 个管理端页面统一挂在侧边栏的「<strong>内容维护</strong>」下，<strong>只有管理员看得到</strong>（家长端不出现）。</p>
 <div class="tbl-wrap"><table>
 <thead>
 <tr>
-<th>功能</th>
-<th>状态</th>
+<th>页面</th>
+<th>现在能做什么</th>
 <th>说明</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>孩子端登录页</td>
-<td>接口已就绪，界面待开发</td>
-<td>目前通过登录接口获取访问凭据</td>
+<td>上下文配置</td>
+<td><strong>可改</strong>：教材版本、年级、学段、省份、护眼提醒间隔</td>
+<td>上下文按<strong>孩子</strong>存，页面顶部先选孩子</td>
 </tr>
 <tr>
-<td>家庭与成员管理</td>
-<td>接口已就绪，界面待开发</td>
-<td>见第 9 章</td>
+<td>坐标树</td>
+<td>浏览整棵考点树，点节点进考点维护</td>
+<td>只读导航</td>
 </tr>
 <tr>
-<td>孩子档案编辑 / 关联管理</td>
-<td>接口已就绪，界面待开发</td>
-<td>见第 9 章</td>
+<td>考点维护</td>
+<td><strong>可改</strong>：题型、分值权重、关联错因、绑定母题</td>
+<td>考点名称与学科属于树结构，不在这一页改</td>
 </tr>
 <tr>
-<td>管理端内容维护页（上下文配置、坐标树、母题、词表、语法点、拆解库等 9 个页面）</td>
-<td>接口已就绪，界面待开发</td>
-<td>供管理员维护内容</td>
+<td>考点版本历史</td>
+<td>看历史版本</td>
+<td>只读</td>
+</tr>
+<tr>
+<td>题目维护</td>
+<td>看<strong>全局题库的内容分布</strong>（每个考点挂了多少题/词/母题/语法点/拆解）</td>
+<td>见下方「为什么不是错题池」</td>
+</tr>
+<tr>
+<td>母题维护</td>
+<td>看母题列表与五段结构详情</td>
+<td>只读</td>
+</tr>
+<tr>
+<td>词表维护</td>
+<td>看词条（按课内/课外切换）</td>
+<td>只读</td>
+</tr>
+<tr>
+<td>语法点维护</td>
+<td>看语法点与规则/例句/反例</td>
+<td>只读</td>
+</tr>
+<tr>
+<td>拆解库维护</td>
+<td>看拆解条目与分层内容</td>
+<td>只读</td>
 </tr>
 </tbody>
 </table></div>
+<blockquote>
+<p><strong>为什么「题目维护」不是错题池</strong>：错题池是<strong>按孩子隔离</strong>的行为数据（「这个孩子错了哪些题」），
+把它列在管理端等于在内容维护台里暴露单个孩子的学习行为。
+这一页因此改看<strong>全局内容</strong>：题库在各个考点下的分布。</p>
+<p><strong>词表页看不到拼写</strong>：拼写就是拼写题的答案，按产品红线不随词表接口下发。
+管理端靠「<strong>释义 + 单元 + 业务 id</strong>」定位词条。</p>
+<p><strong>还能改的只有 2 页</strong>：上下文配置与考点维护。
+其余 7 页目前是<strong>内容浏览</strong>——对应的编辑接口还没有，页面里不提供修改入口，
+宁可少给一个按钮，也不要给一个点了会失败或者改坏数据的按钮。</p>
+</blockquote>
 <h3>11.3 我们刻意不做的四件事</h3>
 <div class="tbl-wrap"><table>
 <thead>

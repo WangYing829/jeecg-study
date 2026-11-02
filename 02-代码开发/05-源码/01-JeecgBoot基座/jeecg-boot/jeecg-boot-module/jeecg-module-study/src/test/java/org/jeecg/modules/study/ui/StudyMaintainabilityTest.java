@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -517,8 +518,14 @@ class StudyMaintainabilityTest {
                 .contains("sys_permission");
 
         List<String> missing = new ArrayList<>();
+        Set<String> staticRoutes = staticRouteComponents();
         for (Path page : pages) {
             String rel = RedLineScanner.frontendRelative(page);
+            // 静态路由页面不进 sys_permission（ADR-039：孩子端登录页必须免认证可达，
+            // 动态菜单要登录态才有，同一 path 注册两次会导致 vue-router 行为不可预期）
+            if (staticRoutes.contains(rel)) {
+                continue;
+            }
             // views/study/practice/index.vue → study/practice/index（sys_permission.component 的写法）
             String component = rel.replaceFirst("^views/", "").replace(".vue", "");
             if (!seed.contains("'" + component + "'")) {
@@ -742,6 +749,38 @@ class StudyMaintainabilityTest {
             if ("index.vue".equals(file.getFileName().toString())) {
                 out.add(file);
             }
+        }
+        return out;
+    }
+
+    /**
+     * 已经在<b>静态路由</b>里注册过的页面（相对前端 src 的路径）。
+     *
+     * <p>静态路由页面不走 DB 动态菜单：它们必须<b>免登录可达</b>，
+     * 而 {@code sys_permission} 下发的菜单要登录态才有。
+     * 因此这一类页面<b>本来就不该有</b>菜单种子，
+     * 不能拿「必须有菜单」这条去卡它（ADR-039：孩子端登录页）。</p>
+     *
+     * @return 被静态路由引用的页面路径集合
+     */
+    private static Set<String> staticRouteComponents() {
+        Set<String> out = new LinkedHashSet<>();
+        Path routes = RedLineScanner.frontendRoot().resolve("router/routes");
+        if (!Files.isDirectory(routes)) {
+            return out;
+        }
+        try (Stream<Path> stream = Files.walk(routes)) {
+            for (Path file : stream.filter(Files::isRegularFile)
+                    .filter(p -> p.getFileName().toString().endsWith(".ts"))
+                    .sorted()
+                    .toList()) {
+                Matcher matcher = Pattern.compile("views/[A-Za-z0-9_./-]+\\.vue").matcher(RedLineScanner.read(file));
+                while (matcher.find()) {
+                    out.add(matcher.group());
+                }
+            }
+        } catch (IOException e) {
+            return out;
         }
         return out;
     }

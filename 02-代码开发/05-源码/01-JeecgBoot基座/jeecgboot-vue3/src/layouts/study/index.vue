@@ -65,8 +65,15 @@
       moduleTitle: { type: String, default: '学习' },
       /** 连续学习天数 */
       streakDays: { type: Number, default: 0 },
+      /**
+       * 是否启动用眼会话。
+       *
+       * <p>孩子端登录页传 {@code false}：那时还没有登录态，
+       * 启动会话只会打出一个必然 401 的请求，而且会把「未登录」也计进用眼时长。</p>
+       */
+      eyeSession: { type: Boolean, default: true },
     },
-    setup() {
+    setup(props) {
       // 锁定浅色主题：学习端不随系统暗色或全局开关变化
       useStudyThemeLock();
 
@@ -80,10 +87,14 @@
       // 护眼会话的生命周期由**布局**持有：布局每个学习页都会挂载/卸载一次，
       // 会话随布局起停；护眼设置页只读状态，不负责开关会话。
       onMounted(() => {
-        eye.start();
+        if (props.eyeSession) {
+          eye.start();
+        }
       });
       onBeforeUnmount(() => {
-        eye.stop();
+        if (props.eyeSession) {
+          eye.stop();
+        }
       });
 
       // ⚠ 模板里用到的 ref 必须挂在 setup 返回值的**顶层**，Vue 才会自动解包。

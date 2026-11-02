@@ -80,15 +80,29 @@
       const route = useRoute();
       const userStore = useUserStore();
 
-      /** 家长端的页面导航（家长端没有侧栏，这里是唯一入口） */
+      /**
+       * 家长端的页面导航（家长端没有侧栏，这里是唯一入口）。
+       *
+       * <p>前 3 项是只读数据页，后 3 项是写操作页（家庭成员 / 孩子档案 / 关联管理）。
+       * 「孩子关联管理」不进 nav——它是「孩子档案」的下一级，
+       * 从档案页里的「关联管理」按钮进去，路径带 {@code :code}。</p>
+       */
       const navItems = [
         { path: '/study-parent/report', label: '学习报告' },
         { path: '/study-parent/error', label: '错题分析' },
         { path: '/study-parent/feedback', label: '作文反馈' },
+        { path: '/study-parent/family', label: '家庭成员' },
+        { path: '/study-parent/child', label: '孩子档案' },
       ];
 
-      /** 当前页是否命中某个导航项 */
-      const isActive = (path: string) => route.path === path;
+      /**
+       * 当前页是否命中某个导航项。
+       *
+       * <p>用「前缀命中」而不是全等：孩子档案页的下级路由
+       * （{@code /study-parent/child/:code/relations}）仍要让「孩子档案」保持高亮，
+       * 否则家长在关联管理页看不出自己在哪一层。</p>
+       */
+      const isActive = (path: string) => route.path === path || route.path.startsWith(`${path}/`);
 
       /** 登出：确认后清 token 回登录页 */
       const onLogout = () => {

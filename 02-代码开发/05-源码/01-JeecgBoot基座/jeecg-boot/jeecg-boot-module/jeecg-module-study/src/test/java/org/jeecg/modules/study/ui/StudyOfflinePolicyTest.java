@@ -179,7 +179,16 @@ class StudyOfflinePolicyTest {
         List<String> problems = new ArrayList<>();
         for (Path page : pages) {
             String rel = RedLineScanner.frontendRelative(page);
-            String content = RedLineScanner.read(page);
+            // 判定范围 = 页面 + 它直接 import 的本项目组件
+            //
+            //   管理端的 9 个内容维护页是「薄配置页 + 共享内核」：
+            //   页面本身不发请求，发请求的是内核（ManageContentPage.vue），
+            //   断网提示与「重试」入口也渲染在内核里。
+            //   只扫页面文件会把「委托给内核」误判成「没处理断网」，
+            //   于是要么断言永远红，要么被改松到失去意义。
+            //   把「页面 + 它 import 的本项目组件」一起算，才对应真正的问题：
+            //   这一页渲染出来的东西，断网时有没有可读提示和重试入口。
+            String content = effectiveContent(page);
             assertThat(content.trim())
                     .as("扫描有效性：" + rel + " 必须非空")
                     .isNotEmpty();
@@ -365,6 +374,57 @@ class StudyOfflinePolicyTest {
      */
     private static String stripHtmlComments(String html) {
         return html.replaceAll("(?s)<!--.*?-->", " ");
+    }
+
+    /**
+     * 判定范围 = 页面 + 它直接 import 的本项目组件。
+     *
+     * @param page 页面文件
+     * @return 拼接后的文本
+     */
+    private static String effectiveContent(Path page) {
+        StringBuilder sb = new StringBuilder(RedLineScanner.read(page));
+        for (Path local : localImports(page)) {
+            sb.append('\n').append(RedLineScanner.read(local));
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 页面里用<b>相对路径</b> import 的本项目文件。
+     *
+     * <p>只认相对路径（{@code ./x} / {@code ../x}）：绝对别名（{@code /@/...}）
+     * 与第三方包不在本项目内，不需要纳入判定。</p>
+     *
+     * @param page 页面文件
+     * @return 命中的本项目文件
+     */
+    private static List<Path> localImports(Path page) {
+        List<Path> out = new ArrayList<>();
+        Path root = RedLineScanner.frontendRoot();
+        Matcher matcher = Pattern.compile("from\\s+'(\\.\\.?/[^']+)'").matcher(RedLineScanner.read(page));
+        while (matcher.find()) {
+            Path base = page.getParent().resolve(matcher.group(1)).normalize();
+            String name = base.getFileName() == null ? "" : base.getFileName().toString();
+            List<Path> candidates = new ArrayList<>();
+            // ① 已经是带扩展名的文件（基座的 vite 不配 resolve.extensions，
+            //    所以 .vue 导入必须写全扩展名）
+            candidates.add(base);
+            if (!name.endsWith(".vue") && !name.endsWith(".ts")) {
+                candidates.add(base.resolveSibling(name + ".vue").normalize());
+                candidates.add(base.resolveSibling(name + ".ts").normalize());
+            }
+            // ② 目录形态的模块
+            candidates.add(base.resolve("index.vue").normalize());
+            candidates.add(base.resolve("index.ts").normalize());
+            for (Path candidate : candidates) {
+                if (Files.isRegularFile(candidate) && candidate.startsWith(root)) {
+                    out.add(candidate);
+                    break;
+                }
+            }
+        }
+        return out;
     }
 
     /** 右值里是否含比较 / 匹配运算（本地判分的形态） */
