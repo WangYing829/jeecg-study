@@ -29,7 +29,7 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SRC = os.path.join(ROOT, "02-代码开发", "02-数据库", "2026103005-数据库设计说明书.md")
+SRC = os.path.join(ROOT, "02-代码开发", "02-数据库", "01-数据库设计说明书.md")
 OUT_DIR = os.path.join(ROOT, "02-代码开发", "02-数据库", "03-脚本")
 
 HEADER = """-- ============================================================
