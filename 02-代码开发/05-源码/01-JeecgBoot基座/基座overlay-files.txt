@@ -22,6 +22,8 @@ jeecg-boot/jeecg-boot-module/jeecg-module-study/src/main/java/org/jeecg/modules/
 jeecg-boot/jeecg-boot-module/jeecg-module-study/src/main/java/org/jeecg/modules/study/common/enums/JudgeSource.java
 jeecg-boot/jeecg-boot-module/jeecg-module-study/src/main/java/org/jeecg/modules/study/common/exception/StudyExceptionAdvice.java
 jeecg-boot/jeecg-boot-module/jeecg-module-study/src/main/java/org/jeecg/modules/study/common/exception/StudyForbiddenException.java
+jeecg-boot/jeecg-boot-module/jeecg-module-study/src/main/java/org/jeecg/modules/study/common/record/StudyRecordTableGuard.java
+jeecg-boot/jeecg-boot-module/jeecg-module-study/src/main/java/org/jeecg/modules/study/common/record/mapper/StudyRecordTableMapper.java
 jeecg-boot/jeecg-boot-module/jeecg-module-study/src/main/java/org/jeecg/modules/study/common/util/StudySecretUtil.java
 jeecg-boot/jeecg-boot-module/jeecg-module-study/src/main/java/org/jeecg/modules/study/context/constant/StudyStageGrade.java
 jeecg-boot/jeecg-boot-module/jeecg-module-study/src/main/java/org/jeecg/modules/study/context/controller/StudyContextController.java
@@ -349,6 +351,7 @@ jeecg-boot/jeecg-boot-module/jeecg-module-study/src/test/java/org/jeecg/modules/
 jeecg-boot/jeecg-boot-module/jeecg-module-study/src/test/java/org/jeecg/modules/study/registry/StudyKnowledgePointServiceTest.java
 jeecg-boot/jeecg-boot-module/jeecg-module-study/src/test/java/org/jeecg/modules/study/sql/StudyGrammarSeedTest.java
 jeecg-boot/jeecg-boot-module/jeecg-module-study/src/test/java/org/jeecg/modules/study/sql/StudyMenuRenderRuleTest.java
+jeecg-boot/jeecg-boot-module/jeecg-module-study/src/test/java/org/jeecg/modules/study/sql/StudyRecordTableGuardTest.java
 jeecg-boot/jeecg-boot-module/jeecg-module-study/src/test/java/org/jeecg/modules/study/sql/StudySqlOrderDeterminismTest.java
 jeecg-boot/jeecg-boot-module/jeecg-module-study/src/test/java/org/jeecg/modules/study/support/StudyTestSupport.java
 jeecg-boot/jeecg-boot-module/jeecg-module-study/src/test/java/org/jeecg/modules/study/ui/StudyEyeSharedStateTest.java

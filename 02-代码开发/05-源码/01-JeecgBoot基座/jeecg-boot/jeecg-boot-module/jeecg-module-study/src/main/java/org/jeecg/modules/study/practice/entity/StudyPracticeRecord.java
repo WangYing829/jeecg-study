@@ -5,7 +5,6 @@ import java.util.Date;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableLogic;
-import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -20,13 +19,22 @@ import org.springframework.format.annotation.DateTimeFormat;
  * <p>主键取「孩子 + 会话 + 内容」的确定性摘要，因此<b>同一会话同一题重复提交只会落一条</b>
  * （TC-08-06 的落库侧保证）。</p>
  *
+ * <p><b>刻意不加 {@code @TableName}</b>：本实体的物理表是<b>当月分表</b>，
+ * 表名每次调用都可能不同，必须由调用方显式传 {@code ${tableName}}。
+ * 早先这里写死了 {@code @TableName("study_practice_record_202610")} ——
+ * 那是个哑雷：注解只对 MyBatis-Plus 通用 CRUD 生效，而本实体的 Mapper
+ * <b>不继承 BaseMapper</b>，注解当时完全没用；可一旦有人给它加上 BaseMapper，
+ * MP 就会<b>静默把所有写操作落到 202610 那张表</b>，跨月后数据人间蒸发。
+ * 现在去掉注解，MP 若被误用会直接报「表 study_practice_record 不存在」——
+ * <b>响亮的失败远好过静默写错表</b>。表名唯一来源见
+ * {@link org.jeecg.modules.study.common.record.StudyRecordTableGuard}。</p>
+ *
  * @author jeecg-study
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
 @Schema(description = "作答记录")
-@TableName("study_practice_record_202610")
 public class StudyPracticeRecord extends JeecgEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;

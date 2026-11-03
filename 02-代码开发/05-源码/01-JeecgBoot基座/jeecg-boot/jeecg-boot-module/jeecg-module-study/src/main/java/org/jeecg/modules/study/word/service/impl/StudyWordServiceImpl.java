@@ -4,8 +4,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -23,6 +23,7 @@ import org.jeecg.modules.study.common.constant.StudyConstants;
 import org.jeecg.modules.study.common.constant.StudyErrorCode;
 import org.jeecg.modules.study.common.enums.JudgeSource;
 import org.jeecg.modules.study.common.exception.StudyForbiddenException;
+import org.jeecg.modules.study.common.record.StudyRecordTableGuard;
 import org.jeecg.modules.study.error.constant.ErrorCause;
 import org.jeecg.modules.study.error.service.StudyErrorPoolService;
 import org.jeecg.modules.study.error.vo.ReviewQueueItemVO;
@@ -78,12 +79,6 @@ import org.jeecg.modules.study.word.vo.WordUnitVO;
 @RequiredArgsConstructor
 public class StudyWordServiceImpl implements StudyWordService {
 
-    /** 作答记录分表名后缀格式 */
-    private static final DateTimeFormatter RECORD_TABLE_SUFFIX = DateTimeFormatter.ofPattern("yyyyMM");
-
-    /** 作答记录分表名前缀 */
-    private static final String RECORD_TABLE_PREFIX = "study_practice_record_";
-
     /** 同一词同一档 10 秒内的重复反馈只生效一次（《接口设计说明书》§12.1） */
     private static final long FEEDBACK_IDEMPOTENT_SECONDS = 10L;
 
@@ -102,6 +97,9 @@ public class StudyWordServiceImpl implements StudyWordService {
     private final StudyChildService childService;
 
     private final StudyErrorPoolService errorPoolService;
+
+    /** 当月分表守卫（幂等建当月表；拿表名即确保存在） */
+    private final StudyRecordTableGuard recordTableGuard;
 
     private final JudgeEngine judgeEngine;
 
@@ -760,12 +758,21 @@ public class StudyWordServiceImpl implements StudyWordService {
         return java.sql.Date.valueOf(localDate);
     }
 
+    /**
+     * 当月作答记录分表名 —— 经 {@link StudyRecordTableGuard} 拿，<b>并确保它已存在</b>。
+     */
     private String recordTableName() {
-        return recordTableName(LocalDate.now());
+        return recordTableGuard.currentTableName();
     }
 
+    /**
+     * 指定日期所属月份的表名 —— <b>只拼名字，不确保存在</b>。
+     *
+     * <p>用于读历史月份（上月的连续学习天数）。历史表由历史任务负责，
+     * 缺失时调用方自行容错（见 {@link #practiceDates}）。</p>
+     */
     private String recordTableName(LocalDate date) {
-        return RECORD_TABLE_PREFIX + date.format(RECORD_TABLE_SUFFIX);
+        return recordTableGuard.tableNameOf(YearMonth.from(date));
     }
 
     private String currentContextId(String childId) {

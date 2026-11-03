@@ -3,6 +3,76 @@
 > jeecg-study 版本变更唯一入库载体。格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 > 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.12.0] - 2026-11-03
+
+### 阶段：跨月分表隐患修复（兜底提升为公共层 + 月度任务落地）
+
+用户决策（ask_user）：「下一项先做哪个」→ 选定 **「修跨月分表」**。
+
+### 排查结论：三个问题各自成立，加起来必炸
+
+| # | 问题 | 证据 |
+|---|---|---|
+| ① | **兜底只有数学域有** | 运行期「不存在才建」的 DDL 只写在 `StudyMathRecordMapper` 里；练习域 / 练习取题 / 背单词域**都没有** |
+| ② | **兜底挂错位置**（在写入口，不在读路径） | 练习域取题 SQL 带 `NOT EXISTS (SELECT 1 FROM ${tableName} ...)` ⇒ **当月表不存在时连题都取不到**，不只是「记不上分」 |
+| ③ | **月度任务压根不存在** | `05-partition.sql:12` 注释写「每月 1 日由定时任务执行」；本机 **238 个计划任务里没有对应项** |
+
+另有**哑雷**一处：`StudyPracticeRecord` 实体写死 `@TableName("study_practice_record_202610")`。
+该 Mapper **不继承 BaseMapper**，注解当时没用；一旦有人加上 BaseMapper，
+MP 会**静默把写操作落到 202610 那张表**，跨月后数据人间蒸发。
+
+### 公共层改造
+
+- **新增** `common/record/StudyRecordTableGuard.java`：`currentTableName()`（拿当月表名**并确保存在**）、
+  `tableNameOf(YearMonth)`（**只拼名不建表**，历史月不补建）、`ensureTable()`
+  （失败记 WARN **不抛异常**、缓存失败表名避免重试风暴）。
+- **新增** `common/record/mapper/StudyRecordTableMapper.java`：运行期建表 **DDL 唯一真源**
+  （从 `StudyMathRecordMapper` 搬来，19 列 + 5 索引 + PK）。
+- 数学 / 练习 / 背单词三处 `tableName()` 一律改走守卫；`StudyPracticeRecord` 去掉 `@TableName`。
+
+> **踩到一个会炸生产的坑**：基座生产 `@MapperScan(value={"org.jeecg.**.mapper*"})`
+> **只扫包名以 `mapper` 开头的目录** ⇒ 新 Mapper 若放在 `common.record` 下，
+> **生产环境不会被注册** ⇒ **应用启动即失败**；
+> 而测试用的 `@MapperScan` 范围更宽，**会把这个缺陷完全掩盖掉**。已挪包 + 补断言守住。
+
+### 月度任务落成 Windows 计划任务
+
+- 任务 **`jeecg-study-monthly-partition`**：每月 **1 日 00:05**，**S4U** 登录类型
+  （`Logon Mode: Interactive/Background` ⇒ **用户没登录也照跑**），不存口令。
+- 新增 `02-代码开发/05-源码/04-建库迁移/monthly-partition.ps1`（UTF-8 带 BOM）：
+  口令只从环境变量读（`MYSQL_PWD` 优先，其次 `DB_PASSWORD`）；
+  启动即打印**实际生效模式 + 实际命令行**；`mysql` 客户端路径**自己找**（计划任务的 PATH 不含它）；
+  跑完**必须自证**（查 `information_schema` 确认当月分表真建出来了），**查不到就非零退出**。
+- **当场触发实跑：`LastTaskResult = 0`**，日志落 `C:\ProgramData\jeecg-study\logs\monthly-partition.log`。
+
+### 新增可执行断言（9 条，331 → 340）
+
+`StudyRecordTableGuardTest`（**新增类**）：
+
+- 静态 **4 条**：表族字面量**只允许**出现在守卫；运行期建表 DDL **只允许有一份**且在
+  `StudyRecordTableMapper`；实体**不得**硬编码月份表名；**Mapper 必须在 `*.mapper` 包下**。
+- DB 支撑 **5 条**：当月分表**已存在**（月初 4 小时宽限期豁免）；守卫「拿表名即确保存在」
+  **在真实库上跑得通**；守卫建表 DDL **能建出正确结构**（探针表，验完即删）；
+  真实当月分表列结构 **== DDL 源**；运行期 DDL **== `05-partition.sql`**（三处同步）。
+
+**反例夹具验证（绿→红→绿）**：临时造一个不在 `mapper` 包下 + 写死月份 `@TableName` 的
+夹具文件，确认 **3 条静态断言精确报红**（消息定位到具体违规点），删除后复跑恢复全绿。
+**报绿之前先证明断言抓得住坏样本**，否则「空跑 = 假绿」。
+
+### 新增决策
+
+- **ADR-045**：分表「表名解析」收进公共守卫（兜底挂在拿表名那一刻）；
+  运行期建表 DDL 单一真源；月度任务落成 Windows 计划任务。
+
+### 交付产物
+
+- 守卫 `common/record/StudyRecordTableGuard.java`（新增）
+- DDL 真源 `common/record/mapper/StudyRecordTableMapper.java`（新增）
+- 月度任务脚本 `02-代码开发/05-源码/04-建库迁移/monthly-partition.ps1`（新增）
+- 断言 `src/test/java/org/jeecg/modules/study/sql/StudyRecordTableGuardTest.java`（新增，9 条）
+- 运维手册 §1.3 每月巡检**新增第 6 项**「当月分表存在性」+ 1.3.1 检查步骤
+- 知识库 `03-AI常见坑.md` 新增 **E-23…E-25**
+
 ## [1.11.0] - 2026-11-03
 
 ### 阶段：§11.2 新增界面的浏览器实测截图取证

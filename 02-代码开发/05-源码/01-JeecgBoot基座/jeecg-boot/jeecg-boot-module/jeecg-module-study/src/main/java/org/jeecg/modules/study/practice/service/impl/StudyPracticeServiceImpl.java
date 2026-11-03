@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.LocalDate;
-import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,6 +24,7 @@ import org.jeecg.common.exception.JeecgBootException;
 import org.jeecg.modules.study.common.constant.StudyErrorCode;
 import org.jeecg.modules.study.common.enums.JudgeSource;
 import org.jeecg.modules.study.common.exception.StudyForbiddenException;
+import org.jeecg.modules.study.common.record.StudyRecordTableGuard;
 import org.jeecg.modules.study.error.constant.ErrorCause;
 import org.jeecg.modules.study.error.service.StudyErrorPoolService;
 import org.jeecg.modules.study.error.vo.ErrorPoolItemVO;
@@ -96,6 +96,9 @@ public class StudyPracticeServiceImpl implements StudyPracticeService {
     private final JudgeEngine judgeEngine;
     private final StudyErrorPoolService errorPoolService;
     private final ChildScopeService scopeService;
+
+    /** 当月分表守卫（幂等建当月表；拿表名即确保存在） */
+    private final StudyRecordTableGuard recordTableGuard;
 
     /** JSON 序列化（步骤标签袋） */
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -595,9 +598,13 @@ public class StudyPracticeServiceImpl implements StudyPracticeService {
 
     /**
      * 当前月份的分表名。
+     *
+     * <p>经 {@link StudyRecordTableGuard} 拿 —— 兜底（幂等建当月表）就挂在这里。
+     * 本域尤其依赖它：取题 SQL 里带 {@code NOT EXISTS (SELECT 1 FROM ${tableName} ...)}
+     * 子查询，<b>当月表不存在时连题都取不到</b>，不只是记不上分（ADR-045）。</p>
      */
     private String tableName() {
-        return "study_practice_record_" + YearMonth.now().format(DateTimeFormatter.ofPattern("yyyyMM"));
+        return recordTableGuard.currentTableName();
     }
 
     /**

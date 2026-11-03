@@ -4,8 +4,6 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.LocalDate;
-import java.time.YearMonth;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
@@ -14,7 +12,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -30,6 +27,7 @@ import org.jeecg.common.exception.JeecgBootException;
 import org.jeecg.modules.study.common.constant.StudyErrorCode;
 import org.jeecg.modules.study.common.enums.JudgeSource;
 import org.jeecg.modules.study.common.exception.StudyForbiddenException;
+import org.jeecg.modules.study.common.record.StudyRecordTableGuard;
 import org.jeecg.modules.study.error.constant.ErrorCause;
 import org.jeecg.modules.study.error.service.StudyErrorPoolService;
 import org.jeecg.modules.study.error.vo.StudyErrorReportCommand;
@@ -100,9 +98,6 @@ public class StudyMathServiceImpl implements StudyMathService {
     /** 版权类型：自编 */
     private static final String COPYRIGHT_SELF = "SELF";
 
-    /** 已确保存在的当月分表名（本进程每个分表只做一次） */
-    private static final AtomicReference<String> RECORD_TABLE_READY = new AtomicReference<>();
-
     private final StudyMotherQuestionMapper motherMapper;
     private final StudyQuestionVariantMapper variantMapper;
     private final StudyMathRecordMapper recordMapper;
@@ -112,6 +107,9 @@ public class StudyMathServiceImpl implements StudyMathService {
     private final JudgeEngine judgeEngine;
     private final StudyErrorPoolService errorPoolService;
     private final MotherVariantRuleEngine ruleEngine;
+
+    /** 当月分表守卫（幂等建当月表；拿表名即确保存在） */
+    private final StudyRecordTableGuard recordTableGuard;
 
     /** JSON 序列化 */
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -294,7 +292,7 @@ public class StudyMathServiceImpl implements StudyMathService {
         }
 
         // 幂等：同一孩子 + 同一变式 + 同一作答只落一条记录
-        ensureRecordTable();
+        // （当月分表的存在性由 tableName() 内的守卫兜底，见 StudyRecordTableGuard）
         String recordId = recordId(childId, variant.getVariantCode(), actual, command.getErrorCause());
         StudyMathRecord existed = recordMapper.selectById(tableName(), recordId);
         if (existed != null) {
@@ -551,27 +549,13 @@ public class StudyMathServiceImpl implements StudyMathService {
     // ================================================================== 内部：作答记录
 
     /**
-     * 确保当月分表存在。
+     * 当月作答记录分表名。
      *
-     * <p>分表由运维的月度任务创建，这里做一次幂等的「不存在才建」兜底；
-     * <b>建表失败不阻断流程</b>（应用账号可能没有 DDL 权限），
-     * 真缺表时由随后的 INSERT 报错，错误更明确。</p>
+     * <p>经 {@link StudyRecordTableGuard} 拿 —— 兜底（幂等建当月表）就挂在这里，
+     * 所以本类不需要（也不该）再自己拼表名。</p>
      */
-    private void ensureRecordTable() {
-        String table = tableName();
-        if (table.equals(RECORD_TABLE_READY.get())) {
-            return;
-        }
-        try {
-            recordMapper.createTableIfAbsent(table);
-        } catch (Exception e) {
-            System.out.println("[StudyMathServiceImpl] 当月分表已存在或无建表权限，跳过：" + e.getMessage());
-        }
-        RECORD_TABLE_READY.set(table);
-    }
-
     private String tableName() {
-        return "study_practice_record_" + YearMonth.now().format(DateTimeFormatter.ofPattern("yyyyMM"));
+        return recordTableGuard.currentTableName();
     }
 
     private String recordId(String childId, String variantCode, String answer, String errorCause) {
