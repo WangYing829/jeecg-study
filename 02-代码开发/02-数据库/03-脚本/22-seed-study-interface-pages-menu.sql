@@ -76,7 +76,8 @@ VALUES
 ON DUPLICATE KEY UPDATE
   `name` = VALUES(`name`), `url` = VALUES(`url`), `component` = VALUES(`component`),
   `component_name` = VALUES(`component_name`), `sort_no` = VALUES(`sort_no`),
-  `icon` = VALUES(`icon`), `hidden` = VALUES(`hidden`);
+  `icon` = VALUES(`icon`), `hidden` = VALUES(`hidden`),
+  `parent_id` = VALUES(`parent_id`), `is_leaf` = VALUES(`is_leaf`);
 
 -- ----------------------------------------------------------------- 2. 管理端目录
 -- 新增一级目录「内容维护」（sort_no 50.00，排在「家长端」40.00 之后）。
@@ -101,26 +102,30 @@ VALUES
    1.00, 0, 'ant-design:setting-outlined', 1, 0, 0, 'admin', NOW(), 0, '1'),
   ('st_menu_manage_coordinate', 'st_menu_manage', '坐标树', '/study/manage/coordinate', 'study/manage/coordinate/index', 1, 'StudyManageCoordinatePage', 1, NULL, '0',
    2.00, 0, 'ant-design:deployment-unit-outlined', 1, 0, 0, 'admin', NOW(), 0, '1'),
-  -- 考点维护 / 版本历史是「坐标树」的下一级，路径带 :code ⇒ 侧边栏不展示
+  -- 考点维护 / 版本历史挂在「内容维护」下（**不挂「坐标树」**）——理由见文件末尾 §6
   -- ⚠ id 长度上限 32（sys_permission.id 是 varchar(32)），这里用短名不用长名
-  ('st_menu_manage_point', 'st_menu_manage_coordinate', '考点维护', '/study/manage/coordinate/:code', 'study/manage/coordinate/detail', 1, 'StudyManageCoordinateDetailPage', 1, NULL, '0',
-   1.00, 0, 'ant-design:partition-outlined', 1, 0, 1, 'admin', NOW(), 0, '1'),
-  ('st_menu_manage_point_hist', 'st_menu_manage_coordinate', '考点版本历史', '/study/manage/coordinate/:code/history', 'study/manage/coordinate/history', 1, 'StudyManageCoordinateHistoryPage', 1, NULL, '0',
-   2.00, 0, 'ant-design:history-outlined', 1, 0, 1, 'admin', NOW(), 0, '1'),
+  ('st_menu_manage_point', 'st_menu_manage', '考点维护', '/study/manage/coordinate/:code', 'study/manage/coordinate/detail', 1, 'StudyManageCoordinateDetailPage', 1, NULL, '0',
+   3.00, 0, 'ant-design:partition-outlined', 1, 0, 1, 'admin', NOW(), 0, '1'),
+  ('st_menu_manage_point_hist', 'st_menu_manage', '考点版本历史', '/study/manage/coordinate/:code/history', 'study/manage/coordinate/history', 1, 'StudyManageCoordinateHistoryPage', 1, NULL, '0',
+   4.00, 0, 'ant-design:history-outlined', 1, 0, 1, 'admin', NOW(), 0, '1'),
   ('st_menu_manage_question', 'st_menu_manage', '题目维护', '/study/manage/question', 'study/manage/question/index', 1, 'StudyManageQuestionPage', 1, NULL, '0',
-   3.00, 0, 'ant-design:form-outlined', 1, 0, 0, 'admin', NOW(), 0, '1'),
+   5.00, 0, 'ant-design:form-outlined', 1, 0, 0, 'admin', NOW(), 0, '1'),
   ('st_menu_manage_mother', 'st_menu_manage', '母题维护', '/study/manage/mother', 'study/manage/mother/index', 1, 'StudyManageMotherPage', 1, NULL, '0',
-   4.00, 0, 'ant-design:rocket-filled', 1, 0, 0, 'admin', NOW(), 0, '1'),
+   6.00, 0, 'ant-design:rocket-filled', 1, 0, 0, 'admin', NOW(), 0, '1'),
   ('st_menu_manage_word', 'st_menu_manage', '词表维护', '/study/manage/word', 'study/manage/word/index', 1, 'StudyManageWordPage', 1, NULL, '0',
-   5.00, 0, 'ant-design:book-outlined', 1, 0, 0, 'admin', NOW(), 0, '1'),
+   7.00, 0, 'ant-design:book-outlined', 1, 0, 0, 'admin', NOW(), 0, '1'),
   ('st_menu_manage_grammar', 'st_menu_manage', '语法点维护', '/study/manage/grammar', 'study/manage/grammar/index', 1, 'StudyManageGrammarPage', 1, NULL, '0',
-   6.00, 0, 'ant-design:translation-outlined', 1, 0, 0, 'admin', NOW(), 0, '1'),
+   8.00, 0, 'ant-design:translation-outlined', 1, 0, 0, 'admin', NOW(), 0, '1'),
   ('st_menu_manage_writing', 'st_menu_manage', '拆解库维护', '/study/manage/writing', 'study/manage/writing/index', 1, 'StudyManageWritingPage', 1, NULL, '0',
-   7.00, 0, 'ant-design:file-word-outlined', 1, 0, 0, 'admin', NOW(), 0, '1')
+   9.00, 0, 'ant-design:file-word-outlined', 1, 0, 0, 'admin', NOW(), 0, '1')
 ON DUPLICATE KEY UPDATE
   `name` = VALUES(`name`), `url` = VALUES(`url`), `component` = VALUES(`component`),
   `component_name` = VALUES(`component_name`), `sort_no` = VALUES(`sort_no`),
-  `icon` = VALUES(`icon`), `hidden` = VALUES(`hidden`);
+  `icon` = VALUES(`icon`), `hidden` = VALUES(`hidden`),
+  -- parent_id / is_leaf 必须一并回写：菜单树是按 parent_id 递归的，
+  -- 存量库里如果 parent_id 挂在「坐标树」下、而坐标树 is_leaf=1，
+  -- 这两条菜单会被**静默丢掉**（路由不注册 → 页面 404），重跑本脚本也救不回来。
+  `parent_id` = VALUES(`parent_id`), `is_leaf` = VALUES(`is_leaf`);
 
 -- ----------------------------------------------------------------- 4. 角色授权
 -- 家长端 3 页 → study_parent（家长）
@@ -167,3 +172,46 @@ WHERE p.`id` IN (
     WHERE rp.`role_id` = @admin_role_id
       AND rp.`permission_id` = p.`id`
   );
+
+-- ----------------------------------------------------------------- 5. 菜单树形状自愈
+-- ⚠ 下面这段是本脚本**最容易被忽略、后果最严重**的一条规则，必须写在这里：
+--
+--   JeecgBoot 的菜单树不是按 parent_id 无条件递归的，
+--   SysPermissionController#getPermissionJsonArray 里写的是：
+--
+--       if (parentJson == null && isEmpty(tempPid)) {
+--           jsonArray.add(json);
+--           if (!permission.isLeaf()) {            // ← 只有 is_leaf=0 才递归下去
+--               getPermissionJsonArray(jsonArray, metaList, json);
+--           }
+--       }
+--
+--   也就是说：**父菜单 is_leaf=1（叶子）时，它下面的子菜单根本不会被遍历到**，
+--   菜单树里查无此节点 → 前端拿不到这条路由 → 打开该路径直接 404，
+--   而且**不报任何错**（没有 4xx、没有 console error、页面上只有一张 404 插画）。
+--
+--   本脚本第一版把「考点维护 / 考点版本历史」挂在「坐标树」下面，
+--   而「坐标树」同时被写成 is_leaf=1 ⇒ 两条菜单被**静默丢弃**，
+--   浏览器实测时点开 /study/manage/coordinate/:code 才发现是 404。
+--
+--   修法有两条，本脚本采用第 ② 条：
+--     ① 把父菜单的 is_leaf 改成 0（父菜单自己也是页面、又有子菜单，路由树会多一层壳）；
+--     ② 把带 :code 的菜单直接挂在**目录**（st_menu_manage）下面，与其它页面平级 ——
+--        这正是「关联管理」在家长端分支里已经跑通的写法（挂在 st_menu_parent 下），
+--        而且它们的 url 是**绝对路径**，前端 joinParentPath 不会拼接父路径，路由注册正常。
+--
+--   下面这条 UPDATE 按「实际有没有子节点」重算 is_leaf，作为兜底自愈：
+--   以后再加子菜单忘了改 is_leaf，重跑本脚本就能修回来。
+UPDATE `sys_permission` p
+SET p.`is_leaf` = (
+  SELECT CASE WHEN COUNT(*) = 0 THEN 1 ELSE 0 END
+  FROM (
+    SELECT `parent_id` FROM `sys_permission` WHERE `del_flag` = 0 AND `status` = '1'
+  ) c
+  WHERE c.`parent_id` = p.`id`
+)
+WHERE p.`id` IN (
+  SELECT `id` FROM (
+    SELECT `id` FROM `sys_permission` WHERE `id` LIKE 'st\_menu\_%'
+  ) x
+);

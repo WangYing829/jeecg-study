@@ -89,7 +89,7 @@
           :pagination="pagination"
           :row-key="rowKey"
           :action-column="actionColumn"
-          :show-action-column="true"
+          :show-action-column="hasActionColumn"
           :show-index-column="false"
           :show-table-setting="false"
           :loading="loading"
@@ -162,6 +162,8 @@
     key: string;
     title: string;
     width?: string;
+    /** antd 取值字段；不给时由内核用 key 兜底 */
+    dataIndex?: string;
   }
 
   /**
@@ -234,15 +236,24 @@
        * <p>薄配置页只描述「内容列」，<b>操作列由内核统一补齐</b>——
        * 否则每页都要手写一遍 `key: 'action'` 的列定义，漏写一处
        * 「查看」按钮就整列消失（内容还在，但点不开详情）。</p>
+       *
+       * <p><b>为什么必须补 dataIndex</b>：antd 的表格是按 `record[dataIndex]`
+       * 取值渲染的，底座 `useColumns` 只处理 `key`→`dataIndex` 的**显示名**，
+       * 并不会把 `key` 当成取值字段。只写 `key` 的话每一格都是
+       * `record[undefined]` ⇒ <b>整列渲染为空</b>（表头在、数据一片空白）。</p>
        */
       const tableColumns = computed(() => {
         const list = props.columns || [];
-        const hasAction = list.some((item) => item.key === 'action');
-        if (hasAction || !props.detailBuilder) {
-          return list;
-        }
-        return [...list, { key: 'action', title: '操作', width: '100px' }];
+        return list.map((item) => ({ ...item, dataIndex: item.dataIndex || item.key }));
       });
+
+      /**
+       * 是否渲染操作列（§8.7）。
+       *
+       * <p>没有详情弹窗的**只读页**（如考点版本历史）不要留一列空操作——
+       * 表头写着「操作」而格子里什么都没有，比没有这一列更让人以为功能坏了。</p>
+       */
+      const hasActionColumn = computed(() => Boolean(props.detailBuilder));
 
       /**
        * 操作列定义（§8.7）。
@@ -271,12 +282,26 @@
         ];
       };
 
-      /** 加载数据：按模式分派 */
+      /**
+       * 加载数据：按模式分派。
+       *
+       * <p><b>为什么要用序号丢弃过期响应</b>：页面挂载时内核先 `onMounted(reload)`，
+       * 薄配置页自己的 `onMounted`（取孩子下拉、取教材版本…）在**之后**才跑，
+       * 于是「依赖尚未就绪的入参」的第一次请求会先发出、后失败，
+       * 而第二次请求已经成功了 —— 过期的那次 `catch` 若照样写 errorText，
+       * 就会出现<em>表格有数据、下面却挂着一行错误提示</em>的怪相
+       * （浏览器实测在「母题维护」页抓到过）。
+       * 序号保证<strong>只有最新一次请求能写状态</strong>。</p>
+       */
+      let reloadSeq = 0;
       const reload = async () => {
+        const seq = ++reloadSeq;
         loading.value = true;
-        errorText.value = '';
         try {
           const data = await props.loader(keyword.value);
+          if (seq !== reloadSeq) {
+            return;
+          }
           if (props.mode === 'tree') {
             treeData.value = Array.isArray(data) ? data : data?.items || [];
             rows.value = [];
@@ -291,13 +316,19 @@
               ? list.filter((item: any) => JSON.stringify(item).includes(kw))
               : list;
           }
+          errorText.value = '';
         } catch (e) {
+          if (seq !== reloadSeq) {
+            return;
+          }
           treeData.value = [];
           rows.value = [];
           const state = describeNetError(e, OFFLINE_HINT, RETRY_LABEL);
           errorText.value = state.offline ? state.message : String(e?.message || '加载失败');
         } finally {
-          loading.value = false;
+          if (seq === reloadSeq) {
+            loading.value = false;
+          }
         }
       };
 
@@ -368,6 +399,7 @@
         detailItems,
         pagination,
         tableColumns,
+        hasActionColumn,
         actionColumn,
         detailActions,
         STUDY_MODAL_BODY_STYLE,

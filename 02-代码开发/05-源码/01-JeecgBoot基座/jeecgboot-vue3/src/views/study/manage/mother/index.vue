@@ -59,6 +59,12 @@
       ];
 
       const loader = async (keyword?: string) => {
+        // 孩子下拉是**页面自己的 onMounted** 取的，比内核的 onMounted(reload) 晚一步。
+        // 孩子还没选好时不要发这条必然 4010 的请求（服务端会回「请指定要访问的孩子」），
+        // 等 childId 就位后 refreshKey 变化会触发内核重载。
+        if (!childId.value) {
+          return [];
+        }
         const list = await fetchMotherList(childId.value || undefined);
         const rows = list || [];
         const kw = String(keyword || '').trim();

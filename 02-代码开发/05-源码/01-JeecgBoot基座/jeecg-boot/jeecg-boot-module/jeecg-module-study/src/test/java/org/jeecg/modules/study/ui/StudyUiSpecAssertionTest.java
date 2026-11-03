@@ -1177,6 +1177,98 @@ class StudyUiSpecAssertionTest {
                 .isEmpty();
     }
 
+    // ================================================================= 管理端列表内核不变量（D-3 / D-4）
+
+    /**
+     * 管理端内容维护页的<b>通用内核</b>。
+     *
+     * <p>《前端页面清单》里的 9 个管理端内容维护页结构同构，共用一个内核
+     * {@code views/study/manage/ManageContentPage.vue}，各页只提供「列配置 + 数据源」。</p>
+     */
+    private static final String MANAGE_KERNEL = "views/study/manage/ManageContentPage.vue";
+
+    @Test
+    @DisplayName("D-3 管理端列表内核必须给每列补 dataIndex（只写 key 会让整列渲染为空）")
+    void manageListKernelMustSupplyDataIndex() {
+        Path kernel = RedLineScanner.frontendRoot().resolve(MANAGE_KERNEL);
+        assertThat(Files.isRegularFile(kernel)).as("管理端内容维护内核必须存在：" + MANAGE_KERNEL).isTrue();
+
+        String content = read(kernel);
+        assertThat(content)
+                .as("antd 表格按 record[dataIndex] 取值，底座 useColumns 只处理 key→dataIndex 的显示名、"
+                        + "不会把 key 当取值字段 —— 内核必须补 dataIndex 兜底，否则每格都是 record[undefined]")
+                .containsPattern("dataIndex\\s*:\\s*item\\.dataIndex\\s*\\|\\|\\s*item\\.key");
+    }
+
+    @Test
+    @DisplayName("D-3 管理端列表的操作列只能由内核补一处（不得手工再插一列 action）")
+    void manageListMustNotDuplicateActionColumn() {
+        Path kernel = RedLineScanner.frontendRoot().resolve(MANAGE_KERNEL);
+        assertThat(Files.isRegularFile(kernel)).as("管理端内容维护内核必须存在：" + MANAGE_KERNEL).isTrue();
+
+        String content = read(kernel);
+        Matcher block = Pattern.compile("const\\s+tableColumns\\s*=\\s*computed\\(\\(\\)\\s*=>\\s*\\{([\\s\\S]*?)\\}\\);")
+                .matcher(content);
+        assertThat(block.find()).as("必须能定位到 tableColumns 计算属性").isTrue();
+        assertThat(block.group(1))
+                .as("tableColumns 里不得手工插 action 列（BasicTable 的 actionColumn 已经会补一列，"
+                        + "手工再插一列就是两列操作列）")
+                .doesNotContain("action");
+
+        assertThat(content)
+                .as("show-action-column 必须跟着 detailBuilder 走（只读页不留一列空操作）")
+                .containsPattern(":show-action-column\\s*=\\s*\"hasActionColumn\"");
+        assertThat(content)
+                .as("hasActionColumn 必须由 detailBuilder 决定")
+                .containsPattern("hasActionColumn\\s*=\\s*computed\\(\\(\\)\\s*=>\\s*Boolean\\(props\\.detailBuilder\\)\\)");
+    }
+
+    @Test
+    @DisplayName("D-3 管理端薄配置页的每一列都必须有 key（dataIndex 兜底靠它）")
+    void manageThinPagesColumnsMustCarryKey() {
+        List<Path> manageFiles = filesUnder(VIEWS_MANAGE);
+        assertThat(manageFiles).as("扫描有效性：管理端文件集合必须非空，否则会假绿").isNotEmpty();
+
+        Pattern columnsBlock = Pattern.compile("columns\\s*:\\s*StudyManageColumn\\[\\]\\s*=\\s*\\[([\\s\\S]*?)\\]\\s*;");
+        Pattern item = Pattern.compile("\\{([^{}]*)\\}");
+        Pattern hasKey = Pattern.compile("\\bkey\\s*:");
+
+        List<String> problems = new ArrayList<>();
+        int checked = 0;
+        for (Path file : manageFiles) {
+            String content = read(file);
+            Matcher block = columnsBlock.matcher(content);
+            while (block.find()) {
+                Matcher objects = item.matcher(block.group(1));
+                while (objects.find()) {
+                    checked++;
+                    if (!hasKey.matcher(objects.group(1)).find()) {
+                        problems.add(rel(file) + " → 列定义缺 key：" + objects.group(1).replaceAll("\\s+", " ").trim());
+                    }
+                }
+            }
+        }
+
+        assertThat(checked).as("扫描有效性：必须至少扫描到一个列定义").isGreaterThan(0);
+        assertThat(problems).as("每一列都必须写 key（内核用 key 兜底成 dataIndex）").isEmpty();
+    }
+
+    @Test
+    @DisplayName("D-4 管理端内核必须用序号守卫丢弃过期响应（否则表格有数据却挂着错误提示）")
+    void manageKernelMustGuardStaleResponses() {
+        Path kernel = RedLineScanner.frontendRoot().resolve(MANAGE_KERNEL);
+        assertThat(Files.isRegularFile(kernel)).as("管理端内容维护内核必须存在：" + MANAGE_KERNEL).isTrue();
+
+        String content = read(kernel);
+        assertThat(content)
+                .as("页面挂载时内核先 reload、薄配置页的 onMounted 后跑，"
+                        + "第一次请求必然失败；过期响应不得再写 errorText（必须有序号守卫）")
+                .containsPattern("reloadSeq");
+        assertThat(content)
+                .as("成功路径必须清掉 errorText（否则数据加载成功后仍挂着上一条错误提示）")
+                .containsPattern("errorText\\.value\\s*=\\s*''");
+    }
+
     // ================================================================= 工具
 
     private static Path component(String name) {

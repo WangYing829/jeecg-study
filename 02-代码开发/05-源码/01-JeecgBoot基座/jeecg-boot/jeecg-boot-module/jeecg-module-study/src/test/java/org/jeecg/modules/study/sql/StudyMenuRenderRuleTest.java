@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -63,6 +64,9 @@ class StudyMenuRenderRuleTest extends StudyTestSupport {
 
     /** 增量脚本：给 admin 授权 study 菜单与按钮 */
     private static final String SEED_ADMIN_MENU = "19-seed-admin-study-menu.sql";
+
+    /** 增量脚本：§11.2 新增界面的菜单种子（含 is_leaf 自愈） */
+    private static final String SEED_INTERFACE_PAGES_MENU = "22-seed-study-interface-pages-menu.sql";
 
     /** 本项目的两个一级菜单 */
     private static final Set<String> STUDY_TOP_MENUS = Set.of("st_menu_study", "st_menu_parent");
@@ -221,7 +225,142 @@ class StudyMenuRenderRuleTest extends StudyTestSupport {
         assertThat(script).as("19 号脚本不得清空授权表").doesNotContain("TRUNCATE").doesNotContain("DELETE FROM `sys_role_permission`");
     }
 
+    // ================================================================= 断言 5：is_leaf 菜单树形状
+
+    @Test
+    @DisplayName("凡是「有子菜单」的节点，is_leaf 必须是 0——后端只在 !isLeaf 时递归子菜单")
+    void everyStudyMenuWithChildrenMustNotBeMarkedAsLeaf() {
+        List<Map<String, Object>> rows = menuRowsWithLeaf();
+
+        List<String> problems = new ArrayList<>();
+        int checked = 0;
+        for (Map<String, Object> row : rows) {
+            if (!str(row.get("id")).startsWith("st_menu")) {
+                continue;
+            }
+            int children = num(row.get("children"));
+            int isLeaf = num(row.get("is_leaf"));
+            if (children <= 0) {
+                continue;
+            }
+            checked++;
+            if (isLeaf != 0) {
+                problems.add(str(row.get("id")) + "（" + str(row.get("name")) + "）is_leaf=" + isLeaf
+                        + " 但有 " + children + " 个子菜单 → 后端 getPermissionJsonArray 只在 !isLeaf 时递归，"
+                        + "该节点被当成叶子，子菜单被静默丢弃（页面 404 且无任何报错）");
+            }
+        }
+
+        assertThat(checked)
+                .as("扫描有效性：必须至少有一个「有子菜单」的 study 菜单被检查到")
+                .isGreaterThan(0);
+        assertThat(problems)
+                .as("有子菜单的节点一律不许标 is_leaf=1（is_leaf=1 会让后端跳过整棵子树）")
+                .isEmpty();
+    }
+
+    @Test
+    @DisplayName("study 菜单在「后端算法」下必须全部可达（父链上任一祖先 is_leaf=1 即整支被剪掉）")
+    void everyStudyMenuMustBeReachableUnderBackendAlgorithm() {
+        List<Map<String, Object>> rows = menuRowsWithLeaf();
+
+        // 按 id 索引
+        Map<String, Map<String, Object>> byId = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            byId.put(str(row.get("id")), row);
+        }
+
+        // 后端算法：从根（parent_id 为空）出发；进入某节点后，只有该节点 is_leaf=0 才继续往下递归
+        Set<String> reachable = new LinkedHashSet<>();
+        for (Map<String, Object> row : rows) {
+            if (!str(row.get("parent_id")).isEmpty()) {
+                continue;
+            }
+            walk(row, byId, reachable);
+        }
+
+        List<String> unreachable = new ArrayList<>();
+        for (Map<String, Object> row : rows) {
+            String id = str(row.get("id"));
+            if (!id.startsWith("st_menu")) {
+                continue;
+            }
+            if (!reachable.contains(id)) {
+                unreachable.add(id + "（" + str(row.get("name")) + "）");
+            }
+        }
+
+        assertThat(reachable)
+                .as("扫描有效性：后端算法必须能算出若干可达菜单")
+                .isNotEmpty();
+        assertThat(unreachable)
+                .as("study 菜单必须全部出现在菜单树里（不可达 = 页面上根本点不到）")
+                .isEmpty();
+    }
+
+    @Test
+    @DisplayName("§11.2 菜单种子脚本必须自带 is_leaf 自愈，且幂等回写 parent_id / is_leaf")
+    void interfacePagesSeedMustCarryLeafSelfHeal() {
+        Path seed = sqlScriptsDir().resolve(SEED_INTERFACE_PAGES_MENU);
+        assertThat(Files.isRegularFile(seed))
+                .as("增量脚本必须存在：" + SEED_INTERFACE_PAGES_MENU)
+                .isTrue();
+
+        String script = RedLineScanner.read(seed);
+
+        assertThat(script)
+                .as("22 号脚本必须回写 parent_id（改挂载层级要能靠重跑脚本生效）")
+                .contains("parent_id");
+        assertThat(script)
+                .as("22 号脚本必须回写 is_leaf")
+                .contains("is_leaf");
+        assertThat(script)
+                .as("22 号脚本必须自带「按实际子节点重算 is_leaf」的自愈语句")
+                .containsPattern("(?is)UPDATE\\s+`?sys_permission`?[^;]*`?is_leaf`?\\s*=\\s*\\(\\s*SELECT\\s+CASE\\s+WHEN");
+        assertThat(script)
+                .as("22 号脚本必须写成幂等形式（ON DUPLICATE KEY UPDATE）")
+                .contains("ON DUPLICATE KEY UPDATE");
+        assertThat(script).as("增量脚本不得清空菜单表").doesNotContain("TRUNCATE").doesNotContain("DELETE FROM `sys_permission`");
+    }
+
     // ================================================================= 取数
+
+    /**
+     * 递归展开菜单树（复刻后端 {@code getPermissionJsonArray} 的遍历规则）。
+     *
+     * <p><b>规则</b>：节点进入 children 后，<b>只有 {@code is_leaf=0} 才继续递归它的子节点</b>；
+     * {@code is_leaf=1} 的节点整支子树不再下探 —— 这正是「一级菜单看得见、下级菜单一个都不显示」
+     * 的另一条成因（D-2）。</p>
+     *
+     * @param node      当前节点
+     * @param byId      id → 行
+     * @param reachable 收集可达节点 id
+     */
+    private void walk(Map<String, Object> node, Map<String, Map<String, Object>> byId, Set<String> reachable) {
+        String id = str(node.get("id"));
+        if (!reachable.add(id)) {
+            return;
+        }
+        if (num(node.get("is_leaf")) != 0) {
+            // 叶子节点：后端不再递归，其子节点全部不可达
+            return;
+        }
+        for (Map<String, Object> candidate : byId.values()) {
+            if (id.equals(str(candidate.get("parent_id")))) {
+                walk(candidate, byId, reachable);
+            }
+        }
+    }
+
+    /** 真实库里的菜单行（含 parent_id / is_leaf / 子菜单数） */
+    private List<Map<String, Object>> menuRowsWithLeaf() {
+        return jdbc.queryForList(
+                "SELECT p.id, p.name, p.parent_id, p.is_leaf, p.menu_type, "
+                        + "(SELECT COUNT(*) FROM sys_permission c WHERE c.parent_id = p.id "
+                        + " AND c.menu_type IN (0, 1) AND c.del_flag = 0) AS children "
+                        + "FROM sys_permission p "
+                        + "WHERE p.menu_type IN (0, 1) AND p.del_flag = 0");
+    }
 
     /** 真实库里的菜单行（含可见下级菜单数量） */
     private List<Map<String, Object>> menuRows() {

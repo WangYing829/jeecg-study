@@ -36,7 +36,12 @@
         { key: 'invalidAt', title: '失效时间', width: '200px' },
       ];
 
-      const loader = () => fetchKnowledgeHistory(String(route.params.code || ''));
+      const loader = async () => {
+        const list = await fetchKnowledgeHistory(String(route.params.code || ''));
+        // 考点 VO 里带 children，antd 会以为这行可以展开 ⇒ 凭空多出一个「展开行」按钮。
+        // 历史版本是**平铺的版本列表**，没有子节点可言，这里把 children 摘掉。
+        return (list || []).map((item: any) => ({ ...item, children: undefined }));
+      };
 
       return { columns, loader };
     },
