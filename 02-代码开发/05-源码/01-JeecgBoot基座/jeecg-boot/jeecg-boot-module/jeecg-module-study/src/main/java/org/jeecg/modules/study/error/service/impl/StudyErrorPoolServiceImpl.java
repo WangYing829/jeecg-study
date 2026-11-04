@@ -32,6 +32,8 @@ import org.jeecg.modules.study.error.mapper.StudyErrorQuestionVariantMapper;
 import org.jeecg.modules.study.error.mapper.StudyReviewScheduleMapper;
 import org.jeecg.modules.study.error.service.StudyErrorManageService;
 import org.jeecg.modules.study.error.service.StudyErrorPoolService;
+import org.jeecg.modules.study.error.vo.ErrorDetailVO;
+import org.jeecg.modules.study.error.vo.ErrorHotStatisticVO;
 import org.jeecg.modules.study.error.vo.ErrorPoolItemVO;
 import org.jeecg.modules.study.error.vo.ErrorPoolReportVO;
 import org.jeecg.modules.study.error.vo.ErrorVariantListVO;
@@ -62,6 +64,7 @@ import org.jeecg.modules.study.scope.service.ChildScopeService;
  *
  * @author jeecg-study
  */
+// update-begin---author:mavis ---date:2026-11-04  for：【第二档-6 上线学习端错题线】错题入池的 childId 允许缺省 —— 缺省时由服务端会话推导（孩子取自己），前端不再必须先查 childCode 再回传-----------
 @Service
 @RequiredArgsConstructor
 public class StudyErrorPoolServiceImpl implements StudyErrorPoolService, StudyErrorManageService {
@@ -194,6 +197,72 @@ public class StudyErrorPoolServiceImpl implements StudyErrorPoolService, StudyEr
     // ------------------------------------------------------------------ 变式 / 错因
 
     @Override
+    public ErrorDetailVO detail(String errorCode) {
+        StudyErrorPool error = requireError(errorCode);
+        scopeService.assertChildAccess(error.getChildId());
+
+        ErrorDetailVO vo = new ErrorDetailVO();
+        vo.setErrorCode(error.getErrorCode());
+        vo.setSourceModule(error.getSourceModule());
+        vo.setContentType(error.getContentType());
+        vo.setContentId(error.getContentId());
+        vo.setKnowledgePointCode(error.getKnowledgePointCode());
+        vo.setKnowledgePointName(pointName(error.getKnowledgePointCode()));
+        vo.setSubjectCode(error.getSubjectCode());
+        vo.setErrorCause(error.getErrorCause());
+        vo.setErrorCauseName(causeName(error.getErrorCause()));
+        vo.setJudgeSource(error.getJudgeSource());
+        vo.setMasteryState(error.getMasteryState());
+        vo.setCorrectStreak(error.getCorrectStreak());
+        vo.setReviewStatus(error.getReviewStatus());
+        vo.setNextReviewAt(error.getNextReviewAt());
+        vo.setLastReviewAt(error.getLastReviewAt());
+        vo.setArchived(error.getArchivedAt() != null);
+        vo.setCreateTime(error.getCreateTime());
+        vo.setCopyrightType(error.getCopyrightType());
+        vo.setSourceRef(error.getSourceRef());
+        return vo;
+    }
+
+    @Override
+    public List<ErrorHotStatisticVO> hotStatistics(String childId, int limit) {
+        String id = trim(childId);
+        if (id.isEmpty()) {
+            throw new StudyForbiddenException();
+        }
+        scopeService.assertChildAccess(id);
+        int max = limit <= 0 ? 10 : Math.min(limit, 50);
+
+        List<Map<String, Object>> rows = errorPoolMapper.countGroupByContent(id, max);
+        List<ErrorHotStatisticVO> list = new ArrayList<>();
+        if (rows == null || rows.isEmpty()) {
+            return list;
+        }
+        List<String> pointCodes = new ArrayList<>();
+        for (Map<String, Object> row : rows) {
+            String pointCode = stringValue(row, "knowledgePointCode");
+            if (pointCode != null && !pointCode.isEmpty() && !pointCodes.contains(pointCode)) {
+                pointCodes.add(pointCode);
+            }
+        }
+        Map<String, String> names = pointNames(pointCodes);
+        for (Map<String, Object> row : rows) {
+            String pointCode = stringValue(row, "knowledgePointCode");
+            list.add(new ErrorHotStatisticVO()
+                    .setErrorCode(stringValue(row, "errorCode"))
+                    .setSourceModule(stringValue(row, "sourceModule"))
+                    .setContentType(stringValue(row, "contentType"))
+                    .setContentId(stringValue(row, "contentId"))
+                    .setKnowledgePointCode(pointCode)
+                    .setKnowledgePointName(pointCode == null ? null : names.getOrDefault(pointCode, pointCode))
+                    .setErrorCount(intOf(row.get("errorCount")))
+                    .setMasteryState(intOf(row.get("masteryState")))
+                    .setLastErrorAt(dateOf(row.get("lastErrorAt"))));
+        }
+        return list;
+    }
+
+    @Override
     public ErrorVariantListVO listVariants(String errorCode) {
         StudyErrorPool error = requireError(errorCode);
         scopeService.assertChildAccess(error.getChildId());
@@ -228,6 +297,11 @@ public class StudyErrorPoolServiceImpl implements StudyErrorPoolService, StudyEr
             throw new JeecgBootException("错题入池参数不能为空", 400);
         }
         String childId = trim(command.getChildId());
+        if (childId.isEmpty()) {
+            // 孩子身份：childId 由服务端会话推导（契约 §3.2，不接受前端传入）；
+            // 家长身份必须显式指定孩子，推不出则一律 4010。
+            childId = trim(scopeService.ownChildId());
+        }
         if (childId.isEmpty()) {
             throw new StudyForbiddenException();
         }
@@ -597,6 +671,81 @@ public class StudyErrorPoolServiceImpl implements StudyErrorPoolService, StudyEr
         return date == null ? null : date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
     }
 
+    // ------------------------------------------------------------------ 内部：工具
+
+    /**
+     * 考点名称（内容表，全局共享）。
+     */
+    private String pointName(String pointCode) {
+        if (pointCode == null || pointCode.trim().isEmpty()) {
+            return null;
+        }
+        Map<String, String> names = pointNames(Collections.singletonList(pointCode.trim()));
+        return names.get(pointCode.trim());
+    }
+
+    /**
+     * 一批考点业务ID → 名称。
+     */
+    private Map<String, String> pointNames(List<String> pointCodes) {
+        Map<String, String> names = new LinkedHashMap<>();
+        if (pointCodes == null || pointCodes.isEmpty()) {
+            return names;
+        }
+        List<Map<String, Object>> rows = questionMapper.selectPointNames(pointCodes);
+        if (rows == null) {
+            return names;
+        }
+        for (Map<String, Object> row : rows) {
+            names.put(stringValue(row, "pointCode"), stringValue(row, "pointName"));
+        }
+        return names;
+    }
+
+    /**
+     * 错因展示名。
+     *
+     * <p>错题池里可能存中文名（当前实现口径），也可能存英文码（设计口径），
+     * 这里把两种取值都归一到同一个展示名。</p>
+     */
+    private String causeName(String cause) {
+        if (cause == null || cause.trim().isEmpty()) {
+            return "";
+        }
+        switch (cause.trim().toUpperCase()) {
+            case "CONCEPT":
+                return "概念不清";
+            case "READING":
+                return "审题偏差";
+            case "CALC":
+                return "计算失误";
+            case "METHOD":
+                return "方法不会";
+            case "TIME":
+                return "时间不够";
+            default:
+                return cause;
+        }
+    }
+
+    private int intOf(Object value) {
+        if (value == null) {
+            return 0;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        try {
+            return Integer.parseInt(String.valueOf(value));
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    private Date dateOf(Object value) {
+        return value instanceof Date ? (Date) value : null;
+    }
+
     /**
      * 变式解析结果。
      */
@@ -613,3 +762,4 @@ public class StudyErrorPoolServiceImpl implements StudyErrorPoolService, StudyEr
         }
     }
 }
+// update-end---author:mavis ---date:2026-11-04  for：【第二档-6 上线学习端错题线】错题入池的 childId 允许缺省 —— 缺省时由服务端会话推导（孩子取自己），前端不再必须先查 childCode 再回传-----------

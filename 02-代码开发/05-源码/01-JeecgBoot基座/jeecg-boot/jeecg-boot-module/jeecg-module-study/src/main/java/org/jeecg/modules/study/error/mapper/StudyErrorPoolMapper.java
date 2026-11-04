@@ -90,4 +90,26 @@ public interface StudyErrorPoolMapper extends BaseMapper<StudyErrorPool> {
     @Select("SELECT error_cause AS errorCause, COUNT(*) AS cnt FROM study_error_pool"
             + " WHERE child_id = #{childId} AND del_flag = 0 GROUP BY error_cause ORDER BY error_cause")
     List<Map<String, Object>> countGroupByCause(@Param("childId") String childId);
+
+    /**
+     * 高频错题：按「内容」聚合同一道题的出错次数。
+     *
+     * <p><b>只给客观计数</b>：没有名次类字段，顺序由条数决定（R-04）。</p>
+     *
+     * <p>排序键 {@code errorCount} 可能并列，追加 {@code contentId} 作为唯一兜底键，
+     * 保证截断时结果稳定。</p>
+     *
+     * @param childId 孩子 ID
+     * @param limit   取前几条
+     * @return 内容 → 条数
+     */
+    @Select("SELECT MIN(error_code) AS errorCode, source_module AS sourceModule,"
+            + " content_type AS contentType, content_id AS contentId,"
+            + " MIN(knowledge_point_code) AS knowledgePointCode, COUNT(*) AS errorCount,"
+            + " MIN(mastery_state) AS masteryState, MAX(create_time) AS lastErrorAt"
+            + " FROM study_error_pool WHERE child_id = #{childId} AND del_flag = 0"
+            + " GROUP BY source_module, content_type, content_id"
+            + " ORDER BY errorCount DESC, contentId ASC LIMIT #{limit}")
+    List<Map<String, Object>> countGroupByContent(@Param("childId") String childId,
+                                                   @Param("limit") int limit);
 }

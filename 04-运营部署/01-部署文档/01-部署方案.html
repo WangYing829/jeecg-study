@@ -862,44 +862,60 @@ Get-ChildItem (Join-Path $sqlDir '02-migrations') -Filter *.sql | Sort-Object Na
 </tbody>
 </table></div>
 <h3>5.2 构建流程</h3>
-<pre class="cmd"><code class="language-powershell"># 05-源码/04-建库迁移/build-and-sync.ps1
-param([switch]$SkipVersion)
-
-$ErrorActionPreference = 'Stop'
-$root = Resolve-Path (Join-Path $PSScriptRoot '..')   # = 02-代码开发/05-源码
-$stamp = Get-Date -Format 'yyyyMMdd.HHmmss'
-$logDir = Join-Path $root '03-构建发布\build-logs'
-
-# 1) 后端
-Write-Output '=== 构建后端 ==='
-$backendLog = Join-Path $logDir &quot;backend-$stamp.log&quot;
-Push-Location (Join-Path $root '01-JeecgBoot基座\jeecg-boot')
-try {
-  # 构建输出不要经 | Out-Host 管道转发（会中断 node/mvn）
-  &amp; mvn -pl jeecg-boot-module/jeecg-module-study -am clean package -DskipTests 2&gt;&amp;1 |
-    Tee-Object -FilePath $backendLog | Out-Null
-  if ($LASTEXITCODE -ne 0) { Get-Content $backendLog -Tail 50; throw '后端构建失败' }
-} finally { Pop-Location }
-
-# 2) 前端
-Write-Output '=== 构建前端 ==='
-$frontLog = Join-Path $logDir &quot;frontend-$stamp.log&quot;
-Push-Location (Join-Path $root '01-JeecgBoot基座\jeecgboot-vue3')
-try {
-  &amp; pnpm build 2&gt;&amp;1 | Tee-Object -FilePath $frontLog | Out-Null
-  if ($LASTEXITCODE -ne 0) { Get-Content $frontLog -Tail 50; throw '前端构建失败' }
-} finally { Pop-Location }
-
-# 3) 同步到 latest（增量镜像，不整拷）
-Write-Output '=== 同步产物 ==='
-# ... 逐文件比对 + 硬链接发布 ...
-
-Write-Output &quot;完成：$stamp&quot;
-</code></pre>
 <blockquote>
-<p><strong>两个必须遵守的坑</strong>（来自既有工程的教训）：
+<p>脚本已落成真文件：<strong><code>02-代码开发/05-源码/04-建库迁移/build-and-sync.ps1</code></strong>（UTF-8 带 BOM）。
+本节只讲<strong>怎么用</strong>；脚本内容以文件为准，不在这里内联副本。</p>
+</blockquote>
+<pre class="cmd"><code class="language-powershell"># 构建后端 + 前端，同步到 05-源码\builds\latest
+&amp; '.\02-代码开发\05-源码\04-建库迁移\build-and-sync.ps1'
+
+# 只构建后端（前端产物已在 latest 里）
+&amp; '.\02-代码开发\05-源码\04-建库迁移\build-and-sync.ps1' -SkipFrontend
+
+# 不同步版本目录（只更新 latest）
+&amp; '.\02-代码开发\05-源码\04-建库迁移\build-and-sync.ps1' -SkipVersion
+</code></pre>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>脚本内部做什么</th>
+<th>产物</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>后端 <code>mvn -pl jeecg-module-study -am clean package -DskipTests</code></td>
+<td><code>jeecg-module-study-3.9.2.jar</code> + <code>jeecg-system-start-3.9.2.jar</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>前端 <code>pnpm build</code></td>
+<td><code>dist/</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>镜像 SQL 真源</td>
+<td><code>builds\latest\sql\*.sql</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>同步到 <code>latest</code>（<code>robocopy /MIR</code> 增量镜像，不整拷）</td>
+<td><code>builds\latest\{backend,frontend,sql}</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>写版本目录 + <code>manifest.json</code></td>
+<td><code>builds\versions\&lt;stamp&gt;\</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>三个必须遵守的坑</strong>（来自既有工程的教训）：
 ① 构建输出<strong>不要</strong>经 <code>| Out-Host</code> 管道转发——1MB+ 资源清单会把管道压垮并让构建<strong>静默中断</strong>。用 <code>Tee-Object -FilePath $log | Out-Null</code>，失败时打印日志尾部。
-② <code>Start-Process -ArgumentList</code> 传数组不安全，会用空格拼成一条命令行且不加引号。调用原生命令优先用 <code>&amp;</code>。</p>
+② <code>Start-Process -ArgumentList</code> 传数组不安全，会用空格拼成一条命令行且不加引号。调用原生命令优先用 <code>&amp;</code>。
+③ <strong>替换 jar 前必须先停服务</strong>：运行中的 java 独占 jar 的文件句柄，覆盖写入会报「正由另一进程使用」。</p>
 </blockquote>
 <h3>5.3 发布流程</h3>
 <div class="tbl-wrap"><table>

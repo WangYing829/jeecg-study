@@ -17,8 +17,8 @@ F-FAM-03,孩子档案管理,,5,GET /children | POST /children | GET /children/{c
 F-FAM-04,家长↔孩子多对多关联,,3,GET /children/{code}/relations | POST /children/{code}/relations | DELETE /children/{code}/relations/{parentUserId},8,TC-43-01(P0) | TC-43-02(P0) | TC-43-03(P1) | TC-43-04(P0) | TC-43-05(P0) | TC-43-06(P1) | TC-43-07(P0) | TC-43-13(P1),已覆盖
 F-FAM-05,孩子独立账号与 PIN 登录,,4,POST /children/{code}/pin/reset | POST /kid/login | POST /kid/logout | GET /kid/me,10,TC-42-06(P0) | TC-42-08(P0) | TC-44-01(P0) | TC-44-04(P0) | TC-44-05(P0) | TC-44-06(P0) | TC-44-07(P0) | TC-44-08(P1) | TC-44-09(P0) | TC-44-11(P0),已覆盖
 F-FAM-06,家庭码与孩子端候选列表,,2,POST /family/code/reset | POST /kid/lookup,6,TC-08-32(P0) | TC-41-04(P0) | TC-41-05(P0) | TC-44-01(P0) | TC-44-02(P0) | TC-44-03(P0),已覆盖
-F-FAM-07,学习数据按孩子隔离,,5,GET /children/{code}/overview | GET /mastery/weak-points | GET /practice/records | GET /practice/stats/today | GET /error-pool/statistics,16,TC-41-08(P0) | TC-41-09(P0) | TC-42-02(P0) | TC-42-09(P0) | TC-42-10(P0) | TC-42-11(P0) | TC-42-12(P0) | TC-42-13(P0) | TC-43-05(P0) | TC-43-08(P0) | TC-43-09(P0) | TC-43-10(P0) | TC-43-11(P0) | TC-43-12(P0) | TC-44-09(P0) | TC-44-10(P0),已覆盖
-F-FAM-08,家长反馈与申诉入口,,3,POST /writing/parent/feedback | GET /practice/{contentId}/explanation/feedback | POST /parent/feedback,0,,已覆盖
+F-FAM-07,学习数据按孩子隔离,,1,GET /children/{code}/overview,16,TC-41-08(P0) | TC-41-09(P0) | TC-42-02(P0) | TC-42-09(P0) | TC-42-10(P0) | TC-42-11(P0) | TC-42-12(P0) | TC-42-13(P0) | TC-43-05(P0) | TC-43-08(P0) | TC-43-09(P0) | TC-43-10(P0) | TC-43-11(P0) | TC-43-12(P0) | TC-44-09(P0) | TC-44-10(P0),已覆盖
+F-FAM-08,家长反馈与申诉入口,,1,POST /writing/parent/feedback,0,,已覆盖
 F-GRM-01,句子变形器,,2,GET /grammar/points | GET /grammar/points/{code},4,TC-05-01(P0) | TC-05-02(P1) | TC-05-13(P0) | TC-05-14(P0),已覆盖
 F-GRM-02,错误即入口,,1,POST /grammar/transform,2,TC-05-03(P0) | TC-05-04(P1),已覆盖
 F-GRM-03,考纲锚定,,2,POST /grammar/detect | POST /grammar/error-detail,1,TC-05-05(P0),已覆盖
@@ -31,8 +31,8 @@ F-MTH-03,过关判据,,2,POST /practice/{contentId}/oral | POST /math/mother/{co
 F-MTH-04,错因二分前置打标,,2,POST /math/mother/{code}/variants | GET /math/mother/{code}/variants,2,TC-04-09(P1) | TC-04-10(P1),已覆盖
 F-MTH-05,溯源到坐标树,,1,GET /math/mother/{code}/narrative,2,TC-01-05(P1) | TC-04-11(P0),已覆盖
 F-MTH-06,关卡进度单位,,0,,1,TC-04-12(P1),已覆盖
-F-PAR-01,只读报告,,13,GET /mastery/weak-points | GET /mastery/{pointCode} | GET /practice/records | GET /practice/stats/today | GET /error-pool/statistics | GET /error-pool/statistics/hot | GET /parent/report/overview | GET /parent/report/weekly | GET /parent/report/errors | GET /mastery/weak-points | GET /practice/records | GET /practice/stats/today | GET /error-pool/statistics,10,TC-02-16(P1) | TC-07-01(P0) | TC-07-02(P0) | TC-07-03(P0) | TC-07-05(P1) | TC-07-06(P1) | TC-07-07(P0) | TC-07-08(P0) | TC-08-31(P0) | TC-08-32(P0),已覆盖
-F-PAR-02,一句话反馈,,4,GET /writing/parent/drafts | POST /writing/parent/feedback | GET /writing/parent/feedbacks | POST /parent/feedback,2,TC-06-08(P1) | TC-06-09(P0),已覆盖
+F-PAR-01,只读报告,,9,GET /mastery/weak-points | GET /mastery/{pointCode} | GET /practice/records | GET /practice/stats/today | GET /error-pool/statistics | GET /error-pool/statistics/hot | GET /parent/report/overview | GET /parent/report/weekly | GET /parent/report/errors,10,TC-02-16(P1) | TC-07-01(P0) | TC-07-02(P0) | TC-07-03(P0) | TC-07-05(P1) | TC-07-06(P1) | TC-07-07(P0) | TC-07-08(P0) | TC-08-31(P0) | TC-08-32(P0),已覆盖
+F-PAR-02,一句话反馈,,3,GET /writing/parent/drafts | POST /writing/parent/feedback | GET /writing/parent/feedbacks,2,TC-06-08(P1) | TC-06-09(P0),已覆盖
 F-PAR-03,不做公开比较,,0,,1,TC-07-04(P0),已覆盖
 F-PAR-04,提醒推送偏好,,2,GET /parent/notification-preference | PUT /parent/notification-preference,0,,已覆盖
 F-REG-01,一次配置生成四层坐标树,,1,POST /knowledge-points/import,1,TC-01-08(P0),已覆盖

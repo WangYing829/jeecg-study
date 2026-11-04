@@ -370,3 +370,636 @@ export const fetchContext = (childCode?: string) =>
     params: { childCode },
     ...SILENT,
   });
+
+// ------------------------------------------------------------------ 孩子端（学习端 kid 线）
+//
+// 红线口径：
+//   · 孩子身份来自会话（JWT），后端按登录账号反查孩子档案，
+//     前端拿到的 childId / childCode 只用于提交与展示，不作为数据范围的唯一依据（ADR-018）；
+//   · 错题详情与变式清单不下发答案与讲解，页面也就无从提前展示（R-01）；
+//   · 响应里没有同类横向比较字段，也不含任何他人标识（R-04）。
+
+/** 当前登录孩子信息 */
+export interface StudyCurrentKidVO {
+  childId?: string;
+  childCode?: string;
+  nickname?: string;
+  gradeCode?: string;
+}
+
+/** 今日练习统计（只给客观计数，不给分数，也不与任何人横向比较） */
+export interface StudyTodayStatsVO {
+  date?: string;
+  totalCount?: number;
+  correctCount?: number;
+  wrongCount?: number;
+  durationMinutes?: number;
+  moduleCount?: number;
+}
+
+/** 错题池条目 */
+export interface StudyErrorPoolItemVO {
+  errorCode?: string;
+  sourceModule?: string;
+  contentType?: string;
+  contentId?: string;
+  knowledgePointCode?: string;
+  subjectCode?: string;
+  errorCause?: string;
+  judgeSource?: string;
+  masteryState?: number;
+  correctStreak?: number;
+  reviewStatus?: number;
+  nextReviewAt?: string;
+  archived?: boolean;
+}
+
+/** 错题详情（不下发答案与讲解） */
+export interface StudyErrorDetailVO {
+  errorCode?: string;
+  sourceModule?: string;
+  contentType?: string;
+  contentId?: string;
+  knowledgePointCode?: string;
+  knowledgePointName?: string;
+  subjectCode?: string;
+  errorCause?: string;
+  errorCauseName?: string;
+  judgeSource?: string;
+  masteryState?: number;
+  correctStreak?: number;
+  reviewStatus?: number;
+  nextReviewAt?: string;
+  lastReviewAt?: string;
+  archived?: boolean;
+  createTime?: string;
+  copyrightType?: string;
+  sourceRef?: string;
+}
+
+/** 错题变式 */
+export interface StudyErrorVariantVO {
+  variantCode?: string;
+  questionCode?: string;
+  motherCode?: string;
+  layer?: number;
+  layerName?: string;
+  stem?: string;
+  source?: string;
+}
+
+/** 错题变式清单 */
+export interface StudyErrorVariantListVO {
+  errorCode?: string;
+  motherCode?: string;
+  variantAvailable?: boolean;
+  degradeType?: string;
+  variants?: StudyErrorVariantVO[];
+}
+
+/** 复习队列条目 */
+export interface StudyReviewQueueItemVO {
+  errorCode?: string;
+  sourceModule?: string;
+  contentType?: string;
+  contentId?: string;
+  orderWeight?: number;
+  queueDate?: string;
+  knowledgePointCode?: string;
+}
+
+/** 完成一项复习的结果（由服务端推进排期） */
+export interface StudyReviewCompleteVO {
+  errorCode?: string;
+  correctStreak?: number;
+  masteryState?: number;
+  archived?: boolean;
+  nextReviewAt?: string;
+  counted?: boolean;
+  message?: string;
+}
+
+/** 错因分布：错因 → 次数 */
+export type StudyErrorCauseStatistics = Record<string, number>;
+
+/** 错题入池结果 */
+export interface StudyErrorReportVO {
+  errorCode?: string;
+  nextReviewAt?: string;
+  duplicated?: boolean;
+}
+
+/** 单词条目（服务端不下发拼写，拼写就是拼写题的答案，R-01） */
+export interface StudyWordItemVO {
+  wordCode?: string;
+  lineType?: string;
+  textbookVersionId?: string;
+  unitCode?: string;
+  unitOrder?: number;
+  meaning?: string;
+  phonetic?: string;
+  pos?: string;
+  contextSentence?: string;
+  frequency?: number;
+  nextReviewAt?: string;
+}
+
+/** 课内单元 */
+export interface StudyWordUnitVO {
+  textbookVersionId?: string;
+  unitCode?: string;
+  unitOrder?: number;
+  wordCount?: number;
+  lineType?: string;
+}
+
+/** 词表 */
+export interface StudyWordListVO {
+  lineType?: string;
+  textbookVersionId?: string;
+  unitCode?: string;
+  total?: number;
+  filteredKnownCount?: number;
+  items?: StudyWordItemVO[];
+}
+
+/** 到期复习词 */
+export interface StudyWordDueVO {
+  lineType?: string;
+  totalDue?: number;
+  filteredKnownCount?: number;
+  items?: StudyWordItemVO[];
+  upgradeItems?: StudyWordItemVO[];
+}
+
+/** 背诵统计 */
+export interface StudyWordStatsVO {
+  lineType?: string;
+  totalWords?: number;
+  queueWords?: number;
+  filteredKnownCount?: number;
+  learnedWords?: number;
+  dueWords?: number;
+  reviewPending?: number;
+  streakDays?: number;
+}
+
+/** 熟词测试结果 */
+export interface StudyWordKnownTestVO {
+  lineType?: string;
+  markedCount?: number;
+  filteredKnownCount?: number;
+  queueWordCount?: number;
+}
+
+/** 单元闯关结果 */
+export interface StudyWordUnitCompleteVO {
+  textbookVersionId?: string;
+  unitCode?: string;
+  learnedWordCount?: number;
+  streakDays?: number;
+  pureMode?: boolean;
+  gameEnabled?: boolean;
+  rewardVisible?: boolean;
+  streakVisible?: boolean;
+  rewardText?: string;
+}
+
+/** 当前登录孩子信息（身份来自会话） */
+export const fetchCurrentKid = () =>
+  defHttp.get<StudyCurrentKidVO>({
+    url: '/api/v1/study/kid/me',
+    ...SILENT,
+  });
+
+/** 今日练习统计 */
+export const fetchTodayStats = () =>
+  defHttp.get<StudyTodayStatsVO>({
+    url: '/api/v1/study/practice/stats/today',
+    ...SILENT,
+  });
+
+/** 今日复习队列（跨模块统一） */
+export const fetchReviewQueue = () =>
+  defHttp.get<StudyReviewQueueItemVO[] | { items?: StudyReviewQueueItemVO[] }>({
+    url: '/api/v1/study/review/queue',
+    ...SILENT,
+  });
+
+/** 未来 7 天复习排期预览 */
+export const fetchReviewUpcoming = () =>
+  defHttp.get<StudyReviewQueueItemVO[] | { items?: StudyReviewQueueItemVO[] }>({
+    url: '/api/v1/study/review/upcoming',
+    ...SILENT,
+  });
+
+/** 完成一项复习（推进排期；答错必须带错因，否则服务端返回 4001） */
+export const completeReviewItem = (
+  code: string,
+  payload: { correct: boolean; errorCause?: string; reviewDate?: string },
+) =>
+  defHttp.post<StudyReviewCompleteVO>({
+    url: `/api/v1/study/review/queue/${code}/complete`,
+    data: payload,
+    ...SILENT,
+  });
+
+/** 错题列表（统一错题本） */
+export const fetchErrorPool = (childCode?: string) =>
+  defHttp.get<StudyErrorPoolItemVO[] | { items?: StudyErrorPoolItemVO[] }>({
+    url: '/api/v1/study/error-pool',
+    params: { childCode },
+    ...SILENT,
+  });
+
+/** 错题详情（不下发答案与讲解） */
+export const fetchErrorDetail = (code: string) =>
+  defHttp.get<StudyErrorDetailVO>({
+    url: `/api/v1/study/error-pool/${code}`,
+    ...SILENT,
+  });
+
+/** 错题变式清单 */
+export const fetchErrorVariants = (code: string) =>
+  defHttp.get<StudyErrorVariantListVO>({
+    url: `/api/v1/study/error-pool/${code}/variants`,
+    ...SILENT,
+  });
+
+/** 错因分布统计 */
+export const fetchErrorStatistics = (childCode?: string) =>
+  defHttp.get<StudyErrorCauseStatistics>({
+    url: '/api/v1/study/error-pool/statistics',
+    params: { childCode },
+    ...SILENT,
+  });
+
+/** 错题入池（拍照记一道错题 / 各模块判错后调用） */
+export const reportError = (payload: {
+  childId?: string;
+  sourceModule?: string;
+  contentType?: string;
+  contentId?: string;
+  knowledgePointCode?: string;
+  subjectCode?: string;
+  errorCause?: string;
+  rawAnswer?: string;
+  judgeSource?: string;
+  sourceRef?: string;
+  copyrightType?: string;
+}) =>
+  defHttp.post<StudyErrorReportVO>({
+    url: '/api/v1/study/error-pool',
+    data: payload,
+    ...SILENT,
+  });
+
+/** 课内单元列表 */
+export const fetchWordUnits = (lineType: string) =>
+  defHttp.get<StudyWordUnitVO[] | { items?: StudyWordUnitVO[] }>({
+    url: `/api/v1/study/word/line/${lineType}/units`,
+    ...SILENT,
+  });
+
+/** 词表（按单元取） */
+export const fetchWordList = (
+  lineType: string,
+  params?: { textbookVersionId?: string; unitCode?: string },
+) =>
+  defHttp.get<StudyWordListVO>({
+    url: `/api/v1/study/word/line/${lineType}/list`,
+    params,
+    ...SILENT,
+  });
+
+/** 到期复习词 */
+export const fetchWordDue = (lineType?: string) =>
+  defHttp.get<StudyWordDueVO>({
+    url: '/api/v1/study/word/due',
+    params: { lineType },
+    ...SILENT,
+  });
+
+/** 背诵统计 */
+export const fetchWordStats = (lineType?: string) =>
+  defHttp.get<StudyWordStatsVO>({
+    url: '/api/v1/study/word/stats',
+    params: { lineType },
+    ...SILENT,
+  });
+
+/** 熟词测试（把认识的词标记出来，过滤掉后进入背诵队列） */
+export const submitKnownTest = (payload: { lineType: string; wordCodes: string[] }) =>
+  defHttp.post<StudyWordKnownTestVO>({
+    url: '/api/v1/study/word/known-test',
+    data: payload,
+    ...SILENT,
+  });
+
+/** 进入课内单元 */
+export const enterWordUnit = (payload: {
+  childCode?: string;
+  textbookVersionId?: string;
+  unitCode?: string;
+  pureMode?: boolean;
+}) =>
+  defHttp.post<StudyWordListVO>({
+    url: '/api/v1/study/word/unit/enter',
+    data: payload,
+    ...SILENT,
+  });
+
+/** 完成单元闯关 */
+export const completeWordUnit = (payload: {
+  childCode?: string;
+  textbookVersionId?: string;
+  unitCode?: string;
+  pureMode?: boolean;
+}) =>
+  defHttp.post<StudyWordUnitCompleteVO>({
+    url: '/api/v1/study/word/unit/complete',
+    data: payload,
+    ...SILENT,
+  });
+
+// ------------------------------------------------------------------ 数学线（母题模块）
+//
+// 红线口径：
+//   · 变式与母题的响应里都没有答案字段，答案只在服务端参与判定（R-01）；
+//   · 判对错只用确定性规则，判定来源由服务端在 judgeSource 里下发，AI 只做解释层（R-02）；
+//   · 进度以「母题类」为单位，只给当前孩子自己的客观状态（R-04）。
+//
+// 身份口径：孩子的身份来自会话，后端按登录账号反查孩子档案；
+// 前端不传 childId 作为数据范围的唯一依据（ADR-018）。
+
+/** 母题列表条目 */
+export interface StudyMathMotherListItemVO {
+  motherCode: string;
+  title?: string;
+  subjectCode?: string;
+  knowledgePointCode?: string;
+  outlineWeight?: number;
+  orderNo?: number;
+  mastery?: number;
+  attemptCount?: number;
+  errorCount?: number;
+  consecutiveErrors?: number;
+  variantCount?: number;
+  passed?: boolean;
+}
+
+/** 条件类型（一类取值下的若干情形） */
+export interface StudyMathConditionTypeVO {
+  key?: string;
+  label?: string;
+  variants?: string[];
+  value?: number;
+}
+
+/** 母题步骤 */
+export interface StudyMathStepVO {
+  index?: number;
+  title?: string;
+  formula?: string;
+  note?: string;
+}
+
+/** 母题详情（五段结构） */
+export interface StudyMathMotherDetailVO {
+  motherCode: string;
+  title?: string;
+  conditionTypes?: StudyMathConditionTypeVO[];
+  keyRelation?: string;
+  steps?: StudyMathStepVO[];
+  pitfalls?: string[];
+  subjectCode?: string;
+  knowledgePointCode?: string;
+  passVariantCount?: number;
+  orderNo?: number;
+  status?: number;
+  sectionOrder?: string[];
+  keyRelationHighlighted?: boolean;
+  highlightSection?: string;
+}
+
+/** 变式（响应里没有答案字段，R-01） */
+export interface StudyMathVariantVO {
+  variantCode: string;
+  motherCode?: string;
+  layer?: number;
+  layerName?: string;
+  stem?: string;
+  generatedBy?: string;
+  answerTolerance?: number;
+  params?: Record<string, any>;
+}
+
+/** 步骤级错因打标 */
+export interface StudyMathStepTagVO {
+  stepIndex?: number;
+  errorCause?: string;
+}
+
+/** 变式作答结果 */
+export interface StudyMathVariantAnswerResultVO {
+  variantCode?: string;
+  correct?: boolean;
+  /** 判定依据（人可读） */
+  basis?: string;
+  /** 判定来源：rule / rule+model（R-02） */
+  judgeSource?: string;
+  errorCode?: string;
+  stepTags?: StudyMathStepTagVO[];
+  duplicated?: boolean;
+}
+
+/** 过关判定结果 */
+export interface StudyMathPassResultVO {
+  motherCode?: string;
+  passed?: boolean;
+  variantPassed?: boolean;
+  variantCorrectCount?: number;
+  variantRequiredCount?: number;
+  narrativePassed?: boolean;
+  hitKeywords?: string[];
+  missingKeywords?: string[];
+  followUpQuestion?: string;
+  hint?: string;
+}
+
+/** 口述任务说明（不含答案字段） */
+export interface StudyMathNarrativeBriefVO {
+  motherCode?: string;
+  title?: string;
+  narrativeRequired?: boolean;
+  keyPointCount?: number;
+  prompt?: string;
+}
+
+/** 口述判定结果 */
+export interface StudyMathNarrativeResultVO {
+  motherCode?: string;
+  narrativePassed?: boolean;
+  hitKeywords?: string[];
+  missingKeywords?: string[];
+  followUpQuestion?: string;
+}
+
+/** 关卡进度（单位是母题类，不是题量） */
+export interface StudyMathProgressVO {
+  masteredTypeCount?: number;
+  totalTypeCount?: number;
+  progressText?: string;
+  masteredMotherCodes?: string[];
+}
+
+/** 母题关卡列表 */
+export const fetchMathMotherList = () =>
+  defHttp.get<StudyMathMotherListItemVO[]>({
+    url: '/api/v1/study/math/mother/list',
+    ...SILENT,
+  });
+
+/** 母题详情 */
+export const fetchMathMotherDetail = (code: string) =>
+  defHttp.get<StudyMathMotherDetailVO>({
+    url: `/api/v1/study/math/mother/${code}`,
+    ...SILENT,
+  });
+
+/** 变式列表 */
+export const fetchMathMotherVariants = (code: string) =>
+  defHttp.get<StudyMathVariantVO[]>({
+    url: `/api/v1/study/math/mother/${code}/variants`,
+    ...SILENT,
+  });
+
+/** 口述任务说明 */
+export const fetchMathMotherNarrative = (code: string) =>
+  defHttp.get<StudyMathNarrativeBriefVO>({
+    url: `/api/v1/study/math/mother/${code}/narrative`,
+    ...SILENT,
+  });
+
+/** 关卡进度 */
+export const fetchMathProgress = () =>
+  defHttp.get<StudyMathProgressVO>({
+    url: '/api/v1/study/math/progress',
+    ...SILENT,
+  });
+
+/** 变式作答（服务端判对错 + 步骤级错因打标） */
+export const submitMathVariantAnswer = (
+  code: string,
+  variantCode: string,
+  payload: {
+    answer: string;
+    errorCause?: string;
+    stepTags?: StudyMathStepTagVO[];
+    durationMs?: number;
+  },
+) =>
+  defHttp.post<StudyMathVariantAnswerResultVO>({
+    url: `/api/v1/study/math/mother/${code}/variants/${variantCode}/answer`,
+    data: payload,
+    ...SILENT,
+  });
+
+/** 提交过关判定（变式全对且口述讲出关键关系才过关） */
+export const submitMathMotherPass = (
+  code: string,
+  payload: {
+    variantResults?: { variantCode: string; answer: string }[];
+    narrative?: string;
+  },
+) =>
+  defHttp.post<StudyMathPassResultVO>({
+    url: `/api/v1/study/math/mother/${code}/pass`,
+    data: payload,
+    ...SILENT,
+  });
+
+/** 提交口述（返回命中 / 缺失关键词与一条追问） */
+export const submitMathMotherNarrative = (code: string, payload: { narrative: string }) =>
+  defHttp.post<StudyMathNarrativeResultVO>({
+    url: `/api/v1/study/math/mother/${code}/narrative`,
+    data: payload,
+    ...SILENT,
+  });
+
+// ------------------------------------------------------------------ 语法线补充
+
+/** 句子变形的一种形态 */
+export interface StudyGrammarTransformVO {
+  kind?: string;
+  name?: string;
+  text?: string;
+  usage?: string;
+  wrong?: boolean;
+}
+
+/** 句子变形结果 */
+export interface StudyGrammarTransformResultVO {
+  meaning?: string;
+  grammarCode?: string;
+  source?: string;
+  variants?: StudyGrammarTransformVO[];
+  explainStatus?: string;
+  hint?: string;
+}
+
+/** 收藏馆条目 */
+export interface StudyGrammarCollectionItemVO {
+  errorCode?: string;
+  contentId?: string;
+  errorCause?: string;
+  originalSentence?: string;
+  correctedSentence?: string;
+  judgeSource?: string;
+  masteryState?: number;
+  archived?: boolean;
+  nextReviewAt?: string;
+}
+
+/** 收藏馆结果 */
+export interface StudyGrammarCollectionResultVO {
+  items?: StudyGrammarCollectionItemVO[];
+  total?: number;
+}
+
+/** 句子变形器 */
+export const transformGrammarSentence = (payload: { zhMeaning: string; grammarCode?: string }) =>
+  defHttp.post<StudyGrammarTransformResultVO>({
+    url: '/api/v1/study/grammar/transform',
+    data: payload,
+    ...SILENT,
+  });
+
+/** 收藏馆列表 */
+export const fetchGrammarCollection = (errorCause?: string) =>
+  defHttp.get<StudyGrammarCollectionResultVO>({
+    url: '/api/v1/study/grammar/collection',
+    params: { errorCause },
+    ...SILENT,
+  });
+
+// ------------------------------------------------------------------ 口述确认
+
+/** 口述反馈结果（不给答案，只给命中 / 缺失关键词与一条追问，R-01） */
+export interface StudyOralResultVO {
+  contentId?: string;
+  motherCode?: string;
+  passed?: boolean;
+  matchedKeywords?: string[];
+  missingKeywords?: string[];
+  followUpQuestion?: string;
+  motherPassed?: boolean;
+}
+
+/** 提交口述 */
+export const submitPracticeOral = (contentId: string, payload: { speechText: string }) =>
+  defHttp.post<StudyOralResultVO>({
+    url: `/api/v1/study/practice/${contentId}/oral`,
+    data: payload,
+    ...SILENT,
+  });

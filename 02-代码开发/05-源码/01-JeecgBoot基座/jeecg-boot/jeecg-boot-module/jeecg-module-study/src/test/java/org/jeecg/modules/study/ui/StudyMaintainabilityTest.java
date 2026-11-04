@@ -93,15 +93,17 @@ class StudyMaintainabilityTest {
             "@Repository", "@Configuration");
 
     /**
-     * <b>已知偏差 1：Controller 直接注入了 Mapper</b>。
+     * <b>已知偏差 1：Controller 直接注入 Mapper</b> —— <b>已收口（2026-11-04）</b>。
      *
-     * <p>{@code StudyErrorPoolController → StudyChildLookupMapper}：
-     * 家长端按 childCode 定位孩子主键时直接用了只读 Mapper。
-     * 这是<b>分层偏差</b>（Controller 应当只依赖 Service），待后续把
-     * 「按 childCode 解析 childId」下沉到错题域的 Service 再收口。</p>
+     * <p>原先 {@code StudyErrorPoolController → StudyChildLookupMapper} 是为了让家长端
+     * 按 childCode 定位孩子主键而直接注入只读 Mapper，属于分层偏差（Controller 应当只依赖 Service）。
+     * 现已把「按 childCode 解析 childId」下沉到 {@code ChildScopeService.resolveChildId}
+     * （契约 §3.2 的唯一入口），控制器不再注入 Mapper，随之删除只读 Mapper 类本身。</p>
+     *
+     * <p>白名单因此清空 —— <b>此后任何 Controller 再直接注入 Mapper 都会让这条断言变红</b>，
+     * 相当于把「偏差已收口」固化成可执行约束。</p>
      */
-    private static final Set<String> KNOWN_CONTROLLER_MAPPER_DEVIATIONS =
-            Set.of("StudyErrorPoolController#StudyChildLookupMapper");
+    private static final Set<String> KNOWN_CONTROLLER_MAPPER_DEVIATIONS = Set.of();
 
     /**
      * <b>已知偏差 2：硬编码角色名的 {@code @RequiresRoles}</b>。

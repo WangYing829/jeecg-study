@@ -86,9 +86,14 @@
        * <p>前 3 项是只读数据页，后 3 项是写操作页（家庭成员 / 孩子档案 / 关联管理）。
        * 「孩子关联管理」不进 nav——它是「孩子档案」的下一级，
        * 从档案页里的「关联管理」按钮进去，路径带 {@code :code}。</p>
+       *
+       * <p>2026-11-04 新增「周报」与「薄弱考点」两个独立页（原为总览页内的区块），
+       * 导航项随之扩到 7 项。</p>
        */
       const navItems = [
         { path: '/study-parent/report', label: '学习报告' },
+        { path: '/study-parent/weekly', label: '周报' },
+        { path: '/study-parent/weakpoint', label: '薄弱考点' },
         { path: '/study-parent/error', label: '错题分析' },
         { path: '/study-parent/feedback', label: '作文反馈' },
         { path: '/study-parent/family', label: '家庭成员' },

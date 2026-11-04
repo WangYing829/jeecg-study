@@ -1,0 +1,167 @@
+# ============================================================================
+# jeecg-study · 持续集成
+#
+# ## 设计要点
+#
+# ① **口令自生成，不依赖任何仓库 secret 或个人凭据**
+#    `prepare` job 用 `openssl rand -hex 24` 生成随机口令，
+#    通过 job output 传给 `ci` job，同时注入 MySQL service container 与
+#    `DB_PASSWORD` 环境变量（`application-test.yml` 里数据源口令就是
+#    `${DB_PASSWORD:root}`，环境变量一注入就生效）。
+#
+# ② **MySQL 8 service container**：与生产同大版本，DB 断言真跑真库，
+#    不是 mock、不是 sqlite。
+#
+# ③ **基座必须还原到仓库内原位**
+#    `RedLineScanner.frontendRoot()` 按固定相对路径找前端源码，
+#    基座若落在 /tmp，Java 侧全部前端断言会假红。详见
+#    `.github/scripts/2026110402-ci-restore-base.sh` 的注释。
+#
+# ④ **不调用任何 .ps1**：CI 跑在 ubuntu-latest 上，建库走 bash 等价脚本
+#    `.github/scripts/2026110403-ci-init-db.sh`。
+#
+# ⑤ **闸门真跑**：7 道 Python 闸门 + Java 单测 + 前端构建全部执行，
+#    任何一道红都让 CI 变红。
+# ============================================================================
+name: jeecg-study CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# 同一分支的新 push 取消尚未跑完的旧 run
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------
+  # ① 生成随机数据库口令
+  #    单独一个 job 的原因：service container 的 env 在 job 启动前就要定下来，
+  #    拿不到 step 里才生成的值。job output 可以。
+  # ---------------------------------------------------------------------
+  prepare:
+    name: 生成 CI 数据库口令
+    runs-on: ubuntu-latest
+    outputs:
+      db_password: ${{ steps.gen.outputs.db_password }}
+    steps:
+      - id: gen
+        name: 生成随机口令
+        run: |
+          set -euo pipefail
+          if command -v openssl >/dev/null 2>&1; then
+            pw="$(openssl rand -hex 24)"
+          else
+            pw="$(head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+          fi
+          # 掩码：避免口令出现在任何日志里
+          echo "::add-mask::$pw"
+          echo "db_password=$pw" >> "$GITHUB_OUTPUT"
+          echo "随机口令已生成（长度 ${#pw}）"
+
+  # ---------------------------------------------------------------------
+  # ② 主 job：还原基座 → 建库 → Java 测试 → Python 闸门 → 前端构建
+  # ---------------------------------------------------------------------
+  ci:
+    name: 后端测试 + 闸门 + 前端构建
+    needs: prepare
+    runs-on: ubuntu-latest
+    env:
+      DB_PASSWORD: ${{ needs.prepare.outputs.db_password }}
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_PORT: "3306"
+      MYSQL_DATABASE: jeecg-study
+      MYSQL_USER: root
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ${{ needs.prepare.outputs.db_password }}
+          MYSQL_DATABASE: jeecg-study
+          # 允许从容器外（CI runner 的 127.0.0.1）以 root 连接
+          MYSQL_ROOT_HOST: "%"
+        ports:
+          - "3306:3306"
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=20
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 准备 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # ⚠ 必须在 setup-java / setup-node 之前：
+      #   两者都要对基座里的 pom.xml / pnpm-lock.yaml 做缓存键计算，
+      #   而基座要先还原出来这两个文件才存在。
+      - name: 还原完整基座（仓库内原位）
+        run: bash ".github/scripts/2026110402-ci-restore-base.sh"
+
+      - name: 准备 Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: 准备 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: "10"
+
+      - name: 准备 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+          cache-dependency-path: "02-代码开发/05-源码/01-JeecgBoot基座/jeecgboot-vue3/pnpm-lock.yaml"
+
+      - name: 建库 + 灌种子
+        run: bash ".github/scripts/2026110403-ci-init-db.sh"
+
+      - name: Java 测试（真连库）
+        working-directory: 02-代码开发/05-源码/01-JeecgBoot基座/jeecg-boot
+        run: |
+          set -euo pipefail
+          mvn -B -ntp \
+            -pl jeecg-boot-module/jeecg-module-study -am \
+            test
+
+      - name: Python 闸门（7 道）
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet --upgrade pip
+          python3 -m pip install --quiet pymysql cryptography pyyaml
+          python3 "05-公共资源/2026103013-交付物校验.py"
+          python3 "05-公共资源/2026103016-红线断言检查.py"
+          python3 "05-公共资源/2026103020-类名唯一性检查.py"
+          python3 "05-公共资源/2026103023-凭据扫描.py"
+          python3 "05-公共资源/2026110404-编码体检.py"
+          python3 "05-公共资源/2026103021-唯一索引清单生成.py" --check
+          python3 "05-公共资源/2026103015-追溯矩阵生成.py"
+
+      # 用 `vite build` 而不是 `pnpm build`：后者在 vite 之后还串了
+      # postBuild.ts / copyChat.ts 两个**打包发布**脚本（拷 chat 资源、
+      # 生成部署目录），跟「代码能不能编译」无关，且依赖本地产物目录。
+      # 这里要验的是 21 个新页面的编译与打包是否通过。
+      - name: 前端构建
+        working-directory: 02-代码开发/05-源码/01-JeecgBoot基座/jeecgboot-vue3
+        run: |
+          set -euo pipefail
+          # 先清产物目录：vite 会在构建开头把 outDir 整个清空，
+          # 上万文件的删除突发是句柄耗尽（EMFILE）的主要来源之一。
+          rm -rf dist
+          pnpm install --frozen-lockfile
+          pnpm exec vite build

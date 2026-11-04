@@ -80,4 +80,16 @@ public interface StudyPracticeQuestionMapper {
             + " ORDER BY difficulty ASC, question_code ASC LIMIT 5")
     List<String> selectRelatedQuestionCodes(@Param("knowledgePointCode") String knowledgePointCode,
                                             @Param("excludeQuestionCode") String excludeQuestionCode);
+
+    /**
+     * 按考点业务ID查母题业务ID（考点可以挂母题）。
+     *
+     * <p>口述关键关系要找母题：题目本身没挂母题时，退到「考点挂的母题」。</p>
+     *
+     * @param pointCode 考点业务ID
+     * @return 母题业务ID；未挂返回 null
+     */
+    @Select("SELECT mother_question_code FROM study_knowledge_point WHERE point_code = #{pointCode}"
+            + " AND del_flag = 0 AND mother_question_code IS NOT NULL AND mother_question_code <> '' LIMIT 1")
+    String selectMotherCodeByPointCode(@Param("pointCode") String pointCode);
 }

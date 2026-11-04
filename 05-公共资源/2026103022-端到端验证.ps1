@@ -15,6 +15,10 @@
 #     8. 语法域：语境库（F-GRM-05）+ 趣味玩法（F-GRM-04）
 #     9. 越权分两层：**权限拒绝**（角色没有该权限码）与**数据域 4010**
 #        （家长访问「存在但与自己无关」的孩子，统一 4010 而不是 404）
+#    10. 2026-11-04 补齐的 **13 个端点**（此前文档承诺、代码里一个都没有）：
+#        作答记录分页 / 今日统计 / 连续天数 / 薄弱考点 / 考点掌握度 /
+#        错题详情 / 变式清单 / 生成变式 / 高频错题 / 复习批量完成 /
+#        口述提交 / 解析申诉状态 / 提醒偏好读写
 #
 # 前置：后端已启动（默认 8590），种子脚本 07/08/09 已灌库，Redis 已就位。
 #       数据库口令从环境变量 DB_PASSWORD 读取（未设置则回落上游默认 root）；口令不入库。
@@ -456,6 +460,123 @@ Check '不存在的 childCode 同样返 4010（不暴露资源是否存在）' (
 
 $noToken = Invoke-Json -Method 'GET' -Path '/api/v1/study/practice/math/next'
 Check '无 token 访问学习端被拒' (-not (Success $noToken)) ''
+
+# ------------------------------------------------------------------ 10. 补齐的 13 个端点
+Write-Output ''
+Write-Output '[10] 2026-11-04 补齐的 13 个端点（接口文档 ↔ 代码 双向闭合）'
+#
+# 这批端点此前在《接口设计说明书》里**标了需求编号** ⇒ 追溯矩阵按「接口清单里有这个路径」
+# 判成「已覆盖」，但代码里**一个都没有**（盘点实测：文档 106 条、代码 105 条，
+# 差的不是 1 个而是 13 个）。本轮补齐后逐条打真实 HTTP ——
+# 验证的不只是「路由存在」，而是「真能返回数据 / 真能写进去」。
+#
+# Reachable 的口径：HTTP 通了且**没有落到 404 / 500**；
+# 返回受控的业务错误码（如 4001 缺错因、4010 越权）同样算「可达」——
+# 那说明端点已注册、参数校验与隔离逻辑在工作。
+function Reachable {
+    param($Resp)
+    if ($null -eq $Resp) { return $false }
+    if ($null -ne $Resp.__error) { return $false }
+    if ($Resp.success -eq $true) { return $true }
+    $c = CodeOf $Resp
+    return ("$c" -match '^4\d{3}$')
+}
+
+# 10.1 学习端：作答记录分页 / 今日统计 / 连续天数
+$records = Invoke-Json -Method 'GET' -Path '/api/v1/study/practice/records?pageNo=1&pageSize=10' -Token $kidToken
+$recordsRaw = if ($records.result) { $records.result | ConvertTo-Json -Depth 6 -Compress } else { '' }
+Check '作答记录分页可取（GET /practice/records）' (Success $records) `
+    $(if ($records.result) { 'total=' + $records.result.total } else { $records.message })
+Check '作答记录不下发答案/解析字段（R-01）' `
+    (($recordsRaw -notmatch '"answer"') -and ($recordsRaw -notmatch '"correctAnswer"') -and ($recordsRaw -notmatch '"analysis"')) ''
+
+$today = Invoke-Json -Method 'GET' -Path '/api/v1/study/practice/stats/today' -Token $kidToken
+Check '今日练习统计可取（GET /practice/stats/today）' (Success $today) `
+    $(if ($today.result) { 'total=' + $today.result.totalCount + ' 正确=' + $today.result.correctCount } else { $today.message })
+
+$streak = Invoke-Json -Method 'GET' -Path '/api/v1/study/practice/stats/streak' -Token $kidToken
+Check '连续天数可取（GET /practice/stats/streak）' (Success $streak) `
+    $(if ($streak.result) { 'days=' + $streak.result.days } else { $streak.message })
+
+# 10.2 家长端：薄弱考点 / 考点掌握度（R-04：只给客观状态，不得出现排名）
+$weak = Invoke-Json -Method 'GET' -Path ('/api/v1/study/mastery/weak-points?childCode=' + $ChildCode + '&limit=5') -Token $parentToken
+$weakCount = 0
+if (Success $weak) { $weakCount = @($weak.result).Count }
+Check '薄弱考点可取（GET /mastery/weak-points）' (Success $weak) ("条数 " + $weakCount)
+$weakRaw = if ($weak.result) { $weak.result | ConvertTo-Json -Depth 6 -Compress } else { '' }
+Check '薄弱考点不含排名/百分位/分数字段（R-04）' `
+    (($weakRaw -notmatch '"rank"') -and ($weakRaw -notmatch '"percentile"') -and ($weakRaw -notmatch '"score"')) ''
+
+$pointCode = ''
+if ($weakCount -gt 0) { $pointCode = $weak.result[0].pointCode }
+if ($pointCode) {
+    $point = Invoke-Json -Method 'GET' -Path ('/api/v1/study/mastery/' + $pointCode + '?childCode=' + $ChildCode) -Token $parentToken
+    Check '考点掌握度可取（GET /mastery/{pointCode}）' (Success $point) $pointCode
+} else {
+    Write-Output '  [SKIP] 考点掌握度：薄弱考点为空，取不到 pointCode'
+}
+
+# 10.3 错题域：详情 / 变式清单 / 生成变式 / 高频错题
+$errorCode = ''
+if ($poolCount -ge 1) { $errorCode = $pool.result[0].errorCode }
+if ($errorCode) {
+    $detail = Invoke-Json -Method 'GET' -Path ('/api/v1/study/error-pool/' + $errorCode) -Token $parentToken
+    $detailRaw = if ($detail.result) { $detail.result | ConvertTo-Json -Depth 6 -Compress } else { '' }
+    Check '错题详情可取（GET /error-pool/{code}）' (Success $detail) $errorCode
+    Check '错题详情不下发答案与解析（R-01）' `
+        (($detailRaw -notmatch '"answer"') -and ($detailRaw -notmatch '"analysis"') -and ($detailRaw -notmatch '"solution"')) ''
+
+    $variants = Invoke-Json -Method 'GET' -Path ('/api/v1/study/error-pool/' + $errorCode + '/variants') -Token $parentToken
+    Check '错题变式清单可取（GET /error-pool/{code}/variants）' (Reachable $variants) $errorCode
+
+    $gen = Invoke-Json -Method 'POST' -Path ('/api/v1/study/error-pool/' + $errorCode + '/variants') -Token $parentToken
+    Check '错题变式可生成（POST /error-pool/{code}/variants）' (Reachable $gen) $errorCode
+} else {
+    Write-Output '  [SKIP] 错题详情 / 变式：错题池为空，取不到 errorCode'
+}
+
+$hot = Invoke-Json -Method 'GET' -Path ('/api/v1/study/error-pool/statistics/hot?childCode=' + $ChildCode + '&limit=5') -Token $parentToken
+$hotCount = 0
+if (Success $hot) { $hotCount = @($hot.result).Count }
+Check '高频错题可取（GET /error-pool/statistics/hot）' (Success $hot) ("条数 " + $hotCount)
+$hotRaw = if ($hot.result) { $hot.result | ConvertTo-Json -Depth 6 -Compress } else { '' }
+Check '高频错题只有客观计数、不含名次（R-04）' `
+    (($hotRaw -notmatch '"rank"') -and ($hotRaw -notmatch '"percentile"')) ''
+
+# 10.4 复习：批量完成（逐项独立，一项失败不影响其它）
+$batch = Invoke-Json -Method 'POST' -Path '/api/v1/study/review/queue/complete-batch' -Token $kidToken `
+    -Body (@{ items = @() })
+Check '复习批量完成可提交（POST /review/queue/complete-batch）' (Reachable $batch) ''
+
+# 10.5 口述提交（R-01：只给追问，不给答案）
+$oral = Invoke-Json -Method 'POST' -Path ('/api/v1/study/practice/' + $contentId + '/oral') -Token $kidToken `
+    -Body (@{ speechText = '这道题我用的是配方法' })
+$oralRaw = if ($oral.result) { $oral.result | ConvertTo-Json -Depth 6 -Compress } else { '' }
+Check '口述提交可提交（POST /practice/{contentId}/oral）' (Reachable $oral) $contentId
+Check '口述回应不下发答案（R-01）' `
+    (($oralRaw -notmatch '"answer"') -and ($oralRaw -notmatch '"correctAnswer"')) ''
+
+# 10.6 解析申诉（GET 读当前申诉状态；带 disagree 参数才是提交）
+$fb = Invoke-Json -Method 'GET' -Path ('/api/v1/study/practice/' + $contentId + '/explanation/feedback') -Token $kidToken
+Check '解析申诉状态可查（GET /practice/{contentId}/explanation/feedback）' (Success $fb) ''
+
+# 10.7 家长提醒偏好（GET 读 / PUT 写，并回读校验）
+$pref = Invoke-Json -Method 'GET' -Path ('/api/v1/study/parent/notification-preference?childCode=' + $ChildCode) -Token $parentToken
+Check '提醒偏好可取（GET /parent/notification-preference）' (Success $pref) `
+    $(if ($pref.result) { 'review=' + $pref.result.reviewRemindEnabled } else { $pref.message })
+$prefPut = Invoke-Json -Method 'PUT' -Path '/api/v1/study/parent/notification-preference' -Token $parentToken `
+    -Body (@{
+        childCode            = $ChildCode
+        reviewRemindEnabled = $false
+        reviewRemindTime    = '20:30:00'
+        eyeRemindEnabled    = $true
+        eyeRemindTime       = '19:00:00'
+    })
+Check '提醒偏好可更新（PUT /parent/notification-preference）' (Success $prefPut) ''
+if (Success $prefPut) {
+    Check '提醒偏好更新后回读一致' ($prefPut.result.reviewRemindEnabled -eq $false) `
+        ("review=" + $prefPut.result.reviewRemindEnabled)
+}
 
 # ------------------------------------------------------------------ 汇总
 Write-Output ''

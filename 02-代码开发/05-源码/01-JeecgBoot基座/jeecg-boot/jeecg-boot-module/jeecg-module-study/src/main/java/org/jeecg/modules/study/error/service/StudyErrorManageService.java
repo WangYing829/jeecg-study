@@ -2,6 +2,8 @@ package org.jeecg.modules.study.error.service;
 
 import java.util.List;
 
+import org.jeecg.modules.study.error.vo.ErrorDetailVO;
+import org.jeecg.modules.study.error.vo.ErrorHotStatisticVO;
 import org.jeecg.modules.study.error.vo.ErrorPoolReportVO;
 import org.jeecg.modules.study.error.vo.ErrorVariantListVO;
 import org.jeecg.modules.study.error.vo.ReviewCompleteCommand;
@@ -67,4 +69,25 @@ public interface StudyErrorManageService {
      * @return 排期预览
      */
     List<ReviewQueueItemVO> upcoming(String childId, int days);
+
+    /**
+     * 错题详情。
+     *
+     * <p><b>不下发答案与解析</b>：只给「错在哪、当前什么状态」（R-02 / R-04）。</p>
+     *
+     * @param errorCode 错题业务ID
+     * @return 错题详情
+     */
+    ErrorDetailVO detail(String errorCode);
+
+    /**
+     * 高频错题（按同一道题的出错次数从多到少）。
+     *
+     * <p><b>只有客观计数，没有名次</b>（R-04）。</p>
+     *
+     * @param childId 孩子 ID
+     * @param limit   最多返回条数
+     * @return 高频错题清单
+     */
+    List<ErrorHotStatisticVO> hotStatistics(String childId, int limit);
 }

@@ -26,23 +26,20 @@
       </section>
 
       <section class="study-parent-report__section">
-        <h2 class="study-parent-report__section-title">近 7 天</h2>
-        <StudyDataList :columns="dailyColumns" :data-source="dailyRows" row-key="date" />
-      </section>
-
-      <section class="study-parent-report__section">
-        <h2 class="study-parent-report__section-title">掌握情况</h2>
-        <StudyDataList :columns="masteryColumns" :data-source="masteryRows" row-key="bucket" />
-      </section>
-
-      <section class="study-parent-report__section">
         <h2 class="study-parent-report__section-title">常见的卡点</h2>
         <StudyDataList :columns="causeColumns" :data-source="causeRows" row-key="cause" />
       </section>
 
+      <!--
+        周报与薄弱考点已于 2026-11-04 拆为独立页（/study-parent/weekly、/study-parent/weakpoint），
+        总览页不再重复渲染，只留入口，避免同一份数据在两处维护。
+      -->
       <section class="study-parent-report__section">
-        <h2 class="study-parent-report__section-title">还需要多练的考点</h2>
-        <StudyDataList :columns="weakColumns" :data-source="weakRows" row-key="pointCode" />
+        <h2 class="study-parent-report__section-title">看更多</h2>
+        <div class="study-parent-report__links">
+          <router-link class="study-parent-report__link" to="/study-parent/weekly">看周报</router-link>
+          <router-link class="study-parent-report__link" to="/study-parent/weakpoint">看薄弱考点</router-link>
+        </div>
       </section>
 
       <a-empty v-if="!loading && !hasData" class="study-parent-report__empty" description="暂时还没有学习记录" />
@@ -65,11 +62,8 @@
   import StudyDataList from '/@/components/study/StudyDataList.vue';
   import {
     fetchParentOverview,
-    fetchParentWeekly,
-    type StudyParentDailyItemVO,
     type StudyParentErrorCauseVO,
     type StudyParentOverviewVO,
-    type StudyParentWeakPointVO,
   } from '../../api';
   import { isForbidden, useParentChild } from '../useParentChild';
   import { describeNetError, OFFLINE_HINT, RETRY_LABEL, type StudyNetError } from '../../net';
@@ -85,7 +79,6 @@
     components: { StudyParentShell, StudyStatCards, StudyDataList },
     setup() {
       const overview = ref<StudyParentOverviewVO | null>(null);
-      const weekly = ref<{ days?: StudyParentDailyItemVO[] } | null>(null);
       /** 断网提示与重试入口（F-BASE-08） */
       const netError = ref<StudyNetError | null>(null);
       /** 重试动作：断网后点「重试」重放上一次失败的服务端请求（V0 不做断网补交） */
@@ -101,13 +94,6 @@
         },
       );
 
-      const dailyColumns = [
-        { key: 'date', title: '日期', width: '120px' },
-        { key: 'eyeMinutes', title: '用眼(分钟)' },
-        { key: 'restCount', title: '休息次数' },
-        { key: 'errorCount', title: '错题数' },
-        { key: 'writingCount', title: '作文数' },
-      ];
       const masteryColumns = [
         { key: 'bucket', title: '状态', width: '120px' },
         { key: 'count', title: '题目数' },
@@ -115,10 +101,6 @@
       const causeColumns = [
         { key: 'causeName', title: '卡在哪里', width: '160px' },
         { key: 'count', title: '出现次数' },
-      ];
-      const weakColumns = [
-        { key: 'pointName', title: '考点', width: '160px' },
-        { key: 'errorCount', title: '错题数' },
       ];
 
       const statItems = computed(() => {
@@ -136,7 +118,6 @@
         ];
       });
 
-      const dailyRows = computed(() => weekly.value?.days || []);
       const masteryRows = computed(() => {
         const mastery = overview.value?.mastery;
         return [
@@ -147,8 +128,7 @@
         ];
       });
       const causeRows = computed(() => overview.value?.errorTop || []);
-      const weakRows = computed(() => overview.value?.weakPoints || []);
-      const hasData = computed(() => Boolean(overview.value || weekly.value));
+      const hasData = computed(() => Boolean(overview.value));
 
       const load = async () => {
         if (!childCode.value) {
@@ -157,15 +137,9 @@
         loading.value = true;
         forbidden.value = false;
         try {
-          const [detail, week] = await Promise.all([
-            fetchParentOverview(childCode.value),
-            fetchParentWeekly(childCode.value),
-          ]);
-          overview.value = detail;
-          weekly.value = week;
+          overview.value = await fetchParentOverview(childCode.value);
         } catch (e) {
           overview.value = null;
-          weekly.value = null;
           forbidden.value = isForbidden(e);
           // F-BASE-08：断网 → 可读提示 +「重试」入口；越权提示口径不变（§11.3）
           const state = describeNetError(e, OFFLINE_HINT, RETRY_LABEL);
@@ -209,14 +183,10 @@
         loading,
         forbidden,
         statItems,
-        dailyColumns,
-        dailyRows,
         masteryColumns,
         masteryRows,
         causeColumns,
         causeRows,
-        weakColumns,
-        weakRows,
         hasData,
         netError,
         onSwitch,
@@ -235,6 +205,30 @@
 
     &__section {
       margin-bottom: 16px;
+    }
+
+    /* 「看更多」入口：周报 / 薄弱考点已拆为独立页（2026-11-04） */
+    &__links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    &__link {
+      display: inline-flex;
+      align-items: center;
+      min-height: 32px;
+      padding: 4px 12px;
+      border: 1px solid @border-color-light;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.5715;
+      color: @primary-color;
+      text-decoration: none;
+
+      &:hover {
+        background-color: fade(@primary-color, 8%);
+      }
     }
 
     &__section-title {

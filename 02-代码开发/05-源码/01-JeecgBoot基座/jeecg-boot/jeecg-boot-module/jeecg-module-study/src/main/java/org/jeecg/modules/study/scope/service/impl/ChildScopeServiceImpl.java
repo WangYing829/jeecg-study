@@ -146,6 +146,31 @@ public class ChildScopeServiceImpl implements ChildScopeService {
         assertChildAccess(child.getId());
     }
 
+    @Override
+    public String resolveChildId(String childCode) {
+        String code = childCode == null ? "" : childCode.trim();
+        if (!code.isEmpty()) {
+            // 越权 / 不存在一律 4010
+            assertChildCodeAccess(code);
+            StudyChild child = childMapper.selectByChildCode(code);
+            if (child == null) {
+                throw new StudyForbiddenException();
+            }
+            return child.getId();
+        }
+        String own = ownChildId();
+        if (own != null && !own.trim().isEmpty()) {
+            return own;
+        }
+        List<String> visible = visibleChildIds();
+        if (visible == null || visible.isEmpty()) {
+            throw new StudyForbiddenException("没有关联的孩子，无法访问学习数据");
+        }
+        List<String> sorted = new ArrayList<>(visible);
+        Collections.sort(sorted);
+        return sorted.get(0);
+    }
+
     private LoginUser currentLoginUser() {
         try {
             Object principal = SecurityUtils.getSubject().getPrincipal();

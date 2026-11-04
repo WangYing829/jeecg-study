@@ -808,7 +808,7 @@
 <td>14</td>
 <td>GET</td>
 <td><code>/mastery/weak-points</code></td>
-<td>薄弱考点排行</td>
+<td>薄弱考点清单（按错题条数降序，<strong>无名次字段</strong>）</td>
 <td>F-PAR-01</td>
 </tr>
 <tr>
@@ -927,7 +927,7 @@
 <td>27</td>
 <td>GET</td>
 <td><code>/error-pool</code></td>
-<td>错题分页查询</td>
+<td>错题列表（全量，未分页）</td>
 <td>F-WRG-04、F-BASE-04</td>
 </tr>
 <tr>
@@ -1922,7 +1922,12 @@
   <div class="sec-head"><span class="sec-num">06</span><h3>错题与排期接口</h3><span class="tag">复盘引擎</span></div>
   <p>错题与排期接口</p>
 <h3>6.1 POST /error-pool — 手动录入错题</h3>
-<p><strong>Content-Type</strong>：<code>multipart/form-data</code></p>
+<p><strong>Content-Type</strong>：<code>application/json</code></p>
+<blockquote>
+<p><strong>口径（2026-11-04 起）</strong>：本接口实现为 <strong>JSON 提交</strong>，不接收文件上传。
+拍照 OCR 的「图片 → 文本」识别链路属独立待建项（见 <code>06-AI协作/01-任务台账/01-任务台账总表.md</code> 待裁决清单），
+在其落地前，错题由<strong>孩子/家长手工录入结构化字段</strong>完成。</p>
+</blockquote>
 <div class="tbl-wrap"><table>
 <thead>
 <tr>
@@ -1934,63 +1939,92 @@
 </thead>
 <tbody>
 <tr>
-<td><code>image</code></td>
-<td>file</td>
-<td>是</td>
-<td>试卷/错题照片</td>
+<td><code>childId</code></td>
+<td>string</td>
+<td>否</td>
+<td>归属孩子主键。<strong>孩子身份缺省即可</strong> —— 服务端按会话推导（契约 §3.2）；家长身份必须显式指定，且会与关系表求交集，越权返回 <strong>4010</strong></td>
 </tr>
 <tr>
-<td><code>subjectCode</code></td>
+<td><code>sourceModule</code></td>
 <td>string</td>
 <td>是</td>
-<td>学科</td>
+<td>来源模块：<code>WORD</code> / <code>MATH</code> / <code>GRAMMAR</code> / <code>WRITING</code></td>
+</tr>
+<tr>
+<td><code>contentType</code></td>
+<td>string</td>
+<td>是</td>
+<td>内容类型：<code>QUESTION</code> / <code>SENTENCE</code> / <code>WORD</code> / <code>MOTHER</code> / <code>MATH_VARIANT</code></td>
+</tr>
+<tr>
+<td><code>contentId</code></td>
+<td>string</td>
+<td>否</td>
+<td>内容业务ID</td>
 </tr>
 <tr>
 <td><code>knowledgePointCode</code></td>
 <td>string</td>
 <td>否</td>
-<td>考点</td>
+<td>考点编码</td>
+</tr>
+<tr>
+<td><code>subjectCode</code></td>
+<td>string</td>
+<td>否</td>
+<td>学科编码 <code>MA</code> / <code>CH</code> / <code>EN</code> / <code>CN</code></td>
 </tr>
 <tr>
 <td><code>errorCause</code></td>
 <td>string</td>
 <td>是</td>
-<td>错因</td>
+<td>错因（五维之一）：<code>CONCEPT_UNCLEAR</code> / <code>READING_DEVIATION</code> / <code>CALCULATION_ERROR</code> / <code>METHOD_UNKNOWN</code> / <code>TIME_SHORTAGE</code>；缺失返回 <strong>4001</strong></td>
 </tr>
 <tr>
-<td><code>sourceType</code></td>
+<td><code>rawAnswer</code></td>
+<td>string</td>
+<td>否</td>
+<td>孩子的作答</td>
+</tr>
+<tr>
+<td><code>correctAnswer</code></td>
+<td>string</td>
+<td>否</td>
+<td>标准答案（<strong>响应永不下发</strong>）</td>
+</tr>
+<tr>
+<td><code>judgeSource</code></td>
 <td>string</td>
 <td>是</td>
-<td><code>SELF</code> / <code>PUBLIC</code> / <code>LICENSE</code></td>
+<td>判定来源：只能是 <code>rule</code> / <code>rule+model</code>（R-02）</td>
 </tr>
 <tr>
 <td><code>sourceRef</code></td>
 <td>string</td>
-<td><code>sourceType != SELF</code> 时必填</td>
+<td><code>copyrightType != SELF</code> 时必填</td>
 <td>出处；缺失返回 <strong>4006</strong></td>
 </tr>
 <tr>
-<td><code>boxes</code></td>
-<td>json</td>
-<td>否</td>
-<td>框选区域坐标</td>
+<td><code>copyrightType</code></td>
+<td>string</td>
+<td>是</td>
+<td>版权类型：<code>SELF</code> / <code>PUBLIC</code></td>
 </tr>
 </tbody>
 </table></div>
+<p><strong>权限码</strong>：<code>study:kid:error:add</code>（孩子端）/ <code>study:parent:error:add</code>（家长端），二选一即可。</p>
 <p><strong>响应</strong></p>
 <pre class="cmd"><code class="language-json">{
   &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
   &quot;result&quot;: {
     &quot;errorCode&quot;: &quot;ERR-00000123&quot;,
-    &quot;imageUrl&quot;: &quot;/study/error/20261030/ERR-00000123.jpg&quot;,
-    &quot;erasable&quot;: true,
-    &quot;erasableRegions&quot;: [{ &quot;x&quot;: 12, &quot;y&quot;: 48, &quot;w&quot;: 320, &quot;h&quot;: 96 }],
-    &quot;variants&quot;: [],
-    &quot;nextReviewAt&quot;: &quot;2026-10-30&quot;
+    &quot;nextReviewAt&quot;: &quot;2026-10-30&quot;,
+    &quot;duplicated&quot;: false
   }
 }
 </code></pre>
-<h3>6.2 GET /error-pool — 错题分页</h3>
+<h3>6.2 GET /error-pool — 错题列表</h3>
+<p><strong>权限码</strong>：<code>study:kid:error:query</code>（孩子端）/ <code>study:parent:error:query</code>（家长端），二选一即可。</p>
 <p><strong>请求参数</strong></p>
 <div class="tbl-wrap"><table>
 <thead>
@@ -2001,28 +2035,62 @@
 </thead>
 <tbody>
 <tr>
-<td><code>sourceModule</code></td>
-<td>来源模块</td>
+<td><code>childCode</code></td>
+<td>孩子业务ID（CHD-xxx）。<strong>可选</strong>：家长侧传了则与关系表求交集（越权 4010）；孩子侧不传，服务端按会话取自己</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>口径说明</strong>：本接口当前返回该孩子的<strong>全量</strong>错题列表（<code>List&lt;ErrorPoolItemVO&gt;</code>），<strong>未做分页</strong>。
+分页参数（<code>pageNo</code> / <code>pageSize</code>）与过滤参数（<code>sourceModule</code> / <code>errorCause</code> / <code>knowledgePointCode</code> /
+<code>reviewStatus</code> / <code>keyword</code>）为规划态，尚未实现。</p>
+<p><strong>响应字段</strong>（<code>ErrorPoolItemVO</code>）</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>errorCode</code></td>
+<td>错题业务ID</td>
+</tr>
+<tr>
+<td><code>sourceModule</code> / <code>contentType</code> / <code>contentId</code></td>
+<td>来源模块 / 内容类型 / 内容ID</td>
+</tr>
+<tr>
+<td><code>knowledgePointCode</code> / <code>subjectCode</code></td>
+<td>考点 / 学科</td>
 </tr>
 <tr>
 <td><code>errorCause</code></td>
-<td>错因</td>
+<td>错因（五维之一）</td>
 </tr>
 <tr>
-<td><code>knowledgePointCode</code></td>
-<td>考点</td>
+<td><code>judgeSource</code></td>
+<td>判定来源（<code>rule</code> / <code>rule+model</code>）</td>
+</tr>
+<tr>
+<td><code>masteryState</code></td>
+<td>掌握度状态</td>
+</tr>
+<tr>
+<td><code>correctStreak</code></td>
+<td>连续答对次数</td>
 </tr>
 <tr>
 <td><code>reviewStatus</code></td>
 <td>1 待复习 / 2 已移出</td>
 </tr>
 <tr>
-<td><code>keyword</code></td>
-<td>题干关键词</td>
+<td><code>nextReviewAt</code></td>
+<td>下次复习时间</td>
 </tr>
 <tr>
-<td><code>pageNo</code> / <code>pageSize</code></td>
-<td>分页</td>
+<td><code>archived</code></td>
+<td>是否已归档</td>
 </tr>
 </tbody>
 </table></div>
@@ -2653,7 +2721,7 @@
 </tr>
 <tr>
 <td>只读</td>
-<td>家长端<strong>报告</strong>接口全部为 <code>GET</code>；家长端资源域唯一的 <code>POST</code> 是「提醒偏好」。家长的一句话反馈归<strong>写作域</strong>（<code>/writing/parent/feedback</code>，ADR-030），不在家长端资源域。家庭 / 成员 / 孩子档案管理属<strong>独立资源域</strong>（见第 9 章），家长在其中是可写的</td>
+<td>家长端<strong>报告</strong>接口全部为 <code>GET</code>；家长端资源域的<strong>写入口只有「提醒偏好」</strong>（<code>GET/PUT /parent/notification-preference</code>，F-PAR-04）。家长的一句话反馈归<strong>写作域</strong>（<code>/writing/parent/feedback</code>，ADR-030），不在家长端资源域。家庭 / 成员 / 孩子档案管理属<strong>独立资源域</strong>（见第 9 章），家长在其中是可写的</td>
 </tr>
 </tbody>
 </table></div>
@@ -3433,7 +3501,7 @@
 <tr>
 <td>GET</td>
 <td><code>/error-pool/statistics</code></td>
-<td>接受 <code>childCode</code>，与关系表求交集</td>
+<td>接受 <code>childCode</code>（可选），家长侧与关系表求交集、孩子侧按会话取自己</td>
 <td>F-PAR-01、F-FAM-07</td>
 </tr>
 <tr>

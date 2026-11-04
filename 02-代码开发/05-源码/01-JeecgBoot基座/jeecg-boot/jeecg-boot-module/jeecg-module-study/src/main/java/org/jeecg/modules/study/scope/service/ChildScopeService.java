@@ -73,4 +73,23 @@ public interface ChildScopeService {
      * @param childCode 孩子业务ID
      */
     void assertChildCodeAccess(String childCode);
+
+    /**
+     * 解析目标孩子主键ID —— <b>唯一</b>的「childCode → childId」入口。
+     *
+     * <p>口径（ADR-018 / 契约 §3.2）：</p>
+     * <ul>
+     *   <li>传了 {@code childCode}：先过关系表校验（{@link #assertChildCodeAccess}），
+     *       再返回主键；不存在或无权一律 4010；</li>
+     *   <li>没传：孩子身份取自己；家长身份取可见集合里排序最靠前的那个
+     *       （多孩子时与家长端报表的既有口径一致）。</li>
+     * </ul>
+     *
+     * <p>放在公共 scope 服务里，是为了<b>让各域不必自己引 family 域的 Mapper</b>
+     * （跨域只读点必须走显式白名单，N-09 分层断言不允许 Service 跨域访问 Mapper）。</p>
+     *
+     * @param childCode 孩子业务ID，可空
+     * @return 孩子主键ID
+     */
+    String resolveChildId(String childCode);
 }

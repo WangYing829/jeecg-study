@@ -471,11 +471,11 @@
 <section id="list">
   <div class="sec-head"><span class="sec-num">02</span><h3>页面清单总表</h3><span class="tag">施工单</span></div>
   <p>页面清单总表</p>
-<h3>2.1 实现状态与路由真源（2026-11-02 更新）</h3>
+<h3>2.1 实现状态与路由真源（2026-11-04 更新）</h3>
 <blockquote>
-<p>⚠ <strong>本表是 V1.1 的规划态清单</strong>（40 个页面）。截至 2026-11-02：
-<strong>已实现并上线 23 个页面</strong>，其余 17 个页面<strong>接口已就绪、界面待开发</strong>。
-<strong>已上线页面的路由以菜单种子为准</strong>（<code>02-代码开发/02-数据库/03-脚本/07/16/17/22-*.sql</code> 的 <code>sys_permission</code> 行），
+<p>⚠ <strong>本表是 V1.1 的规划态清单</strong>（40 个页面）。截至 2026-11-04：
+<strong>已实现并上线 44 个页面</strong>（23 + 本轮补齐的 21 个），规划态清单 40 个<strong>已全部落地</strong>。
+<strong>已上线页面的路由以菜单种子为准</strong>（<code>02-代码开发/02-数据库/03-脚本/07/16/17/22/24-*.sql</code> 的 <code>sys_permission</code> 行），
 <strong>不在</strong>前端路由文件中 —— 上游 <code>transformObjToRoute</code>（<code>src/router/helper/routeHelper.ts:139-162</code>）对 DB 菜单一律挂管理端 <code>LAYOUT</code>。</p>
 </blockquote>
 <div class="tbl-wrap"><table>
@@ -674,9 +674,190 @@
 <td>管理</td>
 <td>✅ 已上线</td>
 </tr>
+<tr>
+<td>10</td>
+<td>今日首页</td>
+<td><strong><code>/study/kid/home</code></strong></td>
+<td><code>study/kid/home/index</code></td>
+<td>学习</td>
+<td>✅ 已上线（2026-11-04 补齐）</td>
+</tr>
+<tr>
+<td>11</td>
+<td>今日复习</td>
+<td><strong><code>/study/kid/review</code></strong></td>
+<td><code>study/kid/review/index</code></td>
+<td>学习</td>
+<td>✅ 已上线（2026-11-04 补齐）</td>
+</tr>
+<tr>
+<td>13</td>
+<td>错题录入</td>
+<td><strong><code>/study/kid/error/import</code></strong></td>
+<td><code>study/kid/error/import/index</code></td>
+<td>学习</td>
+<td>✅ 已上线（2026-11-04 补齐）</td>
+</tr>
+<tr>
+<td>14</td>
+<td>我的错题本</td>
+<td><strong><code>/study/kid/error</code></strong></td>
+<td><code>study/kid/error/index</code></td>
+<td>学习</td>
+<td>✅ 已上线（2026-11-04 补齐）</td>
+</tr>
+<tr>
+<td>15</td>
+<td>错题详情</td>
+<td><strong><code>/study/kid/error/:code</code></strong></td>
+<td><code>study/kid/error/detail/index</code></td>
+<td>学习</td>
+<td>✅ 已上线（<code>hidden=1</code>，2026-11-04 补齐）</td>
+</tr>
+<tr>
+<td>16</td>
+<td>错题统计</td>
+<td><strong><code>/study/kid/error/statistics</code></strong></td>
+<td><code>study/kid/error/statistics/index</code></td>
+<td>学习</td>
+<td>✅ 已上线（2026-11-04 补齐）</td>
+</tr>
+<tr>
+<td>18</td>
+<td>课内单元闯关</td>
+<td><strong><code>/study/kid/word/unit/:unitCode</code></strong></td>
+<td><code>study/kid/word/unit/index</code></td>
+<td>学习</td>
+<td>✅ 已上线（<code>hidden=1</code>，2026-11-04 补齐）</td>
+</tr>
+<tr>
+<td>19</td>
+<td>课外词线</td>
+<td><strong><code>/study/kid/word/out</code></strong></td>
+<td><code>study/kid/word/out/index</code></td>
+<td>学习</td>
+<td>✅ 已上线（2026-11-04 补齐）</td>
+</tr>
+<tr>
+<td>20</td>
+<td>熟词测试</td>
+<td><strong><code>/study/kid/word/known-test</code></strong></td>
+<td><code>study/kid/word/known-test/index</code></td>
+<td>学习</td>
+<td>✅ 已上线（2026-11-04 补齐）</td>
+</tr>
+<tr>
+<td>21</td>
+<td>背诵统计</td>
+<td><strong><code>/study/kid/word/stats</code></strong></td>
+<td><code>study/kid/word/stats/index</code></td>
+<td>学习</td>
+<td>✅ 已上线（2026-11-04 补齐）</td>
+</tr>
+<tr>
+<td>22</td>
+<td>数学闯关首页</td>
+<td><strong><code>/study/kid/math</code></strong></td>
+<td><code>study/kid/math/index</code></td>
+<td>学习</td>
+<td>✅ 已上线（2026-11-04 补齐）</td>
+</tr>
+<tr>
+<td>23</td>
+<td>母题关卡</td>
+<td><strong><code>/study/kid/math/mother/:code</code></strong></td>
+<td><code>study/kid/math/mother/index</code></td>
+<td>学习</td>
+<td>✅ 已上线（<code>hidden=1</code>，2026-11-04 补齐）</td>
+</tr>
+<tr>
+<td>24</td>
+<td>母题讲解</td>
+<td><strong><code>/study/kid/math/mother/:code/teach</code></strong></td>
+<td><code>study/kid/math/mother/teach/index</code></td>
+<td>学习</td>
+<td>✅ 已上线（<code>hidden=1</code>，2026-11-04 补齐）</td>
+</tr>
+<tr>
+<td>25</td>
+<td>母题变式练习</td>
+<td><strong><code>/study/kid/math/variant/:code</code></strong></td>
+<td><code>study/kid/math/variant/index</code></td>
+<td>学习</td>
+<td>✅ 已上线（<code>hidden=1</code>，2026-11-04 补齐）</td>
+</tr>
+<tr>
+<td>26</td>
+<td>口述确认</td>
+<td><strong><code>/study/kid/math/oral/:code</code></strong></td>
+<td><code>study/kid/math/oral/index</code></td>
+<td>学习</td>
+<td>✅ 已上线（<code>hidden=1</code>，2026-11-04 补齐）</td>
+</tr>
+<tr>
+<td>28</td>
+<td>语法点详情</td>
+<td><strong><code>/study/kid/grammar/:code</code></strong></td>
+<td><code>study/kid/grammar/detail/index</code></td>
+<td>学习</td>
+<td>✅ 已上线（<code>hidden=1</code>，2026-11-04 补齐）</td>
+</tr>
+<tr>
+<td>29</td>
+<td>句子变形器</td>
+<td><strong><code>/study/kid/grammar/transform</code></strong></td>
+<td><code>study/kid/grammar/transform/index</code></td>
+<td>学习</td>
+<td>✅ 已上线（2026-11-04 补齐）</td>
+</tr>
+<tr>
+<td>31</td>
+<td>错句收藏馆</td>
+<td><strong><code>/study/kid/grammar/collection</code></strong></td>
+<td><code>study/kid/grammar/collection/index</code></td>
+<td>学习</td>
+<td>✅ 已上线（2026-11-04 补齐）</td>
+</tr>
+<tr>
+<td>33</td>
+<td>家长端周报</td>
+<td><strong><code>/study-parent/weekly</code></strong></td>
+<td><code>study/parent/weekly/index</code></td>
+<td>家长</td>
+<td>✅ 已上线（2026-11-04 从总览页拆出）</td>
+</tr>
+<tr>
+<td>34</td>
+<td>薄弱考点</td>
+<td><strong><code>/study-parent/weakpoint</code></strong></td>
+<td><code>study/parent/weakpoint/index</code></td>
+<td>家长</td>
+<td>✅ 已上线（2026-11-04 从总览页拆出）</td>
+</tr>
+<tr>
+<td>39</td>
+<td>孩子选择器</td>
+<td>组件 <code>StudyChildSwitcher</code></td>
+<td><code>components/study/ChildSwitcher.vue</code></td>
+<td>家长</td>
+<td>✅ 已上线（<strong>组件不是页面 ⇒ 不建菜单</strong>）</td>
+</tr>
 </tbody>
 </table></div>
 <blockquote>
+<p><strong>本轮（2026-11-04）补齐的 21 个</strong>：规划 40 − 已上线 23 = <strong>21</strong>，
+其中学习端 18（首页/复习 2 + 错题线 4 + 单词线 4 + 数学线 5 + 语法线 3）、
+家长端 2（周报 / 薄弱考点，从总览页内区块拆为独立页）、组件 1（孩子选择器）。
+菜单种子在 <code>02-代码开发/02-数据库/03-脚本/24-seed-study-planned-pages-menu.sql</code>。</p>
+<p><strong>组件路径统一用 <code>.../index.vue</code></strong>：既符合仓库主约定，也让
+<code>StudyMaintainabilityTest</code> 的 N-09 断言（只扫文件名为 <code>index.vue</code> 的页面）能覆盖这 18 页的每一页 ——
+若用 <code>detail.vue</code> 这类命名，N-09 就扫不到，等于少一道闸门。</p>
+<p><strong><code>component_name</code> 必须与页面里 <code>name:</code> 声明逐字一致</strong>（<code>StudyPlannedPageMenuTest</code> 守着）：
+它是 vue-router 的 route name，也是 keep-alive 的 include 依据，不一致会让页面缓存失效。</p>
+<p><strong>路由前缀说明</strong>：§2.2 里学习端页面写的是 <code>/study/kid/**</code>（<strong>规划口径</strong>），
+家长端 #33/#34 写的是 <code>/study/parent/**</code>；<strong>实现以菜单种子脚本为准</strong>——
+与既有的学习端页面（<code>/study/practice</code> <code>/study/word</code> …）和家长端页面（<code>/study-parent/**</code>）保持同一前缀口径。
+</p>
 <p><strong>孩子端登录页是唯一的静态路由</strong>（ADR-039）：孩子没有账号密码，只有家庭码 + PIN，
 登录页必须在<strong>无登录态</strong>下可达；而动态菜单（<code>sys_permission</code> → <code>queryByUser</code>）<strong>要先有 token 才下发</strong>，
 挂在菜单里的页面孩子根本进不去。因此它走 <code>jeecgboot-vue3/src/router/routes/index.ts</code> 的

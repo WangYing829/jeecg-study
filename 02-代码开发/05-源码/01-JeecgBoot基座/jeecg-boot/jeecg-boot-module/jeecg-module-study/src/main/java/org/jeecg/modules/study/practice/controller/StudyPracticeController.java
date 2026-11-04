@@ -15,10 +15,15 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 import org.jeecg.common.api.vo.Result;
+import org.jeecg.modules.study.practice.service.StudyExplanationFeedbackService;
+import org.jeecg.modules.study.practice.service.StudyPracticeOralService;
 import org.jeecg.modules.study.practice.service.StudyPracticeService;
 import org.jeecg.modules.study.practice.vo.AnswerCommand;
 import org.jeecg.modules.study.practice.vo.AnswerResultVO;
+import org.jeecg.modules.study.practice.vo.ExplanationFeedbackVO;
 import org.jeecg.modules.study.practice.vo.ExplanationVO;
+import org.jeecg.modules.study.practice.vo.PracticeOralCommand;
+import org.jeecg.modules.study.practice.vo.PracticeOralResultVO;
 import org.jeecg.modules.study.practice.vo.PracticeQuestionVO;
 import org.jeecg.modules.study.practice.vo.PracticeSessionVO;
 import org.jeecg.modules.study.practice.vo.SessionSummaryVO;
@@ -37,6 +42,8 @@ import org.jeecg.modules.study.practice.vo.SessionSummaryVO;
 public class StudyPracticeController {
 
     private final StudyPracticeService practiceService;
+    private final StudyPracticeOralService oralService;
+    private final StudyExplanationFeedbackService feedbackService;
 
     @Operation(summary = "取下一题（响应不含答案与解析）")
     @RequiresPermissions("study:kid:practice:query")
@@ -72,5 +79,23 @@ public class StudyPracticeController {
     @PostMapping("/session/{id}/finish")
     public Result<SessionSummaryVO> finish(@PathVariable("id") String sessionId) {
         return Result.OK(practiceService.finishSession(sessionId));
+    }
+
+    @Operation(summary = "提交口述关键关系（不过关只给追问，不给答案）")
+    @RequiresPermissions("study:kid:practice:add")
+    @PostMapping("/{contentId}/oral")
+    public Result<PracticeOralResultVO> oral(@PathVariable("contentId") String contentId,
+                                              @RequestBody(required = false) PracticeOralCommand command) {
+        return Result.OK(oralService.submitOral(contentId, command));
+    }
+
+    @Operation(summary = "解析申诉（提交「我不同意」或查询当前申诉状态）")
+    @RequiresPermissions({"study:kid:practice:query", "study:parent:report:view"})
+    @GetMapping("/{contentId}/explanation/feedback")
+    public Result<ExplanationFeedbackVO> feedback(@PathVariable("contentId") String contentId,
+                                                  @RequestParam(value = "childCode", required = false) String childCode,
+                                                  @RequestParam(value = "disagree", required = false) Boolean disagree,
+                                                  @RequestParam(value = "reason", required = false) String reason) {
+        return Result.OK(feedbackService.feedback(contentId, childCode, disagree, reason));
     }
 }

@@ -109,7 +109,11 @@ spring:
       stat-view-servlet:
         enabled: true
         loginUsername: admin
-        loginPassword: 123456
+        # update-begin---author:mavis ---date:2026-11-04  for：【jeecg-study】上游公开默认密钥改环境变量注入（signatureSecret / Druid 监控台口令）-----------
+        # 上游公开默认值（123456）不得进生产
+        # 取值：环境变量 JEECG_DRUID_PASSWORD；缺省保留上游值仅为本地开发不报错
+        loginPassword: ${JEECG_DRUID_PASSWORD:123456}
+        # update-end---author:mavis ---date:2026-11-04  for：【jeecg-study】上游公开默认密钥改环境变量注入（signatureSecret / Druid 监控台口令）-----------
         allow:
       web-stat-filter:
         enabled: true
@@ -263,7 +267,12 @@ jeecg:
     # 是否允许同一账号多地同时登录 （为 true 时允许一起登录, 为 false 时新登录挤掉旧登录）
     is-concurrent: true
   # 签名密钥串(前后端要一致，正式发布请自行修改)
-  signatureSecret: dd05f1c54d63749eda95f9fa6d49v442a
+  # update-begin---author:mavis ---date:2026-11-04  for：【jeecg-study】上游公开默认密钥改环境变量注入（signatureSecret / Druid 监控台口令）-----------
+  # 上游公开默认值（dd05f1c54d63749eda95f9fa6d49v442a）不得进生产；生产必须用环境变量注入
+  # 取值：设置环境变量 JEECG_SIGNATURE_SECRET 后由 Spring 占位符解析
+  # 缺省保留上游值只为本地开发不报错；**发布前必须显式设置**
+  signatureSecret: ${JEECG_SIGNATURE_SECRET:dd05f1c54d63749eda95f9fa6d49v442a}
+  # update-end---author:mavis ---date:2026-11-04  for：【jeecg-study】上游公开默认密钥改环境变量注入（signatureSecret / Druid 监控台口令）-----------
   #签名拦截接口
   signUrls: /sys/dict/getDictItems/*,/sys/dict/loadDict/*,/sys/dict/loadDictOrderByValue/*,/sys/dict/loadDictItem/*,/sys/dict/loadTreeData,/sys/api/queryTableDictItemsByCode,/sys/api/queryFilterTableDictInfo,/sys/api/queryTableDictByKeys,/sys/api/translateDictFromTable,/sys/api/translateDictFromTableByKeys,/sys/sendChangePwdSms,/sys/user/sendChangePhoneSms,/sys/sms,/desform/api/sendVerifyCode
   # local\minio\alioss

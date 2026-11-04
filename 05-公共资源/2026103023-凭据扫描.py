@@ -119,6 +119,9 @@ ALLOWLIST = {
     # —— 上游 JeecgBoot v3.9.2 自带（上游公开仓库里本来就有）——
     "root", "postgres", "jeecg1314", "123456", "xxxxxx", "test", "changeme",
     "dd05f1c54d63749eda95f9fa6d49v442a",
+    # 上游 application-oracle.yml 里**注释掉**的 SQL Server 样例口令
+    # （2026-11-04 把该 profile 纳入 overlay 时被 R1 命中；上游 v3.9.2 原样如此）
+    "jeecgboot@459",
     # —— 本项目标注为「占位 / 请覆盖」的默认值 ——
     "jeecg-study-dev-pepper-please-override",
     "jeecg-study-ut-pepper-2026",
@@ -291,6 +294,37 @@ def strip_quotes(text):
     return t
 
 
+def truncate_at_closing_quote(line, value_start):
+    """赋值**落在引号内**时，把值截到闭合引号为止。
+
+    **为什么需要它**（2026-11-04 实测）：
+
+    ``ASSIGN_RE`` 的值是「行尾到行末」，于是 shell 里这一行::
+
+        echo "db_password=$pw" >> "$GITHUB_OUTPUT"
+
+    取到的值是 ``$pw" >> "$GITHUB_OUTPUT"`` —— **把 shell 重定向当成了值的一部分**。
+    该值长度 ≥12 且字符类 ≥3 ⇒ 被 ``looks_like_secret()`` 判成「疑似凭据」⇒ 误报。
+    而这一行的真值只有 ``$pw``，它是**运行期生成的随机口令**，本就不该是明文。
+
+    判据：**键名之前若有奇数个同类引号**，说明最后一个是「开引号」，
+    值的真实边界就是它的闭合引号。
+    没有开引号（如 yml 里的 ``password: zzz-secret``）⇒ 值就是行尾到行末，**行为不变**。
+
+    ⚠ 这条只修**边界**，**不放松任何判定**：
+    ``echo "db_password=zzz-self-test-9f3a2b" >> "$GITHUB_OUTPUT"``
+    截出来的值仍是 ``zzz-self-test-9f3a2b`` ⇒ 照样命中。
+    """
+    head = line[:value_start]
+    for q in ('"', "'"):
+        if head.count(q) % 2 == 1:
+            # head 里该引号出现奇数次 ⇒ 最后那个是开引号
+            end = line.find(q, value_start)
+            if end != -1:
+                return line[value_start:end]
+    return line[value_start:]
+
+
 def looks_like_secret(value):
     """像不像一个真凭据。
 
@@ -422,6 +456,8 @@ def scan_text(text, kind, path):
             if "${" in value:
                 # 值本身是占位符 → 由 R2 负责判定
                 continue
+            # 值边界：赋值在引号内时只取到闭合引号（否则会把 shell 重定向算进值里）
+            value = truncate_at_closing_quote(line, m.start("value"))
             hit, val, _ = evaluate_value(value)
             if hit:
                 findings.append((path, lineno, "R1", "配置明文口令", val))
@@ -537,6 +573,9 @@ def self_test():
         ("script", "<自检>.ps1", "$raw = & $mysql -uroot '-pzzz-self-test-9f3a2b' -D db", True),
         ("script", "<自检>.ps1", "$raw = & $mysql -uroot (\"-p\" + $DbPassword) -D db", False),
         ("script", "<自检>.ps1", "& $mysql -u root -p$env:MYSQL_PWD $db", False),
+        # 值边界：赋值在引号内时只取到闭合引号（2026-11-04，CI 交付时实测踩到）
+        ("script", "<自检>.sh", 'echo "db_password=$pw" >> "$GITHUB_OUTPUT"', False),
+        ("script", "<自检>.sh", 'echo "db_password=zzz-self-test-9f3a2b" >> "$GITHUB_OUTPUT"', True),
         ("source", "<自检>.java", 'String password = "zzz-self-test-9f3a2b";', True),
         ("source", "<自检>.java", "String token = getToken();", False),
         ("config", "<自检>.md", "复查口令 `zzzself@2026` 是否还有残留", True),

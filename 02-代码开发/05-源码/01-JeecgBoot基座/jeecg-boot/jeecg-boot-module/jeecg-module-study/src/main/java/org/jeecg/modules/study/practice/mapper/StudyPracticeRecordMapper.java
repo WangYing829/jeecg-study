@@ -109,4 +109,64 @@ public interface StudyPracticeRecordMapper {
     int fillErrorCode(@Param("tableName") String tableName,
                       @Param("id") String id,
                       @Param("errorCode") String errorCode);
+
+    /**
+     * 某孩子在某张月表里的作答总条数。
+     *
+     * @param tableName 月表名
+     * @param childId   孩子 ID
+     * @return 条数
+     */
+    @Select("SELECT COUNT(*) FROM ${tableName} WHERE child_id = #{childId} AND del_flag = 0")
+    Long countByChild(@Param("tableName") String tableName, @Param("childId") String childId);
+
+    /**
+     * 某孩子在某张月表里的作答记录（分页）。
+     *
+     * @param tableName 月表名
+     * @param childId   孩子 ID
+     * @param offset    偏移量
+     * @param limit     每页条数
+     * @return 作答记录（按提交时间倒序）
+     */
+    @Select("SELECT * FROM ${tableName} WHERE child_id = #{childId} AND del_flag = 0"
+            + " ORDER BY create_time DESC, id DESC LIMIT #{limit} OFFSET #{offset}")
+    List<StudyPracticeRecord> pageByChild(@Param("tableName") String tableName,
+                                           @Param("childId") String childId,
+                                           @Param("offset") int offset,
+                                           @Param("limit") int limit);
+
+    /**
+     * 某孩子某天的练习统计。
+     *
+     * @param tableName 月表名
+     * @param childId   孩子 ID
+     * @param date      日期（yyyy-MM-dd）
+     * @return 汇总行
+     */
+    @Select("SELECT COUNT(*) AS totalCount, SUM(correct) AS correctCount,"
+            + " COALESCE(SUM(duration_ms), 0) AS durationMs,"
+            + " COUNT(DISTINCT source_module) AS moduleCount"
+            + " FROM ${tableName} WHERE child_id = #{childId} AND del_flag = 0"
+            + " AND practice_date = #{date}")
+    Map<String, Object> summarizeByDate(@Param("tableName") String tableName,
+                                        @Param("childId") String childId,
+                                        @Param("date") String date);
+
+    /**
+     * 某孩子有练习记录的日期（倒序，只取截止日期及以前的）。
+     *
+     * <p>用于算连续天数：把多张月表的日期并起来，再从今天往回数。</p>
+     *
+     * @param tableName 月表名
+     * @param childId   孩子 ID
+     * @param to        截止日期（含）
+     * @return 日期列表
+     */
+    @Select("SELECT DISTINCT practice_date FROM ${tableName}"
+            + " WHERE child_id = #{childId} AND del_flag = 0 AND practice_date <= #{to}"
+            + " ORDER BY practice_date DESC")
+    List<java.sql.Date> listPracticeDates(@Param("tableName") String tableName,
+                                          @Param("childId") String childId,
+                                          @Param("to") String to);
 }

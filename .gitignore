@@ -43,3 +43,6 @@ Thumbs.db
 .env.*.local
 secrets.yml
 secrets.yaml
+
+# ── 备份产物：backup.ps1 的运行时输出，不入库 ─────────────────
+04-运营部署/03-发布记录/backup/

@@ -82,4 +82,16 @@ public interface StudyErrorQuestionMapper {
     List<ErrorVariantVO> selectSamePointVariants(@Param("knowledgePointCode") String knowledgePointCode,
                                                   @Param("questionType") String questionType,
                                                   @Param("excludeQuestionCode") String excludeQuestionCode);
+
+    /**
+     * 考点名称（内容表，全局共享，无 child_id）。
+     *
+     * @param pointCodes 考点业务ID 集合
+     * @return 考点业务ID → 名称
+     */
+    @Select("<script>SELECT point_code AS pointCode, name AS pointName FROM study_knowledge_point"
+            + " WHERE del_flag = 0 AND point_code IN"
+            + " <foreach collection='pointCodes' item='it' open='(' separator=',' close=')'>#{it}</foreach>"
+            + "</script>")
+    List<java.util.Map<String, Object>> selectPointNames(@Param("pointCodes") List<String> pointCodes);
 }

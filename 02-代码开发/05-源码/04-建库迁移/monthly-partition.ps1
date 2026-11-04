@@ -151,13 +151,27 @@ try {
         Write-Log '[DryRun] 不实际执行 SQL' 'WARN'
     } else {
         # 库名替换：脚本里的 jeecg-study 字面量 → 目标环境库名
-        $sql = [IO.File]::ReadAllText($sqlFile, [Text.Encoding]::UTF8)
-        $sql = $sql -replace '(?i)\bjeecg-study\b', $db
-        $sql | & $mysql -u root -h 127.0.0.1 -P 3306 2>&1 | ForEach-Object {
-            if ("$_".Trim()) { Write-Log "mysql> $_" }
-        }
-        if ($LASTEXITCODE -ne 0) {
-            throw "执行 05-partition.sql 失败，mysql 退出码 $LASTEXITCODE"
+        #
+        # ⚠ 不能用管道喂 SQL（2026-11-04 修）：
+        #   ① 管道会让 PS 5.1 按 ANSI 重编码，中文注释变 ????? 语法错；
+        #   ② 含 BOM 的生成脚本会把 BOM 当 SQL 内容，报 `near '﻿'`。
+        #   ⇒ 去 BOM → 写临时文件 → cmd 重定向导入。
+        $raw = [IO.File]::ReadAllText($sqlFile, [Text.Encoding]::UTF8)
+        $raw = $raw.TrimStart([char]0xFEFF)
+        $sql = $raw -replace '(?i)\bjeecg-study\b', $db
+
+        $tmp = [IO.Path]::GetTempFileName()
+        try {
+            [IO.File]::WriteAllText($tmp, $sql, (New-Object Text.UTF8Encoding($false)))
+            $cmd = "mysql -u root -h 127.0.0.1 -P 3306 --default-character-set=utf8mb4 --database=$db < `"$tmp`""
+            & cmd.exe /c $cmd 2>&1 | ForEach-Object {
+                if ("$_".Trim()) { Write-Log "mysql> $_" }
+            }
+            if ($LASTEXITCODE -ne 0) {
+                throw "执行 05-partition.sql 失败，mysql 退出码 $LASTEXITCODE"
+            }
+        } finally {
+            Remove-Item $tmp -Force -ErrorAction SilentlyContinue
         }
 
         # 自证：查 information_schema 确认当月分表真的存在

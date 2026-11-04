@@ -583,40 +583,59 @@ Get-Content 'C:\ProgramData\jeecg-study\logs\monthly-partition.log' -Tail 10
 <p><strong>错题图片是唯一不在数据库里的业务数据</strong>，必须单独备份。丢了图片不影响学情统计，但原始错题就没了。</p>
 </blockquote>
 <h3>2.2 备份脚本</h3>
-<pre class="cmd"><code class="language-powershell"># 02-代码开发/05-源码/04-建库迁移/backup.ps1
-param([string]$Env = 'prod')
-$ErrorActionPreference = 'Stop'
-
-$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$backupDir = 'D:\DevProject\2-JavaPrj\20261030-jeecg-study\04-运营部署\03-发布记录\backup'
-New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
-
-$dbs = @{ prod = @('jeecg-study-prod','jeecg-boot'); dev = @('jeecg-study') }
-$env:MYSQL_PWD = $env:MYSQL_PWD
-
-foreach ($db in $dbs[$Env]) {
-  $out = Join-Path $backupDir &quot;$db-$stamp.sql.gz&quot;
-  # 注意：mysqldump 单行输出，经 gzip 压缩
-  &amp; mysqldump --single-transaction --routines --triggers --default-character-set=utf8mb4 `
-    -u root $db 2&gt;$null | &amp; gzip -9 &gt; $out
-  if ($LASTEXITCODE -ne 0) { throw &quot;备份失败：$db&quot; }
-  Write-Output (&quot;{0}  {1:N2} MB&quot; -f (Split-Path $out -Leaf), ((Get-Item $out).Length/1MB))
-}
-
-# 图片目录
-$imgSrc = 'D:\DevProject\2-JavaPrj\20261030-jeecg-study\02-代码开发\05-源码\data\upload\study'
-if (Test-Path $imgSrc) {
-  &amp; robocopy $imgSrc (Join-Path $backupDir &quot;upload-$stamp&quot;) /E /NFL /NDL /NJH /NJS /NP | Out-Null
-  Write-Output '图片备份完成'
-}
-
-# 保留策略：只留最近 30 天
-Get-ChildItem $backupDir -Filter *.sql.gz | Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-30) } | Remove-Item -Force
-</code></pre>
 <blockquote>
-<p><strong>Windows 上 <code>mysqldump</code> 不一定自带 gzip</strong>。若无 gzip，用 <code>mysqldump --result-file=</code> 生成 <code>.sql</code> 再用 .NET 的 <code>GZipStream</code> 压缩，或直接保留未压缩的 <code>.sql</code>（体积更大但零依赖）。</p>
+<p>脚本已落成真文件：<strong><code>02-代码开发/05-源码/04-建库迁移/backup.ps1</code></strong>（UTF-8 带 BOM）。
+本节只讲<strong>怎么用</strong>；脚本内容以文件为准，不在这里内联副本（内联副本会与文件漂移）。</p>
+</blockquote>
+<pre class="cmd"><code class="language-powershell"># 备份业务库 + 平台库 + 错题图片
+&amp; '.\02-代码开发\05-源码\04-建库迁移\backup.ps1' -Env prod
+
+# 只备份 dev 业务库，保留 60 天
+&amp; '.\02-代码开发\05-源码\04-建库迁移\backup.ps1' -Env dev -KeepDays 60
+</code></pre>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>产物</td>
+<td><code>&lt;repo&gt;\04-运营部署\03-发布记录\backup\jeecg-study-&lt;stamp&gt;.sql.gz</code> + <code>upload-&lt;stamp&gt;\</code>（图片）</td>
+</tr>
+<tr>
+<td>压缩</td>
+<td>优先用系统 <code>gzip</code>，<strong>没有则退回 .NET <code>GZipStream</code></strong>（零外部依赖，不依赖 Windows 装 gzip）</td>
+</tr>
+<tr>
+<td>库清单</td>
+<td><code>prod</code> = 业务库 + <code>jeecg-boot</code> 平台库；<code>dev</code> / <code>test</code> / <code>acc</code> = 各自业务库</td>
+</tr>
+<tr>
+<td>口令</td>
+<td><strong>不写入脚本、不进命令行</strong>。三段来源：<code>MYSQL_PWD</code> → <code>DB_PASSWORD</code> → <strong>加密凭据真源（DPAPI）</strong></td>
+</tr>
+<tr>
+<td>保留策略</td>
+<td>默认 30 天（<code>-KeepDays</code> 可调），过期 <code>.sql.gz</code> 自动清理</td>
+</tr>
+<tr>
+<td>错题图片</td>
+<td><strong>唯一不在数据库里的业务数据</strong>，单独 <code>robocopy</code> 增量复制；目录不存在时跳过并提示</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>Windows 上 <code>mysqldump</code> 不一定自带 gzip</strong>——本脚本已做兜底（退回 .NET 压缩），无需手工处理。</p>
 </blockquote>
 <h3>2.3 恢复</h3>
+<blockquote>
+<p>⚠ <strong>恢复时不要用管道把 SQL 喂给 mysql</strong>：<code>Get-Content $file -Raw | &amp; mysql</code> 会让
+<strong>PowerShell 5.1 按 ANSI 重编码</strong>，中文注释变成 <code>??????</code> 直接触发语法错。
+<strong>必须用文件重定向</strong>（<code>cmd.exe /c "mysql ... &lt; file"</code>），字节完全可控。</p>
+</blockquote>
 <pre class="cmd"><code class="language-powershell"># 恢复业务库
 param()
 $ErrorActionPreference = 'Stop'
@@ -626,15 +645,29 @@ $file = 'D:\...\backup\jeecg-study-prod-20261030-230000.sql.gz'
 # 2) 停服务
 Stop-Service study-backend
 
-# 3) 还原
-&amp; mysql -u root -e &quot;DROP DATABASE IF EXISTS jeecg-study-prod; CREATE DATABASE jeecg-study-prod DEFAULT CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci;&quot;
-&amp; gzip -dc $file | &amp; mysql -u root jeecg-study-prod
-if ($LASTEXITCODE -ne 0) { throw '恢复失败' }
+# 3) 解压 → 落临时文件（.NET GZipStream，避免依赖 gzip 命令）
+$tmp = [IO.Path]::GetTempFileName()
+$in  = [IO.File]::OpenRead($file)
+$out = [IO.File]::Create($tmp)
+try {
+    $gz = New-Object IO.Compression.GZipStream($in, [IO.Compression.CompressionMode]::Decompress)
+    try { $gz.CopyTo($out) } finally { $gz.Dispose() }
+} finally { $in.Dispose(); $out.Dispose() }
 
-# 4) 起服务并验证
+# 4) 还原（**文件重定向**，不用管道）
+&amp; mysql -u root --execute=&quot;DROP DATABASE IF EXISTS jeecg-study-prod; CREATE DATABASE jeecg-study-prod DEFAULT CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci;&quot;
+&amp; cmd.exe /c &quot;mysql -u root --default-character-set=utf8mb4 --database=jeecg-study-prod &lt; `&quot;$tmp`&quot;&quot;
+if ($LASTEXITCODE -ne 0) { throw '恢复失败' }
+Remove-Item $tmp -Force
+
+# 5) 起服务并验证
 Start-Service study-backend
 Invoke-WebRequest 'http://127.0.0.1:8093' -UseBasicParsing -TimeoutSec 10
 </code></pre>
+<blockquote>
+<p><strong>本项目已实跑验证过这条链路</strong>（2026-11-04）：<code>backup.ps1 -Env dev</code> → 891 KB 压缩包 →
+解压导入临时库 → <strong>158 张表 + 错题池 4 行 + 词表 36 行全部还原成功</strong>。</p>
+</blockquote>
 <h3>2.4 恢复演练（每月一次）</h3>
 <div class="tbl-wrap"><table>
 <thead>

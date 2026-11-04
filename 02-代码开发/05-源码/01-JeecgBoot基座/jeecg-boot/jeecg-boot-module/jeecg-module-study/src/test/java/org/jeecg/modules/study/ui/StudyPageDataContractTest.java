@@ -67,6 +67,32 @@ class StudyPageDataContractTest {
     /** 后端 VO 里的列表字段 */
     private static final Pattern LIST_FIELD = Pattern.compile("private\\s+List<[^>]+>\\s+(\\w+)\\s*;");
 
+    /**
+     * 后端 VO 里的<b>全部</b>字段（不限类型）。
+     *
+     * <p><b>为什么不能只收列表字段</b>（2026-11-04 实测踩坑）：
+     * 「读一个后端没有的字段」这个检查，如果已知集合只有<b>列表型</b>字段，
+     * 那么前端读一个**合法的标量字段**（如 {@code ReviewCompleteVO.message}，String 型）
+     * 也会被误判成「后端没有这个字段」。
+     * 结果是**为了过断言把代码写变形**（先落到局部变量再判空），
+     * 而**语义问题原样留着** —— 闸门从「抓错」退化成「逼人钻空子」。
+     * ⇒ 已知集合必须是**全部 VO 字段**；列表的严格性由
+     * {@link #listReadsMustTargetListFields()} 单独守。</p>
+     */
+    private static final Pattern ALL_FIELD = Pattern.compile(
+            "(?m)^\\s*private\\s+(?!static)[\\w.<>,\\[\\]\\s]+?\\s(\\w+)\\s*(?:=[^;]*)?;");
+
+    /** 取数写法：{@code result?.字段 ?? 兜底} 或 {@code result?.字段 || 兜底} */
+    private static final Pattern READ_FIELD = Pattern.compile("result\\?\\.(\\w+)\\s*(\\?\\?|\\|\\|)");
+
+    /**
+     * <b>列表读法</b>：{@code result?.字段 ?? []} —— 兜底值是<b>空数组</b>。
+     *
+     * <p>这种写法只在读<b>列表</b>时出现，所以字段名必须命中后端的列表字段，
+     * 不能用「任何 VO 字段」蒙混过关。</p>
+     */
+    private static final Pattern LIST_READ_FIELD = Pattern.compile("result\\?\\.(\\w+)\\s*\\?\\?\\s*\\[");
+
     // ================================================================= 扫描有效性
 
     @Test
@@ -138,14 +164,14 @@ class StudyPageDataContractTest {
     // ================================================================= 断言 3：学习端不得读后端没有的字段
 
     @Test
-    @DisplayName("学习端页面不得读「后端 VO 里根本没有」的列表字段名")
+    @DisplayName("学习端页面不得读「后端 VO 里根本没有」的字段名")
     void studyPagesMustNotReadUnknownListField() {
-        List<String> known = backendListFieldNames();
+        List<String> known = backendAllFieldNames();
         assertThat(known)
-                .as("扫描有效性：必须能从 study 模块的 VO 里解析出列表字段名集合")
+                .as("扫描有效性：必须能从 study 模块的 VO 里解析出字段名集合")
                 .isNotEmpty();
 
-        Pattern read = Pattern.compile("result\\?\\.(\\w+)\\s*(\\?\\?|\\|\\|)");
+        Pattern read = READ_FIELD;
         List<String> problems = new ArrayList<>();
         for (Path file : studyVueFiles()) {
             String content = RedLineScanner.read(file);
@@ -154,13 +180,46 @@ class StudyPageDataContractTest {
                 String field = matcher.group(1);
                 if (!known.contains(field)) {
                     problems.add(RedLineScanner.frontendRelative(file) + " → 读了 result?." + field
-                            + "（后端 VO 里没有这个列表字段名 → 页面静默空态）");
+                            + "（后端 VO 里没有这个字段名 → 页面静默空态）");
                 }
             }
         }
 
         assertThat(problems)
-                .as("学习端读取列表时，字段名必须与后端 VO 一致；读错字段 → 页面静默空态（接口是好的，页面是空的）")
+                .as("学习端取数时，字段名必须与后端 VO 一致；读错字段 → 页面静默空态（接口是好的，页面是空的）")
+                .isEmpty();
+    }
+
+    /**
+     * <b>列表读法必须命中后端的列表字段</b>（更严的一条，2026-11-04 补）。
+     *
+     * <p>{@code result?.items ?? []} 这种写法只在读列表时出现，
+     * 所以字段名必须是后端 VO 里真实存在的<b>列表</b>字段。
+     * 读成标量字段名（哪怕它确实存在于某个 VO 里）⇒ 兜底成空数组 ⇒ <b>页面永远空态</b>。</p>
+     */
+    @Test
+    @DisplayName("学习端按空数组兜底的读法，字段名必须是后端 VO 的列表字段")
+    void listReadsMustTargetListFields() {
+        List<String> listFields = backendListFieldNames();
+        assertThat(listFields)
+                .as("扫描有效性：必须能从 study 模块的 VO 里解析出列表字段名集合")
+                .isNotEmpty();
+
+        List<String> problems = new ArrayList<>();
+        for (Path file : studyVueFiles()) {
+            String content = RedLineScanner.read(file);
+            Matcher matcher = LIST_READ_FIELD.matcher(content);
+            while (matcher.find()) {
+                String field = matcher.group(1);
+                if (!listFields.contains(field)) {
+                    problems.add(RedLineScanner.frontendRelative(file) + " → result?." + field + " ?? []"
+                            + "（后端 VO 里没有这个**列表**字段名 → 列表恒为空）");
+                }
+            }
+        }
+
+        assertThat(problems)
+                .as("列表兜底写法必须命中后端 VO 的列表字段：\n%s", String.join("\n", problems))
                 .isEmpty();
     }
 
@@ -180,24 +239,51 @@ class StudyPageDataContractTest {
      */
     private static List<String> backendListFieldNames() {
         List<String> out = new ArrayList<>();
+        for (Path vo : allVoFiles()) {
+            Matcher matcher = LIST_FIELD.matcher(RedLineScanner.read(vo));
+            while (matcher.find()) {
+                if (!out.contains(matcher.group(1))) {
+                    out.add(matcher.group(1));
+                }
+            }
+        }
+        return out;
+    }
+
+    /**
+     * 扫描 study 模块全部 VO，收集所有<b>字段名</b>（不限类型）。
+     *
+     * <p>用于「前端读的字段后端到底有没有」这一检查 ——
+     * 已知集合只收列表字段会把<b>合法的标量字段</b>（如 {@code ReviewCompleteVO.message}）
+     * 误判成「后端没有」，逼着前端把代码写变形。详见 {@link #ALL_FIELD} 的说明。</p>
+     *
+     * @return 全部字段名集合
+     */
+    private static List<String> backendAllFieldNames() {
+        List<String> out = new ArrayList<>();
+        for (Path vo : allVoFiles()) {
+            Matcher matcher = ALL_FIELD.matcher(RedLineScanner.read(vo));
+            while (matcher.find()) {
+                if (!out.contains(matcher.group(1))) {
+                    out.add(matcher.group(1));
+                }
+            }
+        }
+        return out;
+    }
+
+    /** study 模块全部 VO 源文件（按路径排序，保证结果稳定） */
+    private static List<Path> allVoFiles() {
+        List<Path> out = new ArrayList<>();
         Path root = RedLineScanner.studyMainRoot();
         if (!Files.isDirectory(root)) {
             return out;
         }
         try (Stream<Path> stream = Files.walk(root)) {
-            List<Path> vos = new ArrayList<>();
             stream.filter(Files::isRegularFile)
                     .filter(p -> p.getFileName().toString().endsWith("VO.java"))
                     .sorted()
-                    .forEach(vos::add);
-            for (Path vo : vos) {
-                Matcher matcher = LIST_FIELD.matcher(RedLineScanner.read(vo));
-                while (matcher.find()) {
-                    if (!out.contains(matcher.group(1))) {
-                        out.add(matcher.group(1));
-                    }
-                }
-            }
+                    .forEach(out::add);
         } catch (IOException e) {
             return out;
         }
