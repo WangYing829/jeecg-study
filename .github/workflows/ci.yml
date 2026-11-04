@@ -277,7 +277,7 @@ jobs:
             exit "$status"
           fi
 
-      - name: Python 闸门（7 道）
+      - name: Python 闸门（8 道）
         run: |
           set -uo pipefail
           emit_errors() {
@@ -303,7 +303,7 @@ jobs:
           run_gate "05-公共资源/2026103020-类名唯一性检查.py"
           run_gate "05-公共资源/2026103023-凭据扫描.py"
           run_gate "05-公共资源/2026110404-编码体检.py"
-          run_gate "05-公共资源/2026110406-路径大小写检查.py"
+          run_gate "05-公共资源/2026110406-路径写法检查.py"
           run_gate "05-公共资源/2026103021-唯一索引清单生成.py" --check
           run_gate "05-公共资源/2026103015-追溯矩阵生成.py"
 

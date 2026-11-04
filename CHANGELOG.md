@@ -3,6 +3,84 @@
 > jeecg-study 版本变更唯一入库载体。格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 > 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.15.0] - 2026-11-04
+
+### 阶段：CI 从红转绿 —— 修掉两个「本地绿、CI 红」的根因
+
+CI 连续 8 次红。每一次都把失败点往前推了一格，直到第 7 次才第一次拿到**完整的失败清单**，
+随后定位出**两个互不相干的根因** —— 它们都**只会在 Linux runner 上发作**，本地一律全绿。
+
+### ① 诊断能力：从「把日志贴出来」到「把结论递出来」
+
+| run | sha | 结论 |
+|---|---|---|
+| #1 | `6028001` | 红 —— `services:` 容器初始化失败，GitHub 只给两行黑盒报错，容器日志匿名拿不到 |
+| #2 | `8cf1d53` | 红 —— 改显式 `docker run` 后红在启动 MySQL；annotation 暴露 `Can't add secret mask for empty string` |
+| #3 | `0ae3480` | 红 —— **真根因**：`Skip output 'db_password' since it may contain secret.` 掩码值不能走 job output |
+| #4 | `53eb436` | 红 —— 失败推进到「Java 测试」；诊断分支走不到（`bash -e` 让失败管道直接退出） |
+| #5 | `cac542b` | 红 —— 诊断触发了，但 grep 无匹配、且 `tail` 的输出不进 annotation |
+| #6 | `20dd7f6` | 红 —— 逐行 `::error::` 生效，却把仅有的 10 条额度花在 Maven 栈帧上 |
+| #7 | `eee8dfd` | 红 —— **首次拿到完整清单**：`Tests run: 355, Failures: 5, Errors: 1` |
+| #8 | `b028575` | ✅ **绿** |
+
+诊断侧的三项关键改动：
+
+- **弃用 `services:`**，改显式 `docker run` —— 容器起不来时能把 `docker logs` 直接打进 job log；
+- **口令不跨 job 传递**：删掉 `prepare` job，同一 step 内生成 → `$GITHUB_ENV` 传给后续 step
+  （**掩码值不能走 job output**，runner 会静默跳过）；
+- **新增 `.github/scripts/2026110405-ci-diagnose-java.sh`**：**error 额度只放结论、warning 额度放明细**，
+  直接读 `target/surefire-reports/*.txt`（每 step 只有 10 条 error + 10 条 warning，
+  「把日志逐行贴成 annotation」会把额度浪费在栈帧上）。
+
+### ② 根因一：JVM 时区与 JDBC 的 `serverTimezone` 差 8 小时
+
+`application-test.yml` 把 `serverTimezone` 写死成 `Asia/Shanghai` ⇒ **DB 会话恒为 +08:00**；
+而 GitHub 的 ubuntu runner 默认 **UTC** ⇒ datetime 列写入按连接时区、读出按 JVM 时区，**双向漂移 8 小时**。
+
+实测挂掉 3 个用例：锁定期期望 8~10 分钟却算出 **489 分钟**；「今天」算成明天撞唯一索引。
+
+**本地已完整复现**（CI 同构库 + 正确 JDBC URL + `-Duser.timezone=UTC` ⇒ 同样 3 红；改回 Asia/Shanghai ⇒ 全绿）。
+
+修法是**三方对齐到 +08:00**：`ci.yml` job 级 `env.TZ=Asia/Shanghai`；
+建库脚本 `SET GLOBAL time_zone = '+08:00'`（不依赖镜像有没有 tzdata）；
+新增 `StudyTimeZoneContractTest` 把契约钉死。
+
+### ③ 根因二：全小写路径 resolve CamelCase 文件（Linux 找不到 + 读不到文件静默返回空串）
+
+`StudyRecordTableGuardTest` 用 `…/studyrecordtablemapper.java` 找 `StudyRecordTableMapper.java`：
+Windows 不区分大小写 ⇒ 本地绿；Linux 区分 ⇒ 找不到，而 `RedLineScanner.read()` 当时**静默返回空串**
+⇒ 列集合解析成空 ⇒ 三条「三处同步」断言连锁失败，且失败信息完全指不到「路径大小写」这个真因。
+
+修法：拆分「用于比对的小写路径」与「用于 resolve 的真实路径」两个常量；
+`RedLineScanner.read()` **读不到就抛异常**（不再静默返回空串）；
+新增**第 8 道闸门** `05-公共资源/2026110406-路径写法检查.py`（已做反证：改回小写即 exit 2）。
+
+### ④ 根因三：闸门脚本里的路径清单写成 Windows 反斜杠
+
+CI 第 8 次 run：Java 测试**已通过**，红在「Python 闸门」。闸门报 9 条 `[MISS]` ——
+但那些 HTML **明明在 git 里**（`git ls-files` 查得到）。
+
+真因：`2026103013-交付物校验.py` 的文件清单写的是 `r"01-需求迭代\02-需求文档\...html"`。
+**Linux 上反斜杠是普通字符、不是分隔符** ⇒ 14 个交付物全部找不到 ⇒ 闸门直接红。
+（本地 Windows 上反斜杠也是分隔符 ⇒ 一条都不报。）
+
+修法：清单改用**正斜杠**（Windows 同样接受）。
+
+> 三个根因是同一类：**平台假设**。绝对路径、文件名大小写、路径分隔符 ——
+> 全都是「Windows 上成立、Linux 上不成立」，且全都被本地绿掩盖。
+> 所以第 8 道闸门扩成了「**路径写法检查**」：大小写 + 分隔符一起管。
+
+### ⑤ 其它
+
+- `RedLineScanner.read()` 改响亮后，本地全量回归 **357 条全绿**（355 + 2 条新守卫）；
+- 8 道闸门全绿；`ci.yml` YAML + 8 段 shell `bash -n` 全通过；
+- 基座 overlay 重生成（487 文件），新测试文件已纳入清单；
+- 文档同步：`00-项目说明.md`（闸门数 7 → 8、新增「时区三方对齐」硬约束）、`AGENTS.md`（新闸门命令）、
+  台账 §3.15.14、知识库 **E-43**…**E-46**（annotation 上限 / 时区契约 / 路径大小写 / `bash -e` 陷阱）。
+
+> **一句话教训**：**「本地绿、CI 红」先怀疑平台差异**（时区 / 大小写 / 换行符 / 路径），
+> 而不是先怀疑业务代码；**本地复现要同构**（同样的库脚本、同样的 URL、同样的 JVM 参数）。
+
 ## [1.14.0] - 2026-11-04
 
 ### 阶段：规划页全量上线 + 缺失端点补齐 + CI 交付
