@@ -156,6 +156,10 @@ spring:
           url: jdbc:mysql://127.0.0.1:3306/jeecg-study?characterEncoding=UTF-8&useUnicode=true&useSSL=false&tinyInt1isBit=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
           username: root
           # update-begin---author:mavis ---date:2026-11-02  for：【jeecg-study】数据库口令改为环境变量注入（缺省回落上游默认 root），真实口令禁止写入版本库-----------
+          # 真源：C:\ProgramData\jeecg-study\credentials\db-password.enc（DPAPI LocalMachine 加密，仓库内与机器上均无明文副本）
+          # 取值：. '.\02-代码开发\05-源码\04-建库迁移\load-db-credential.ps1'   或   $env:DB_PASSWORD
+          # 轮换：& '.\02-代码开发\05-源码\04-建库迁移\set-db-credential.ps1'   （改库 + 重写加密凭据，一步到位）
+          # 缺省仍是上游的 root：**故意保留**——空口令兜底会让应用误连「无口令 MySQL」，root 兜底则会明确 1045 失败
           password: ${DB_PASSWORD:root}
           # update-end---author:mavis ---date:2026-11-02  for：【jeecg-study】数据库口令改为环境变量注入（缺省回落上游默认 root），真实口令禁止写入版本库-----------
           driver-class-name: com.mysql.cj.jdbc.Driver

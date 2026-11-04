@@ -103,7 +103,8 @@ if (-not (Test-Path $sqlFile)) {
 $mysql = Resolve-MySql
 Write-Log "mysql 客户端：$mysql"
 
-# 口令：MYSQL_PWD 优先，其次 DB_PASSWORD（与基座 ${DB_PASSWORD:root} 对齐）
+# 口令来源优先级：MYSQL_PWD → DB_PASSWORD → 加密凭据真源
+# 真源：C:\ProgramData\jeecg-study\credentials\db-password.enc（DPAPI LocalMachine 加密）
 $pwd = $env:MYSQL_PWD
 $src = 'MYSQL_PWD'
 if ([string]::IsNullOrEmpty($pwd)) {
@@ -111,7 +112,20 @@ if ([string]::IsNullOrEmpty($pwd)) {
     $src = 'DB_PASSWORD'
 }
 if ([string]::IsNullOrEmpty($pwd)) {
-    throw '口令环境变量未设置：MYSQL_PWD 或 DB_PASSWORD 任一即可（不把口令写进脚本或命令行）'
+    # 计划任务与手工运行都可能没有环境变量 ⇒ 回落到加密凭据真源
+    $loader = Join-Path $PSScriptRoot 'load-db-credential.ps1'
+    if (Test-Path $loader) {
+        try {
+            $pwd = (& $loader 2>$null)
+            $src = '加密凭据真源（DPAPI）'
+        } catch {
+            $pwd = $null
+        }
+    }
+}
+if ([string]::IsNullOrEmpty($pwd)) {
+    throw ('取不到数据库口令：MYSQL_PWD / DB_PASSWORD 都没设，加密凭据真源也没读到。' +
+           '请先跑一次轮换脚本写入凭据：& ''.\02-代码开发\05-源码\04-建库迁移\set-db-credential.ps1''')
 }
 Write-Log "口令来源：$src（值不打印）"
 

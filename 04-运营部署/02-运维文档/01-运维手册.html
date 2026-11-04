@@ -976,7 +976,9 @@ SELECT COUNT(*) FROM information_schema.TABLES
 WHERE TABLE_SCHEMA = 'jeecg-study' AND TABLE_NAME = CONCAT('study_practice_record_', DATE_FORMAT(NOW(), '%Y%m'));
 </code></pre>
 <blockquote>
-<p>若为 0，说明月度建表任务未执行，手动执行 <code>05-init-month-table.sql</code>。</p>
+<p>若为 0，说明月度建表任务未执行，手动执行：
+<code>&amp; '.\02-代码开发\05-源码\04-建库迁移\monthly-partition.ps1' -Env dev</code>
+（或直接跑 SQL 真源 <code>02-代码开发\02-数据库\03-脚本\05-partition.sql</code>，它按 <code>NOW()</code> 建当月表，幂等）。</p>
 </blockquote>
 </section>
 <section id="sec">
@@ -1009,7 +1011,7 @@ WHERE TABLE_SCHEMA = 'jeecg-study' AND TABLE_NAME = CONCAT('study_practice_recor
 </tr>
 <tr>
 <td>口令不入库</td>
-<td><code>git status</code> 确认 <code>application-*.yml</code> 未被追踪</td>
+<td><code>python -X utf8 '.\05-公共资源\2026103023-凭据扫描.py'</code>（退出码 2 = 发现明文；含 <strong>R7 已知凭据逐字比对</strong>）</td>
 <td>每次提交</td>
 </tr>
 <tr>
@@ -1060,6 +1062,76 @@ WHERE TABLE_SCHEMA = 'jeecg-study' AND TABLE_NAME = CONCAT('study_practice_recor
 </tbody>
 </table></div>
 <h3>8.3 口令管理</h3>
+<h4>真源：加密凭据文件（机器上唯一一份）</h4>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>凭据文件</td>
+<td><code>C:\ProgramData\jeecg-study\credentials\db-password.enc</code></td>
+</tr>
+<tr>
+<td>加密方式</td>
+<td><strong>DPAPI <code>LocalMachine</code> 作用域</strong>（管理员 + SYSTEM 可解密，普通用户拿不到）</td>
+</tr>
+<tr>
+<td>文件内容</td>
+<td>base64 密文，<strong>任何位置都不存在明文副本</strong></td>
+</tr>
+<tr>
+<td>仓库内</td>
+<td>只有 <code>${DB_PASSWORD:root}</code> 占位符 + 加载/轮换脚本，<strong>零明文</strong></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>为什么不用环境变量当真源</strong>：环境变量在进程环境块里是<strong>明文</strong>，
+任何同用户的进程都能读出来（<code>/proc</code> 等价的 Windows API），
+也会随「谁登录过」漂移。加密文件没有这个问题。</p>
+</blockquote>
+<h4>取值（注入当前会话）</h4>
+<pre class="cmd"><code class="language-powershell"># 点号调用 ⇒ 注入 $env:DB_PASSWORD，之后启动后端 / 跑脚本都能直接用
+. '.\02-代码开发\05-源码\04-建库迁移\load-db-credential.ps1'
+
+# 只想拿明文（普通调用，输出到管道）
+$pwd = &amp; '.\02-代码开发\05-源码\04-建库迁移\load-db-credential.ps1'
+</code></pre>
+<blockquote>
+<p>月度分表计划任务<strong>自带兜底</strong>：<code>monthly-partition.ps1</code> 的口令来源优先级是
+<code>MYSQL_PWD</code> → <code>DB_PASSWORD</code> → <strong>加密凭据真源</strong>，所以不注入环境变量它也能跑。</p>
+</blockquote>
+<h4>轮换（一步到位：改库 + 重写加密凭据）</h4>
+<pre class="cmd"><code class="language-powershell"># 交互输入（推荐：口令不进命令行、不进历史）
+&amp; '.\02-代码开发\05-源码\04-建库迁移\set-db-credential.ps1'
+
+# 自动化场景：新口令已在 $env:DB_PASSWORD 里
+$env:DB_PASSWORD = '&lt;新口令&gt;'
+&amp; '.\02-代码开发\05-源码\04-建库迁移\set-db-credential.ps1' -SkipDatabase
+</code></pre>
+<p>轮换脚本会<strong>用凭据文件里的旧口令</strong>连库执行 <code>ALTER USER</code>，
+再把新口令重新加密写回凭据文件并收紧 ACL。
+所以<strong>轮换时只需要新口令</strong>，不必再提供旧口令。</p>
+<h4>检查</h4>
+<pre class="cmd"><code class="language-powershell"># ① 仓库里有没有明文口令（凭据扫描闸门，退出码 2 = 发现明文）
+python -X utf8 '.\05-公共资源\2026103023-凭据扫描.py'
+
+# ② 凭据文件权限（应只有 Administrators + SYSTEM）
+(Get-Acl 'C:\ProgramData\jeecg-study\credentials\db-password.enc').Access |
+  Select-Object IdentityReference, FileSystemRights
+</code></pre>
+<blockquote>
+<p><strong>闸门输出里 <code>[R7]</code> 那一行是什么意思</strong>：R7 是「已知凭据明文」规则 ——
+闸门运行期解开凭据真源，对全部待入库文本<strong>逐字比对</strong>。
+前 6 条规则（R1…R6）是<strong>形态</strong>规则，抓不到「带特殊字符的真实口令被随手写进散文」，
+R7 补的就是这个洞。
+命中回显<strong>已掩码</strong>（如 <code>Jo****26</code>），<strong>闸门输出 / CI 日志里不会出现明文口令</strong>。
+CI / 其它机器没有凭据真源时 R7 会<strong>跳过并提示</strong>（不算失败）。</p>
+</blockquote>
 <div class="tbl-wrap"><table>
 <thead>
 <tr>
@@ -1069,16 +1141,20 @@ WHERE TABLE_SCHEMA = 'jeecg-study' AND TABLE_NAME = CONCAT('study_practice_recor
 </thead>
 <tbody>
 <tr>
-<td>DEV</td>
-<td><code>application-dev.yml</code>（gitignore）</td>
+<td>全部环境</td>
+<td>加密凭据文件 <code>db-password.enc</code>（真源）→ 由 <code>load-db-credential.ps1</code> 注入为 <code>$env:DB_PASSWORD</code></td>
 </tr>
 <tr>
-<td>PROD</td>
-<td>环境变量 / Windows 服务配置，<strong>不入库</strong></td>
+<td>应用配置</td>
+<td><code>application-dev.yml</code> 只写 <code>${DB_PASSWORD:root}</code> 占位符（缺省回落 root ⇒ 明确 1045 失败，不会误连无口令库）</td>
 </tr>
 <tr>
-<td>备份脚本</td>
-<td>口令走环境变量 <code>MYSQL_PWD</code>，<strong>不写进脚本文件</strong></td>
+<td>备份 / 月度任务脚本</td>
+<td>口令走环境变量 <code>MYSQL_PWD</code> 或凭据加载器，<strong>不写进脚本文件、不进命令行</strong></td>
+</tr>
+<tr>
+<td>轮换</td>
+<td><code>set-db-credential.ps1</code>（改库 + 重写加密凭据，一步到位）</td>
 </tr>
 </tbody>
 </table></div>
