@@ -79,10 +79,15 @@ trap cleanup EXIT
 
 mysql_cli() { mysql --defaults-extra-file="$CNF" "$@"; }
 
-# ---- 等 MySQL 起来（GitHub 会等 healthcheck，这里再加一层兜底）----
+# ---- 等 MySQL 起来（兜底层：CI 主 job 已用真查询探过一次，这里再兜一层）----
+#
+# ⚠ **不用 `mysqladmin ping` 判就绪**：官方文档明确写了
+#   「即使报 Access denied 也返回 0」——那会把「服务起来了但口令不对」
+#   误判成「已就绪」，然后在下一条 CREATE DATABASE 上炸成 1045。
+#   这里改成跑真查询 SELECT 1：口令错、库不通、初始化未完成，都会失败。
 echo "==> 等待 MySQL $HOST:$PORT"
 for i in $(seq 1 60); do
-  if mysqladmin --defaults-extra-file="$CNF" ping --silent >/dev/null 2>&1; then
+  if mysql --defaults-extra-file="$CNF" -N -B -e "SELECT 1" >/dev/null 2>&1; then
     echo "    MySQL 已就绪"
     break
   fi

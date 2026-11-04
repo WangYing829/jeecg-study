@@ -162,6 +162,49 @@ CI 落地后凭据扫描报红，命中 `` echo "db_password=$pw" >> "$GITHUB_OU
 > 验收口径补一条：**「构建没报错」不等于「构建成功」** ——
 > 要同时看 `✓ built in` 与 stderr 的 ERROR 行，并按组件名逐个核对产物。
 
+### ⑩ CI 首跑红了 —— 把 GitHub 的**黑盒** service container 换成自己显式拉起
+
+首跑 run `41790579310`（sha `6028001`）结论：**红**。
+`prepare` job 成功（随机口令已生成），主 job 挂在**第 2 步 `Initialize containers`**，
+耗时 **13 秒**，后面 10 个 step 全部 skipped：
+
+```
+annotation: Failed to initialize container mysql:8.0
+annotation: One or more containers failed to start.
+```
+
+**除这两行外没有任何信息** —— 容器 stdout、exit code、失败原因全部拿不到：
+`/actions/jobs/<id>/logs` 要 admin 权限；作业页 HTML 里其实**有**每步的 `data-log-url`，
+但该端点**需登录**（匿名 404）；GitHub runner 确实把 `docker logs` 打进了 job log，
+**而那份 log 恰好要登录才看得到**；本机又**没有 Docker** 可复现。⇒ **四条路全堵死。**
+
+> 这不是「多花点时间就能查到」，而是**这个接口设计上就不可观测**（知识库 **E-39**）。
+
+**处置：不再用 `services:`，改成自己 `docker run` 拉起 MySQL。**
+
+| 项 | 改造前 | 改造后 |
+|---|---|---|
+| 起容器 | `services:`（GitHub 托管，**黑盒**） | 显式 `docker run -d`（step 里，可见可控） |
+| 就绪判据 | `--health-cmd="mysqladmin ping -h 127.0.0.1"`（`mysqladmin ping` 对 **Access denied 也返回 0** ⇒ 会假阳性） | **真口令 + 真查询** `SELECT 1`（走 TCP，天然等过初始化阶段） |
+| 失败信息 | 只有两行笼统报错 | `docker logs --tail 80` + `docker inspect` 状态**直接进 job log** |
+| 拉镜像 | 隐式 | 显式 `docker pull`（重试 3 次）⇒ **「拉镜像失败」与「容器起不来」分成两条错误** |
+| 端口 | 隐式 | 启动前先腾端口（停宿主 mysql 服务 + `/dev/tcp` 探端口）⇒ 端口被占不再是无头失败 |
+| 库名 | 服务 env 传 `MYSQL_DATABASE` | **不传** —— 建库本就由 `2026110403-ci-init-db.sh` 负责，少一个出错面 |
+| 收尾 | 无 | 新增 `if: always()` 收尾 step：**无论哪步失败都打印容器状态与日志** |
+
+顺带核实并排除的「疑似」（都不是）：GitHub 官方文档确认
+`services.<id>.env.<env_id>` **支持 `needs` 上下文** ⇒ 口令传得进去；
+runner 镜像自带 MySQL 但**服务默认 disabled** ⇒ 3306 不被宿主占用；
+`ubuntu-latest` 已迁 Ubuntu 26.04，**自带 mysql 客户端** ⇒ 不必 apt 装；
+基座父 POM 是 `spring-boot-starter-parent:3.5.5`（Central 有）⇒ Maven 不需要私有仓库；
+`package.json` / `pnpm-lock.yaml` **不在 overlay 里** ⇒ `--frozen-lockfile` 不会失配。
+
+本地验证：`ci.yml` YAML 可解析（2 jobs / 12 steps），
+抽出的 **8 段 shell 全部 `bash -n` 通过**（含 heredoc 缩进核对），
+**7 道闸门全绿**。
+
+> 知识库新增 **E-39**（service container 是黑盒）、**E-40**（`mysqladmin ping` 不能当就绪判据）。
+
 ### 本轮踩的坑（已进知识库）
 
 | 编号 | 一句话 |
@@ -173,10 +216,12 @@ CI 落地后凭据扫描报红，命中 `` echo "db_password=$pw" >> "$GITHUB_OU
 | **E-36** | YAML 里的改动痕迹行**必须带 `#`**，否则 `update-begin---author:...` 被当成 `key:value` ⇒ 语法非法 |
 | **E-37** | PowerShell 里 `rm` 是 `Remove-Item` 的**别名**（被安全策略拦），回收站要走 `activeDataDir\bin\mavis-trash.cmd -- <路径>` |
 | **E-38** | `vite build` 随机撞 EMFILE —— **失败点每次都换文件 ⇒ 环境问题不是代码问题**；限 `maxParallelFileOps` |
+| **E-39** | Actions 的 `services:` 容器初始化是**黑盒** —— 只给两行报错、容器日志要登录才看得到 ⇒ 改成自己 `docker run` 显式拉起 |
+| **E-40** | `mysqladmin ping` 对 **Access denied 也返回 0** ⇒ 不能当就绪判据；要用**真口令 + 真查询** |
 
 > **未完成 / 遗留**：
 > ① 本轮新增的 **20 个页面尚未做浏览器取证**（既有取证脚本覆盖的是原 23 页）；
-> ② CI 在 GitHub runner 上的首跑结果待确认。
+> ② CI **第二次** run（`docker run` 改造后）的结果待确认 —— 本机无 Docker，runner 是唯一验证机会。
 
 ## [1.13.0] - 2026-11-04
 
