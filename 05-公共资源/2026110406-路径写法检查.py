@@ -14,7 +14,7 @@ jeecg-study · 闸门：路径写法体检（Linux 区分大小写 + 分斜杠�
 | 2 | `r"…\\studyrecordtablemapper.java"` 去 resolve `StudyRecordTableMapper.java` | 能找到（不区分大小写） | 找不到 | 断言假绿 / 假红 |
 | 3 | `r"01-需求迭代\\02-需求文档\\01-产品需求说明书.html"` 去 replace 成正斜杠 | 能找到（反斜杠也是分隔符） | 找不到（反斜杠是普通字符） | 14 个交付物全 MISS |
 
-第 3 条就是 CI 第 8 次 run 的失败点：闸门报 `[MISS] …`，
+第 3 条就是 CI 第 9 次 run 的失败点（run 编号 = GitHub 官方 run_number）：闸门报 `[MISS] …`，
 但那些 HTML **明明在 git 里**（`git ls-files` 能查到）⇒ 是**路径写法**的问题，不是文件缺失。
 
 两项检查
