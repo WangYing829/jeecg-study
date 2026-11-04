@@ -205,13 +205,39 @@ public final class RedLineScanner {
         }
     }
 
+    /**
+     * 读文件内容。
+     *
+     * <p><b>⚠ 读不到必须当场炸，不能静默返回空串</b>（2026-11-04 CI 实测）：</p>
+     * <ul>
+     *   <li>旧实现读不到就返回 {@code ""}。在 Windows 上路径大小写不对也能读到，
+     *       于是「按全小写路径找 CamelCase 文件」这类错<b>本地永远绿</b>；</li>
+     *   <li>到了 Linux（区分大小写）就变成空串 ⇒ 依赖文件内容的断言<b>集体假绿</b>
+     *       或直接假红，排查成本极高。</li>
+     * </ul>
+     * <p>实测案例：{@code StudyRecordTableGuardTest} 用
+     * {@code common/record/mapper/studyrecordtablemapper.java} 去找
+     * {@code StudyRecordTableMapper.java}，Linux 上解析出空列集合，
+     * 三条「三处同步」断言连锁失败，而本地一条都不报。</p>
+     *
+     * @param path 文件路径
+     * @return 文件内容（UTF-8）
+     * @throws IllegalStateException 文件不存在或读不了时抛出
+     */
+    // update-begin---author:mavis ---date:2026-11-04  for：【CI 修复】read() 读不到文件必须当场炸，不能静默返回空串（Linux 区分大小写时会把「路径大小写不对」变成下游假绿）-----------
     public static String read(Path path) {
+        if (!Files.isRegularFile(path)) {
+            throw new IllegalStateException("读不到文件：" + path
+                    + "（Linux 区分大小写：路径的大小写必须与仓库里的文件名完全一致。"
+                    + "Windows 上找不到会静默变成空串 ⇒ 断言假绿，所以这里必须炸）");
+        }
         try {
             return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            return "";
+            throw new IllegalStateException("读取文件失败：" + path, e);
         }
     }
+    // update-end---author:mavis ---date:2026-11-04  for：【CI 修复】read() 读不到文件必须当场炸，不能静默返回空串（Linux 区分大小写时会把「路径大小写不对」变成下游假绿）-----------
 
     // ------------------------------------------------------------------ 扫描
 

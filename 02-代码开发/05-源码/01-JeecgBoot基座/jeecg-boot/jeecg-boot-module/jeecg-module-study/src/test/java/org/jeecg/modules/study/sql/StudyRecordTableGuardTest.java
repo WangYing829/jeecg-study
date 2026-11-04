@@ -62,11 +62,24 @@ class StudyRecordTableGuardTest extends StudyTestSupport {
     /** 月份格式（与 05-partition.sql 的 DATE_FORMAT(NOW(), '%Y%m') 一致） */
     private static final DateTimeFormatter MONTH = DateTimeFormatter.ofPattern("yyyyMM");
 
-    /** 守卫所在文件（相对 study 主源码根，小写正斜杠） */
+    /** 守卫所在文件（相对 study 主源码根，小写正斜杠；<b>仅用于与 moduleRelative 的小写结果比对</b>） */
     private static final String GUARD_FILE = "common/record/studyrecordtableguard.java";
 
-    /** 运行期建表 Mapper 所在文件（相对 study 主源码根，小写正斜杠） */
+    /** 运行期建表 Mapper 所在文件（相对 study 主源码根，小写正斜杠；<b>仅用于与 moduleRelative 的小写结果比对</b>） */
     private static final String TABLE_MAPPER_FILE = "common/record/mapper/studyrecordtablemapper.java";
+
+    /**
+     * 运行期建表 Mapper 的<b>真实路径</b>（大小写必须与仓库完全一致）。
+     *
+     * <p>⚠ 2026-11-04 CI 实测踩过的坑：Linux 区分大小写，
+     * 用全小写路径 {@code studyrecordtablemapper.java} 去 resolve
+     * {@code StudyRecordTableMapper.java} 会<b>找不到文件</b> ⇒ 列集合解析成空 ⇒
+     * 三条「三处同步」断言连锁失败；而 Windows 上路径大小写不敏感，本地一条都不报。
+     * 所以「用来比对的相对路径」与「用来 resolve 的真实路径」必须分成两个常量。</p>
+     */
+    // update-begin---author:mavis ---date:2026-11-04  for：【CI 修复】区分「用于比对的小写相对路径」与「用于 resolve 的真实路径」——Linux 区分大小写，全小写路径找不到 CamelCase 文件-----------
+    private static final String TABLE_MAPPER_PATH = "common/record/mapper/StudyRecordTableMapper.java";
+    // update-end---author:mavis ---date:2026-11-04  for：【CI 修复】区分「用于比对的小写相对路径」与「用于 resolve 的真实路径」——Linux 区分大小写，全小写路径找不到 CamelCase 文件-----------
 
     /** 月度任务脚本（相对仓库根） */
     private static final String PARTITION_SQL = "02-代码开发/02-数据库/03-脚本/05-partition.sql";
@@ -191,7 +204,7 @@ class StudyRecordTableGuardTest extends StudyTestSupport {
     @DisplayName("三处同步：运行期 DDL 与月度任务脚本 05-partition.sql 的列集合必须一致")
     void runtimeDdlMustMatchPartitionScript() {
         Set<String> fromJava = columnsFromSource(RedLineScanner.read(
-                RedLineScanner.studyMainRoot().resolve(TABLE_MAPPER_FILE)));
+                RedLineScanner.studyMainRoot().resolve(TABLE_MAPPER_PATH)));
         Set<String> fromSql = columnsFromSource(RedLineScanner.read(
                 RedLineScanner.repoRoot().resolve(PARTITION_SQL)));
 
@@ -254,7 +267,7 @@ class StudyRecordTableGuardTest extends StudyTestSupport {
             assertThat(columnsOf(probe))
                     .as("守卫建出来的表列结构与 DDL 源不一致")
                     .isEqualTo(columnsFromSource(RedLineScanner.read(
-                            RedLineScanner.studyMainRoot().resolve(TABLE_MAPPER_FILE))));
+                            RedLineScanner.studyMainRoot().resolve(TABLE_MAPPER_PATH))));
         } finally {
             jdbc.execute("DROP TABLE IF EXISTS " + probe);
             guard.invalidate();
@@ -267,7 +280,7 @@ class StudyRecordTableGuardTest extends StudyTestSupport {
         String table = currentMonthTable();
         Set<String> fromDb = columnsOf(table);
         Set<String> fromDdl = columnsFromSource(RedLineScanner.read(
-                RedLineScanner.studyMainRoot().resolve(TABLE_MAPPER_FILE)));
+                RedLineScanner.studyMainRoot().resolve(TABLE_MAPPER_PATH)));
 
         assertThat(fromDb)
                 .as("当月分表 " + table + " 的列集合解析不出来，断言会假绿")

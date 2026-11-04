@@ -399,6 +399,7 @@ jeecg-boot/jeecg-boot-module/jeecg-module-study/src/test/java/org/jeecg/modules/
 jeecg-boot/jeecg-boot-module/jeecg-module-study/src/test/java/org/jeecg/modules/study/sql/StudyRecordTableGuardTest.java
 jeecg-boot/jeecg-boot-module/jeecg-module-study/src/test/java/org/jeecg/modules/study/sql/StudySqlOrderDeterminismTest.java
 jeecg-boot/jeecg-boot-module/jeecg-module-study/src/test/java/org/jeecg/modules/study/support/StudyTestSupport.java
+jeecg-boot/jeecg-boot-module/jeecg-module-study/src/test/java/org/jeecg/modules/study/support/StudyTimeZoneContractTest.java
 jeecg-boot/jeecg-boot-module/jeecg-module-study/src/test/java/org/jeecg/modules/study/ui/StudyApiDocEndpointTest.java
 jeecg-boot/jeecg-boot-module/jeecg-module-study/src/test/java/org/jeecg/modules/study/ui/StudyEyeSharedStateTest.java
 jeecg-boot/jeecg-boot-module/jeecg-module-study/src/test/java/org/jeecg/modules/study/ui/StudyInterfacePageTest.java
