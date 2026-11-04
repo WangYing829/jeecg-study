@@ -38,7 +38,7 @@ PORT="${MYSQL_PORT:-3306}"
 DBUSER="${MYSQL_USER:-root}"
 
 if [ -z "${DB_PASSWORD:-}" ]; then
-  echo "[FAIL] 环境变量 DB_PASSWORD 未设置（CI 由 prepare job 生成并注入）"
+  echo "[FAIL] 环境变量 DB_PASSWORD 未设置（CI 在「启动 MySQL」那一步生成并经 \$GITHUB_ENV 注入）"
   exit 2
 fi
 if [ ! -d "$SQL_DIR" ]; then

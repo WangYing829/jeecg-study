@@ -39,7 +39,9 @@ import sys
 import pymysql
 import yaml
 
-ROOT = r"D:\DevProject\2-JavaPrj\20261030-jeecg-study"
+# 仓库根按脚本位置推导（不写死 Windows 绝对路径）——
+# 闸门要在 GitHub Actions 的 Linux runner 上跑，写死 `D:\...` 会直接找不到目录。
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE = os.path.join(ROOT, "02-代码开发", "05-源码", "01-JeecgBoot基座", "jeecg-boot")
 MODULE = os.path.join(BASE, "jeecg-boot-module", "jeecg-module-study")
 TEST_YML = os.path.join(MODULE, "src", "test", "resources", "application-test.yml")

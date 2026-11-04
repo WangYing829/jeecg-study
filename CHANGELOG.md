@@ -205,6 +205,53 @@ runner 镜像自带 MySQL 但**服务默认 disabled** ⇒ 3306 不被宿主占�
 
 > 知识库新增 **E-39**（service container 是黑盒）、**E-40**（`mysqladmin ping` 不能当就绪判据）。
 
+### ⑪ CI 第二次也红 —— 揪出真正的根因：**掩码值不能走 job output**
+
+第二次 run（`41792232941`，sha `8cf1d53`）**仍然红**，但这次红在**我们自己的 step** 里，
+于是 `docker logs` 现场第一次进了 job log。更关键的是——**我们自己埋的 `::error::` 变成了公开可读的 annotation**，
+不用登录、不用 admin 就能读到失败原因：
+
+```
+[warning] Can't add secret mask for empty string in ##[add-mask] command.
+[failure] MySQL 120 秒内未就绪；以下是容器现场：
+```
+
+**⇒ `MYSQL_ROOT_PASSWORD` 是空串 ⇒ `needs.prepare.outputs.db_password` 取不到值。**
+再往前查 prepare job 自己的 annotation，真凶浮出水面：
+
+```
+[warning] Skip output 'db_password' since it may contain secret.
+```
+
+**runner 会跳过「被掩码的值」作为 job output** —— `::add-mask::` 注册的值，
+紧接着写进 `$GITHUB_OUTPUT`，在提升为 job output 时被**静默丢弃**。
+⇒ 下游拿到空串 ⇒ MySQL 的 `MYSQL_ROOT_PASSWORD` 为空 ⇒ **容器启动即退出**。
+
+> 这**同时解释了第一次首跑**：`services:` 的容器 13 秒就挂（entrypoint 报
+> `MYSQL_ROOT_PASSWORD is required` 直接退出），
+> 而 GitHub 只给两行笼统报错 ⇒ 当初判成「黑盒不可定位」，其实是**一个可定位的传值问题**。
+
+**处置（三个改动）**
+
+| # | 改动 | 理由 |
+|---|---|---|
+| 1 | **删掉 `prepare` job**，口令在「启动 MySQL」这 step 内生成并使用 | 该 job 存在的唯一理由是 `services:` 的 env 求值时机；既然不用 `services:` 了，这个理由就不存在了。**跨 job 传密这件事本身就不该做** |
+| 2 | 口令经 **`$GITHUB_ENV`** 传给后续 step（`DB_PASSWORD`） | env 文件是掩码值的标准通道，不受「跳过 output」规则影响 |
+| 3 | 加一步**显式断言** `DB_PASSWORD` 非空 | 「静默变空 ≠ 没传」—— 让「没传到位」当场变成一句明确的话，而不是下游的 1045 |
+
+**顺带在同一次排查里挖出第二颗雷**：两个闸门脚本写死了 Windows 绝对路径
+（`ROOT = r"D:\DevProject\..."`），**在 Linux runner 上必然找不到目录**。
+本机全绿、CI 全灭 —— 只有真跑一次 Linux 才暴露，而首跑死在更早的步骤，闸门根本没跑到。
+已按仓内既有写法改为按脚本位置推导（`os.path.dirname(os.path.dirname(os.path.abspath(__file__)))`）。
+
+**顺带把探活循环的失败模式收紧了**：原先容器退出后仍会白等满 120 秒；
+现在每轮先查容器是否还活着，**退出即带着退出码与日志立刻退出**。
+
+本地验证：`ci.yml` YAML 可解析（1 job / 13 steps）、抽出的 **8 段 shell 全部 `bash -n` 通过**、
+**7 道闸门全绿**（含刚改过路径推导的两个脚本）。
+
+> 知识库新增 **E-41**（掩码值不能走 job output）、**E-42**（脚本里写死盘符 ⇒ CI 全灭）。
+
 ### 本轮踩的坑（已进知识库）
 
 | 编号 | 一句话 |
@@ -218,10 +265,12 @@ runner 镜像自带 MySQL 但**服务默认 disabled** ⇒ 3306 不被宿主占�
 | **E-38** | `vite build` 随机撞 EMFILE —— **失败点每次都换文件 ⇒ 环境问题不是代码问题**；限 `maxParallelFileOps` |
 | **E-39** | Actions 的 `services:` 容器初始化是**黑盒** —— 只给两行报错、容器日志要登录才看得到 ⇒ 改成自己 `docker run` 显式拉起 |
 | **E-40** | `mysqladmin ping` 对 **Access denied 也返回 0** ⇒ 不能当就绪判据；要用**真口令 + 真查询** |
+| **E-41** | Actions runner 会**跳过被掩码的值**作为 job output（`Skip output ... since it may contain secret`）⇒ 掩码值必须走 `$GITHUB_ENV` |
+| **E-42** | 闸门脚本里写死 Windows 盘符路径 ⇒ **本机全绿、CI 全灭**；一律按 `__file__` 推导 |
 
 > **未完成 / 遗留**：
 > ① 本轮新增的 **20 个页面尚未做浏览器取证**（既有取证脚本覆盖的是原 23 页）；
-> ② CI **第二次** run（`docker run` 改造后）的结果待确认 —— 本机无 Docker，runner 是唯一验证机会。
+> ② CI **第三次** run（掩码值改走 `$GITHUB_ENV` + 闸门路径修正后）的结果待确认。
 
 ## [1.13.0] - 2026-11-04
 

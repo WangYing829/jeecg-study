@@ -4,31 +4,39 @@
 # ## 设计要点
 #
 # ① **口令自生成，不依赖任何仓库 secret 或个人凭据**
-#    `prepare` job 用 `openssl rand -hex 24` 生成随机口令，
-#    通过 job output 传给 `ci` job，同时注入 MySQL 容器与
-#    `DB_PASSWORD` 环境变量（`application-test.yml` 里数据源口令就是
-#    `${DB_PASSWORD:root}`，环境变量一注入就生效）。
+#    在「启动 MySQL」这一步里用 `openssl rand -hex 24` 生成随机口令，
+#    同时注入 MySQL 容器与 `DB_PASSWORD` 环境变量
+#    （`application-test.yml` 里数据源口令就是 `${DB_PASSWORD:root}`，环境变量一注入就生效）。
 #
-# ② **MySQL 8 用显式 `docker run` 启动，不用 `services:`**
-#    2026-11-04 首跑教训：`services:` 的容器初始化是 GitHub 的**黑盒**——
-#    容器起不来时只给两行报错（Failed to initialize container /
-#    One or more containers failed to start），**容器自己的日志拿不到**
-#    （job log 要 admin 权限才能下载），本地又没有 Docker 可复现 ⇒ 无从定位。
+# ② **口令不跨 job 传递**（2026-11-04 首跑失败的真正原因）
+#    最初拆成 `prepare` job + job output 传递。实测 runner 会**跳过被掩码的值**：
+#      [warning] Skip output 'db_password' since it may contain secret.
+#    ⇒ 下游 job 拿到的是**空串** ⇒ MySQL 的 `MYSQL_ROOT_PASSWORD` 为空
+#    ⇒ 容器启动即退出（首跑 13 秒就挂在 `Initialize containers`）。
+#    现在改成**同一个 step 内生成并使用**，再经 `$GITHUB_ENV` 传给后续 step ——
+#    env 文件是掩码值的标准传递通道，不受「跳过 output」规则影响。
+#    配套：后续 step 开头有一步**显式断言** `DB_PASSWORD` 非空，坏了当场说清楚。
+#
+# ③ **MySQL 8 用显式 `docker run` 启动，不用 `services:`**
+#    `services:` 的容器初始化是 GitHub 的**黑盒**——容器起不来时只给两行报错
+#    （Failed to initialize container / One or more containers failed to start），
+#    **容器自己的日志拿不到**（job log 要 admin 权限或登录才能看），
+#    本地又没有 Docker 可复现 ⇒ 无从定位。
 #    改成显式 `docker run` 之后：
-#      - 就绪判据由我们自己写（真口令 + 真查询），不再依赖 `mysqladmin ping`
+#      - 就绪判据由我们自己写（真口令 + 真查询），不依赖 `mysqladmin ping`
 #        （它对 Access denied 也返回 0，会把「服务起来了但口令不对」误判成就绪）；
 #      - 失败时能把 `docker logs` 直接打进 job log，下一次不用再猜；
 #      - 容器启动与基座还原解耦，各失败各归各。
 #
-# ③ **基座必须还原到仓库内原位**
+# ④ **基座必须还原到仓库内原位**
 #    `RedLineScanner.frontendRoot()` 按固定相对路径找前端源码，
 #    基座若落在 /tmp，Java 侧全部前端断言会假红。详见
 #    `.github/scripts/2026110402-ci-restore-base.sh` 的注释。
 #
-# ④ **不调用任何 .ps1**：CI 跑在 ubuntu-latest 上，建库走 bash 等价脚本
+# ⑤ **不调用任何 .ps1**：CI 跑在 ubuntu-latest 上，建库走 bash 等价脚本
 #    `.github/scripts/2026110403-ci-init-db.sh`。
 #
-# ⑤ **闸门真跑**：7 道 Python 闸门 + Java 单测 + 前端构建全部执行，
+# ⑥ **闸门真跑**：7 道 Python 闸门 + Java 单测 + 前端构建全部执行，
 #    任何一道红都让 CI 变红。
 # ============================================================================
 name: jeecg-study CI
@@ -50,40 +58,12 @@ permissions:
 
 jobs:
   # ---------------------------------------------------------------------
-  # ① 生成随机数据库口令
-  #    单独一个 job 的原因：容器要在**别的 step** 里起，口令必须先于容器存在；
-  #    而 job 级 env 在 job 启动前就要定下来，拿不到 step 里才生成的值。
-  #    job output 可以。
-  # ---------------------------------------------------------------------
-  prepare:
-    name: 生成 CI 数据库口令
-    runs-on: ubuntu-latest
-    outputs:
-      db_password: ${{ steps.gen.outputs.db_password }}
-    steps:
-      - id: gen
-        name: 生成随机口令
-        run: |
-          set -euo pipefail
-          if command -v openssl >/dev/null 2>&1; then
-            pw="$(openssl rand -hex 24)"
-          else
-            pw="$(head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n')"
-          fi
-          # 掩码：避免口令出现在任何日志里
-          echo "::add-mask::$pw"
-          echo "db_password=$pw" >> "$GITHUB_OUTPUT"
-          echo "随机口令已生成（长度 ${#pw}）"
-
-  # ---------------------------------------------------------------------
-  # ② 主 job：起 MySQL → 还原基座 → 建库 → Java 测试 → Python 闸门 → 前端构建
+  # 主 job：起 MySQL → 还原基座 → 建库 → Java 测试 → Python 闸门 → 前端构建
   # ---------------------------------------------------------------------
   ci:
     name: 后端测试 + 闸门 + 前端构建
-    needs: prepare
     runs-on: ubuntu-latest
     env:
-      DB_PASSWORD: ${{ needs.prepare.outputs.db_password }}
       MYSQL_HOST: 127.0.0.1
       MYSQL_PORT: "3306"
       MYSQL_DATABASE: jeecg-study
@@ -95,13 +75,25 @@ jobs:
       # ⚠ 必须排在「还原基座」之前：
       #   容器拉镜像 + 初始化要十几秒。先起它，后面任何一步失败时，
       #   我们都已经在日志里拿到了 DB 的真实状态，而不是只知道「容器没起来」。
-      - name: 启动 MySQL 8（docker run）
-        env:
-          MYSQL_ROOT_PASSWORD: ${{ needs.prepare.outputs.db_password }}
+      - name: 启动 MySQL 8（生成口令 + 拉起 + 探活）
         run: |
           set -euo pipefail
-          # 掩码在本 job 再声明一次：::add-mask:: 不跨 job 生效
-          echo "::add-mask::$MYSQL_ROOT_PASSWORD"
+
+          # ---- 生成随机口令 ----
+          # 掩码后经 $GITHUB_ENV 传给后续 step（env 文件是掩码值的标准通道）。
+          # ⚠ 绝不能靠 job output 传递：runner 会跳过被掩码的值（见文件头 ②）。
+          if command -v openssl >/dev/null 2>&1; then
+            pw="$(openssl rand -hex 24)"
+          else
+            pw="$(head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+          fi
+          if [ -z "$pw" ]; then
+            echo "::error::随机口令生成为空"
+            exit 1
+          fi
+          echo "::add-mask::$pw"
+          echo "DB_PASSWORD=$pw" >> "$GITHUB_ENV"
+          echo "随机口令已生成（长度 ${#pw}）"
 
           if ! command -v mysql >/dev/null 2>&1; then
             echo "==> 安装 mysql-client"
@@ -113,8 +105,7 @@ jobs:
 
           # ---- 先把宿主 3306 腾干净 ----
           # runner 镜像自带 MySQL（服务默认 disabled，这里仍显式停一次更保险）。
-          # 端口被占 ⇒ `docker -p 3306:3306` 直接失败，容器**根本起不来**，
-          # 而 GitHub 对这种情况只会报一句 "Failed to initialize container"。
+          # 端口被占 ⇒ `docker -p 3306:3306` 直接失败，容器**根本起不来**。
           if command -v systemctl >/dev/null 2>&1; then
             sudo systemctl stop mysql.service 2>/dev/null || true
             sudo systemctl disable mysql.service 2>/dev/null || true
@@ -126,8 +117,7 @@ jobs:
           fi
 
           # ---- 显式拉镜像（重试 3 次）----
-          # 把「拉镜像失败」和「容器起不来」分成两条不同的错误，
-          # 免得下次又只看到一句笼统的 "Failed to initialize container"。
+          # 把「拉镜像失败」和「容器起不来」分成两条不同的错误。
           pull_ok=0
           for i in 1 2 3; do
             if docker pull mysql:8.0; then
@@ -148,7 +138,7 @@ jobs:
           # docker 网桥网关（不是 localhost），必须有 root@'%' 才能连上。
           docker run -d \
             --name jeecg-study-mysql \
-            -e MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" \
+            -e MYSQL_ROOT_PASSWORD="$pw" \
             -e MYSQL_ROOT_HOST='%' \
             -p 3306:3306 \
             mysql:8.0
@@ -161,15 +151,24 @@ jobs:
           host=127.0.0.1
           port=3306
           user=root
-          password="$MYSQL_ROOT_PASSWORD"
+          password="$pw"
           EOF
           trap 'rm -f "$CNF"' EXIT
 
           # ---- 就绪探测：真口令 + 真查询 ----
           # 走 TCP 127.0.0.1:3306 —— MySQL 初始化阶段的临时服务器是
           # --skip-networking 的，TCP 不通 ⇒ 探测会自然地一直等到真正就绪为止。
+          # 每轮先看容器还活着没有：容器退了（口令不对 / 初始化失败）就**立刻**
+          # 带着退出码与日志退出，不白等满 120 秒。
           ready=0
           for i in $(seq 1 60); do
+            if ! docker ps --filter name=jeecg-study-mysql --filter status=running -q | grep -q .; then
+              echo "::error::MySQL 容器已退出（第 ${i} 次探测时）；容器现场："
+              docker inspect jeecg-study-mysql \
+                --format 'status={{.State.Status}} exit={{.State.ExitCode}} err={{.State.Error}}' || true
+              docker logs --tail 80 jeecg-study-mysql 2>&1 || true
+              exit 1
+            fi
             if mysql --defaults-extra-file="$CNF" -N -B -e "SELECT 1" >/dev/null 2>&1; then
               echo "MySQL 已就绪（第 ${i} 次探测）"
               ready=1
@@ -186,6 +185,17 @@ jobs:
             docker logs --tail 80 jeecg-study-mysql 2>&1 || true
             exit 1
           fi
+
+      # 掩码值经 $GITHUB_ENV 传递是否真的到位，当场验一次 ——
+      # 坏了要看到一句明确的话，而不是下游 1045 / 找不到文件那种误导性报错。
+      - name: 校验口令已传递到后续 step
+        run: |
+          set -euo pipefail
+          if [ -z "${DB_PASSWORD:-}" ]; then
+            echo "::error::DB_PASSWORD 没有传到后续 step（掩码值经 job output 会被 runner 跳过；env 文件才是正确通道）"
+            exit 1
+          fi
+          echo "DB_PASSWORD 已传递（长度 ${#DB_PASSWORD}）"
 
       - name: 准备 Python
         uses: actions/setup-python@v5
