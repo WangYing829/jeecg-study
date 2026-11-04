@@ -230,23 +230,23 @@ jobs:
         run: bash ".github/scripts/2026110403-ci-init-db.sh"
 
       # ⚠ 这一步的日志**只有登录才能看**（job log 要 admin 或会话）。
-      #   所以失败时把日志**逐行变成 `::error::` annotation** ——
+      #   所以失败时把关键信息变成 `::error::` / `::warning::` annotation ——
       #   annotation 是公开可读的 ⇒ 以后 CI 红了不用登录也能定位。
       #
       # ⚠ GitHub 默认用 `bash -e -o pipefail` 跑 run 块：
       #   `mvn | tee` 一失败就会**直接退出**，走不到下面的诊断分支。
       #   所以管道要用 `|| status=$?` 兜住（`||` 让 errexit 对该命令不生效）。
       #
-      # ⚠ 只有 `echo "::error::xxx"` 才会变成 annotation；
-      #   直接 `tail` 出来的内容只是普通 stdout，匿名看不到。
-      #   所以要逐行加前缀（并按 GitHub 要求转义 % 与回车）。
+      # ⚠ **annotation 有硬上限**（实测每个 step 最多 10 条 error + 10 条 warning）。
+      #   所以诊断**不能**简单地把日志末尾 40 行逐行变成 error ——
+      #   第 6 次 run 就是把额度全花在 Maven 的 MojoExecutionException 栈帧上，
+      #   真正要看的「哪个用例失败」全被挤掉了。
+      #   现在改成：error 额度只放**结论**，warning 额度放**明细**，
+      #   由 2026110405-ci-diagnose-java.sh 读 surefire 报告来产出。
       - name: Java 测试（真连库）
         working-directory: 02-代码开发/05-源码/01-JeecgBoot基座/jeecg-boot
         run: |
           set -uo pipefail
-          emit_errors() {
-            sed -e 's/%/%25/g' -e 's/\r/%0D/g' | cut -c1-380 | sed 's/^/::error::/' | head -40
-          }
           echo "== Maven 版本 =="
           mvn -version 2>&1 | head -3 || true
           echo "== 工作目录 =="
@@ -256,11 +256,9 @@ jobs:
             -pl jeecg-boot-module/jeecg-module-study -am \
             test 2>&1 | tee "$RUNNER_TEMP/mvn.log" || status=$?
           if [ "$status" != "0" ]; then
-            echo "::error::Java 测试失败（exit=$status）—— 以下是日志末尾 40 行："
-            tail -40 "$RUNNER_TEMP/mvn.log" | emit_errors || true
-            echo "::error::Java 测试失败—— 以下是日志里的关键行："
-            grep -aE '\[ERROR\]|Tests run:|BUILD |Caused by|Could not|Failed to|Exception|error:' \
-              "$RUNNER_TEMP/mvn.log" | emit_errors || true
+            bash "$GITHUB_WORKSPACE/.github/scripts/2026110405-ci-diagnose-java.sh" \
+              "$RUNNER_TEMP/mvn.log" \
+              "jeecg-boot-module/jeecg-module-study/target/surefire-reports" || true
             exit "$status"
           fi
 
