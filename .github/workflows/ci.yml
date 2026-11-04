@@ -229,26 +229,47 @@ jobs:
       - name: 建库 + 灌种子
         run: bash ".github/scripts/2026110403-ci-init-db.sh"
 
+      # ⚠ 这一步的日志**只有登录才能看**（job log 要 admin 或会话）。
+      #   所以失败时把关键行抽出来写成 `::error::` annotation ——
+      #   annotation 是公开可读的 ⇒ 以后 CI 红了不用登录也能定位。
       - name: Java 测试（真连库）
         working-directory: 02-代码开发/05-源码/01-JeecgBoot基座/jeecg-boot
         run: |
-          set -euo pipefail
+          set -uo pipefail
           mvn -B -ntp \
             -pl jeecg-boot-module/jeecg-module-study -am \
-            test
+            test 2>&1 | tee "$RUNNER_TEMP/mvn.log"
+          status=${PIPESTATUS[0]}
+          if [ "$status" != "0" ]; then
+            echo "::error::Java 测试失败（exit=$status）"
+            grep -E '\[ERROR\]|Tests run:|BUILD FAILURE|Caused by:|Could not resolve|Failed to execute' \
+              "$RUNNER_TEMP/mvn.log" | cut -c1-400 | head -80 || true
+            exit "$status"
+          fi
 
       - name: Python 闸门（7 道）
         run: |
-          set -euo pipefail
+          set -uo pipefail
           python3 -m pip install --quiet --upgrade pip
           python3 -m pip install --quiet pymysql cryptography pyyaml
-          python3 "05-公共资源/2026103013-交付物校验.py"
-          python3 "05-公共资源/2026103016-红线断言检查.py"
-          python3 "05-公共资源/2026103020-类名唯一性检查.py"
-          python3 "05-公共资源/2026103023-凭据扫描.py"
-          python3 "05-公共资源/2026110404-编码体检.py"
-          python3 "05-公共资源/2026103021-唯一索引清单生成.py" --check
-          python3 "05-公共资源/2026103015-追溯矩阵生成.py"
+          : > "$RUNNER_TEMP/gates.log"
+          run_gate() {
+            gate="$1"
+            shift
+            echo "==> $gate"
+            if ! python3 "$gate" "$@" 2>&1 | tee -a "$RUNNER_TEMP/gates.log"; then
+              echo "::error::闸门失败：$gate"
+              tail -40 "$RUNNER_TEMP/gates.log" | cut -c1-400 || true
+              exit 1
+            fi
+          }
+          run_gate "05-公共资源/2026103013-交付物校验.py"
+          run_gate "05-公共资源/2026103016-红线断言检查.py"
+          run_gate "05-公共资源/2026103020-类名唯一性检查.py"
+          run_gate "05-公共资源/2026103023-凭据扫描.py"
+          run_gate "05-公共资源/2026110404-编码体检.py"
+          run_gate "05-公共资源/2026103021-唯一索引清单生成.py" --check
+          run_gate "05-公共资源/2026103015-追溯矩阵生成.py"
 
       # 用 `vite build` 而不是 `pnpm build`：后者在 vite 之后还串了
       # postBuild.ts / copyChat.ts 两个**打包发布**脚本（拷 chat 资源、
@@ -263,12 +284,24 @@ jobs:
           NODE_ENV: production
           NODE_OPTIONS: --max-old-space-size=8192
         run: |
-          set -euo pipefail
+          set -uo pipefail
           # 先清产物目录：vite 会在构建开头把 outDir 整个清空，
           # 上万文件的删除突发是句柄耗尽（EMFILE）的主要来源之一。
           rm -rf dist
-          pnpm install --frozen-lockfile
-          pnpm exec vite build
+          pnpm install --frozen-lockfile 2>&1 | tee "$RUNNER_TEMP/pnpm.log"
+          status=${PIPESTATUS[0]}
+          if [ "$status" != "0" ]; then
+            echo "::error::pnpm install 失败（exit=$status）"
+            tail -40 "$RUNNER_TEMP/pnpm.log" | cut -c1-400 || true
+            exit "$status"
+          fi
+          pnpm exec vite build 2>&1 | tee "$RUNNER_TEMP/vite.log"
+          status=${PIPESTATUS[0]}
+          if [ "$status" != "0" ]; then
+            echo "::error::前端构建失败（exit=$status）"
+            tail -60 "$RUNNER_TEMP/vite.log" | cut -c1-400 || true
+            exit "$status"
+          fi
 
       # 无论哪一步失败，都把 DB 容器现场留下来：
       # 首跑时最大的遗憾就是「只知道容器没起来，不知道它为什么没起来」。
