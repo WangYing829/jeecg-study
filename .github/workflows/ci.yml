@@ -68,6 +68,21 @@ jobs:
       MYSQL_PORT: "3306"
       MYSQL_DATABASE: jeecg-study
       MYSQL_USER: root
+      # ⚠ **时区必须与 JDBC 的 serverTimezone 一致**（= Asia/Shanghai）。
+      #   GitHub 的 ubuntu runner 默认 **UTC**，而 application-test.yml 里写的是
+      #   `serverTimezone=Asia/Shanghai` ⇒ DB 会话是 +08:00、JVM 是 UTC，
+      #   两边差 8 小时：
+      #     · 写入：Java 的 Timestamp 按连接时区(+08:00)落库
+      #     · 读出：DATETIME 按 JVM 时区(UTC)解释 ⇒ 读回来比写的晚了 8 小时
+      #   实测会打挂 3 个用例（2026-11-04 本地复现）：
+      #     StudyKidAuthServiceTest.login_fiveFailures_locksTenMinutes
+      #       —— 锁定期期望 8~10 分钟，实测 489 分钟（= +8 小时）
+      #     StudyErrorPoolServiceTest.wrongAnswer_resetsScheduleToSameDay
+      #       —— 排程日期算成了明天，撞 uk_schedule_error_date 唯一键
+      #     StudyErrorPoolServiceTest.completeReview_sameDay_onlyAdvancesOnce
+      #   本地 Windows 是 +08:00，所以本地永远绿 ⇒ 这类错只有 CI 才暴露。
+      #   ⇒ 这里显式把 JVM 时区定成 Asia/Shanghai，与 DB 会话、与本地开发环境对齐。
+      TZ: Asia/Shanghai
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -288,6 +303,7 @@ jobs:
           run_gate "05-公共资源/2026103020-类名唯一性检查.py"
           run_gate "05-公共资源/2026103023-凭据扫描.py"
           run_gate "05-公共资源/2026110404-编码体检.py"
+          run_gate "05-公共资源/2026110406-路径大小写检查.py"
           run_gate "05-公共资源/2026103021-唯一索引清单生成.py" --check
           run_gate "05-公共资源/2026103015-追溯矩阵生成.py"
 

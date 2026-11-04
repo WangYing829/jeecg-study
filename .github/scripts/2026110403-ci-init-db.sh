@@ -98,6 +98,19 @@ for i in $(seq 1 60); do
   sleep 2
 done
 
+# ---- 把 MySQL 的全局时区钉到 +08:00（= Asia/Shanghai）----
+#
+# ⚠ **时区必须与 JVM、与 JDBC 的 serverTimezone 三方一致**。
+#   container 默认是 UTC，而 application-test.yml 里写的是
+#   `serverTimezone=Asia/Shanghai` ⇒ DB 会话 +08:00、JVM UTC ⇒ 差 8 小时。
+#   本地 Windows 是 +08:00，所以本地永远绿，只有 CI 才红。
+#
+#   这里用 `SET GLOBAL time_zone = '+08:00'` 而不是 `-e TZ=Asia/Shanghai`：
+#   前者不依赖镜像里装没装 tzdata（mysql:8.0 是 slim 镜像，常常没有），
+#   且固定偏移量在任何基础镜像上都成立。
+mysql_cli -e "SET GLOBAL time_zone = '+08:00'; SET SESSION time_zone = '+08:00';"
+echo "==> MySQL 时区已钉到 +08:00（Asia/Shanghai）"
+
 # ---- 建库 ----
 echo "==> 建库 $DB"
 mysql_cli --default-character-set=utf8mb4 -e \
