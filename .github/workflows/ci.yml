@@ -232,14 +232,18 @@ jobs:
       # ⚠ 这一步的日志**只有登录才能看**（job log 要 admin 或会话）。
       #   所以失败时把关键行抽出来写成 `::error::` annotation ——
       #   annotation 是公开可读的 ⇒ 以后 CI 红了不用登录也能定位。
+      #
+      # ⚠ GitHub 默认用 `bash -e -o pipefail` 跑 run 块：
+      #   `mvn | tee` 一失败就会**直接退出**，走不到下面的诊断分支。
+      #   所以管道要用 `|| status=$?` 兜住（`||` 让 errexit 不生效）。
       - name: Java 测试（真连库）
         working-directory: 02-代码开发/05-源码/01-JeecgBoot基座/jeecg-boot
         run: |
           set -uo pipefail
+          status=0
           mvn -B -ntp \
             -pl jeecg-boot-module/jeecg-module-study -am \
-            test 2>&1 | tee "$RUNNER_TEMP/mvn.log"
-          status=${PIPESTATUS[0]}
+            test 2>&1 | tee "$RUNNER_TEMP/mvn.log" || status=$?
           if [ "$status" != "0" ]; then
             echo "::error::Java 测试失败（exit=$status）"
             grep -E '\[ERROR\]|Tests run:|BUILD FAILURE|Caused by:|Could not resolve|Failed to execute' \
@@ -250,15 +254,17 @@ jobs:
       - name: Python 闸门（7 道）
         run: |
           set -uo pipefail
-          python3 -m pip install --quiet --upgrade pip
-          python3 -m pip install --quiet pymysql cryptography pyyaml
+          python3 -m pip install --quiet --upgrade pip || exit 1
+          python3 -m pip install --quiet pymysql cryptography pyyaml || exit 1
           : > "$RUNNER_TEMP/gates.log"
           run_gate() {
             gate="$1"
             shift
             echo "==> $gate"
-            if ! python3 "$gate" "$@" 2>&1 | tee -a "$RUNNER_TEMP/gates.log"; then
-              echo "::error::闸门失败：$gate"
+            status=0
+            python3 "$gate" "$@" 2>&1 | tee -a "$RUNNER_TEMP/gates.log" || status=$?
+            if [ "$status" != "0" ]; then
+              echo "::error::闸门失败：$gate（exit=$status）"
               tail -40 "$RUNNER_TEMP/gates.log" | cut -c1-400 || true
               exit 1
             fi
@@ -288,15 +294,15 @@ jobs:
           # 先清产物目录：vite 会在构建开头把 outDir 整个清空，
           # 上万文件的删除突发是句柄耗尽（EMFILE）的主要来源之一。
           rm -rf dist
-          pnpm install --frozen-lockfile 2>&1 | tee "$RUNNER_TEMP/pnpm.log"
-          status=${PIPESTATUS[0]}
+          status=0
+          pnpm install --frozen-lockfile 2>&1 | tee "$RUNNER_TEMP/pnpm.log" || status=$?
           if [ "$status" != "0" ]; then
             echo "::error::pnpm install 失败（exit=$status）"
             tail -40 "$RUNNER_TEMP/pnpm.log" | cut -c1-400 || true
             exit "$status"
           fi
-          pnpm exec vite build 2>&1 | tee "$RUNNER_TEMP/vite.log"
-          status=${PIPESTATUS[0]}
+          status=0
+          pnpm exec vite build 2>&1 | tee "$RUNNER_TEMP/vite.log" || status=$?
           if [ "$status" != "0" ]; then
             echo "::error::前端构建失败（exit=$status）"
             tail -60 "$RUNNER_TEMP/vite.log" | cut -c1-400 || true
