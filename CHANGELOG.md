@@ -286,6 +286,41 @@ console err = 0
 ⇒ 相对路径被浏览器**解析成同源 ws 地址**（`WebSocket` 构造器按 base URL 解析相对路径，
 scheme 由 http→ws / https→wss），再由反代升级给后端 —— **成立**。
 
+### ⑫ E-54：nginx 静态托管**真的跑起来了**（L-04 闭合）
+
+用户告知本机 nginx 在 `C:\Users\Administrator\Documents\nginx-1.20.2`。
+
+**先看清现状**：这台机器的 nginx **已经托管着四个站点**（jeecg-skiot / MyAsk / kkfileview / monitorV2，
+端口 80 / 8580 / 8581 / 8582 / 8583 / 8592）⇒ **不能接管、不能改它的 `nginx.conf`**。
+⇒ 本项目用**独立端口 8090 + 独立 pid / 日志文件**并存运行，实测互不干扰。
+
+**踩到的三个真坑**：
+
+| # | 坑 | 根因 | 处置 |
+|---|---|---|---|
+| **a** | **nginx 读不了带中文的路径** ⇒ `CreateFile() ... failed (1113: No mapping for the Unicode character exists in the target multi-byte code page)` | Windows 版 nginx 用 **ANSI API** 打开配置文件，按系统代码页（GBK）解读路径字节 | 配置真源留仓库（版本化），但**必须先复制到纯 ASCII 路径**（nginx 的 `conf/` 目录）⇒ 新增 `start-nginx.ps1` 负责「复制 → `nginx -t` → 启动」 |
+| **b** | 启停脚本**永久挂死** | Windows 上 nginx **不 fork**、主进程常驻前台；派生的工作进程**也持有 stdout 管道写端** ⇒ 父进程 `ReadToEnd()` 等不到 EOF | 输出**重定向到文件** + **不等待**；只有 `-t` / `-s stop` 这类自己会退出的命令才用管道读 |
+| **c** | `ProcessStartInfo.ArgumentList` 在 PS 5.1 **不存在** | 那是 .NET Core 2.1+ 的 API | 改拼 `Arguments` 字符串（逐个加引号） |
+
+**落地物**：`04-运营部署/01-部署文档/02-nginx.conf`（配置真源：静态托管 + `/jeecgboot/` 与 `/jeecg-boot/`
+双前缀反代 + **WebSocket 升级头** + SPA `try_files` + 敏感路径 404 + jmreport RCE 端点 403）；
+`02-代码开发/05-源码/04-建库迁移/start-nginx.ps1`（启停脚本）。
+
+**实测（端口 8090）**：`nginx -t` 通过 · `GET /` 200 · `GET /_app.config.js` = `/jeecgboot` ·
+`GET /jeecgboot/sys/cas/client/validateLogin` 200（后端业务 JSON）· `GET /jeecg-boot/...` 200 ·
+SPA 直访 `/study/manage/context` 200（history 回落生效）· nginx 访问日志里
+**`"GET /jeecgboot/websocket/<userId>_<md5>" … 101`（101 Switching Protocols ⇒ 协议切换成功）**
+—— **服务端独立证据**，不是浏览器 console 说了算。启停实测：`-Stop` 释放 8090、再启恢复，
+**另外四个站点的进程与端口全程无变化**。
+
+**102 页浏览器取证（打在 nginx 上）**：**控制台错误 0 / 102**、失败响应 0、落到登录页 0、R-04 命中 0、
+错误文案 0、横向溢出 0、文本长度为 0 的页面 0 ⇒ `EVIDENCE_EXIT=0`；
+nginx 错误日志 **0 行**；反代出去的**每一个**后端请求**全是 200 或 101**。
+证据入库：`03-测试验证/01-测试文档/03-取证截图/`（102 张）+ `03-取证数据.json` + `03-取证数据-实测表.md`。
+
+> E-53 证明了「相对路径 + vite preview 代理」成立；E-54 证明了**真 nginx**
+> （`try_files` + 前缀转换 + WS 升级）同样成立。
+
 ## [1.17.0] - 2026-11-04
 
 ### 阶段：项目进展梳理 —— 数字全部重测，发布链路判定为空白

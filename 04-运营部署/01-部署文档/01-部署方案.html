@@ -964,8 +964,8 @@ Get-ChildItem (Join-Path $sqlDir '02-migrations') -Filter *.sql | Sort-Object Na
 </tr>
 <tr>
 <td>6</td>
-<td>重载 nginx</td>
-<td><code>nginx -s reload</code></td>
+<td>托管前端 dist（nginx）</td>
+<td><code>start-nginx.ps1</code>（复制配置 + <code>nginx -t</code> + 启动）；本机 nginx 已有别的站点 ⇒ 用<strong>独立端口 8090 + 独立 pid/日志</strong>并存</td>
 </tr>
 <tr>
 <td>7</td>
@@ -1154,38 +1154,63 @@ volumes:
   study-mysql-data:
 </code></pre>
 <h3>6.2 nginx.conf</h3>
+<h3>6.2 nginx 配置</h3>
+<p><strong>真源在</strong> <a href="./02-nginx.conf"><code>02-nginx.conf</code></a>（同目录，<strong>版本化、可评审</strong>）；
+运行时用 <a href="../../02-代码开发/05-源码/04-建库迁移/start-nginx.ps1"><code>start-nginx.ps1</code></a> 复制并启动：</p>
+<pre class="cmd"><code class="language-powershell">&amp; '.\02-代码开发\05-源码\04-建库迁移\start-nginx.ps1'          # 复制 + 校验 + 启动
+&amp; '.\02-代码开发\05-源码\04-建库迁移\start-nginx.ps1' -Stop   # 停止
+&amp; '.\02-代码开发\05-源码\04-建库迁移\start-nginx.ps1' -Reload # 改完配置后重载
+</code></pre>
+<blockquote>
+<p>⚠⚠ <strong>nginx 在 Windows 下读不了带中文的路径</strong>（实测 2026-11-05，E-54）：
+把仓库里的 <code>04-运营部署\01-部署文档\02-nginx.conf</code> 直接喂给 nginx 会报
+<code>CreateFile() "D:/.../02-nginx.conf" failed (1113: No mapping for the Unicode character exists in the target multi-byte code page)</code>
+⇒ <strong>必须先复制到纯 ASCII 路径</strong>（nginx 的 <code>conf/</code> 目录）再启动。<code>start-nginx.ps1</code> 就是干这个的。</p>
+<p>⚠ <strong>nginx 在 Windows 上主进程常驻前台</strong>（不像 Unix 会 fork 后退出）⇒ 启停脚本<strong>不能等它退出</strong>，
+否则脚本会永久挂死（实测踩过：<code>ReadToEnd()</code> 等不到 EOF，因为派生的工作进程也持有 stdout 管道写端）。
+正解：<strong>输出重定向到文件 + 不等待</strong>。</p>
+</blockquote>
+<h4>关键片段（完整版见 <code>02-nginx.conf</code>）</h4>
 <pre class="cmd"><code class="language-nginx">server {
-    listen 80;
-    server_name _;
-    root /usr/share/nginx/html;
+    listen       8090;
+    server_name  localhost;
+
+    root  D:/DevProject/2-JavaPrj/20261030-jeecg-study/02-代码开发/05-源码/builds/latest/frontend/dist;
     index index.html;
 
-    gzip on;
-    gzip_types text/css application/javascript application/json;
-    gzip_min_length 1024;
-
+    # SPA history 模式：刷新子页面必须回落 index.html，缺了直接 404
     location / {
         try_files $uri $uri/ /index.html;
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+            expires 7d;
+            add_header Cache-Control &quot;public&quot;;
+        }
     }
 
-    # 后端接口 + WebSocket。
-    # 前端的 VITE_GLOB_API_URL（所有接口请求的父前缀）与 VITE_GLOB_DOMAIN_URL（上传/文件/WebSocket）
-    # **都是 /jeecgboot**；后端的 context path 是 /jeecg-boot
-    # ⇒ 这里必须把 /jeecgboot/ 换成 /jeecg-boot/（proxy_pass 带尾斜杠 = 替换匹配到的前缀）。
-    # ⚠ WebSocket 必须透传 Upgrade / Connection，否则顶部消息通知连不上（E-52）。
+    # 敏感路径不得落入 SPA 的 try_files 兜底
+    location ~ /\.(env|git|svn|hg|aws|ssh|docker) { return 404; }
+
+    # 安全加固：积木报表未授权 RCE 端点禁用
+    location ~* ^/jeecg-?boot/jmreport/(auto/export|executeSelectApi|auto/show) {
+        return 403 '{&quot;code&quot;:403,&quot;message&quot;:&quot;Forbidden: endpoint disabled by security policy&quot;,&quot;success&quot;:false}';
+    }
+
+    # ===== 后端反代 =====
+    # 前端的 VITE_GLOB_API_URL（所有接口请求的父前缀）与 VITE_GLOB_DOMAIN_URL
+    # （上传 / 文件下载 / WebSocket）**都是相对路径 /jeecgboot** ⇒ 浏览器只认这一个前缀。
+    # 后端的 context path 是 /jeecg-boot ⇒ 这里做一次前缀转换。
     location /jeecgboot/ {
-        proxy_pass http://study-backend:8590/jeecg-boot/;
+        proxy_pass http://127.0.0.1:8590/jeecg-boot/;
+        proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        # ⚠ WebSocket 升级：**没有这两行，顶部消息通知连不上**（E-52）
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection &quot;upgrade&quot;;
-        proxy_read_timeout 60s;
-    }
-
-    location /study/ {
-        alias /var/www/study-upload/;
-        expires 7d;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_connect_timeout 30s;
+        proxy_read_timeout 120s;
     }
 }
 </code></pre>
@@ -1193,10 +1218,56 @@ volumes:
 <p>⚠ <strong>2026-11-05 订正</strong>：原配置里的 <code>location /api/ { proxy_pass http://study-backend:8590; }</code> <strong>是错的</strong> ——
 它没有补上后端的 context path <code>/jeecg-boot</code>，请求打到后端会 <strong>404</strong>；
 而前端本来也不走 <code>/api/</code>（接口父前缀是 <code>/jeecgboot</code>）⇒ 这段配置<strong>删掉</strong>，换成上面的 <code>/jeecgboot/</code>。</p>
-<p>⚠ <strong>本段配置仍未实跑</strong>（本机没装 nginx，见台账 L-04）⇒ 首次部署时<strong>必须</strong>按 §7.1 的清单逐条验证，
-尤其是第 11 条（WebSocket 能不能连上）。</p>
+<p>⚠ <code>Connection</code> 头用 <code>map $http_upgrade $connection_upgrade</code> 生成（<code>http</code> 块里），
+<strong>不要</strong>直接写死 <code>"upgrade"</code> —— 那样普通 HTTP 请求也会带上 <code>Connection: upgrade</code>。</p>
 <p><strong>静态资源用 hash 文件名 + 长缓存</strong>（<code>/assets/xxx.a1b2c3.js</code>），<code>index.html</code> 不缓存。</p>
 </blockquote>
+<h4>✅ 本机已实跑（2026-11-05，E-54）</h4>
+<p>本机 nginx <code>C:\Users\Administrator\Documents\nginx-1.20.2</code> 已经托管着 <strong>jeecg-skiot / MyAsk /
+kkfileview / monitorV2</strong> 四个站点 ⇒ 本项目的实例用<strong>独立端口 8090 + 独立 pid / 日志文件</strong>，
+与它们<strong>并存运行、互不干扰</strong>（实测：启停本项目实例，另外四个站点的进程与端口全程无变化）。</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>校验</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>nginx -t</code> 语法校验</td>
+<td><code>syntax is ok</code> / <code>test is successful</code></td>
+</tr>
+<tr>
+<td><code>GET http://127.0.0.1:8090/</code></td>
+<td><strong>200</strong>（静态托管真实产物）</td>
+</tr>
+<tr>
+<td><code>GET .../8090/_app.config.js</code></td>
+<td><code>VITE_GLOB_DOMAIN_URL = /jeecgboot</code></td>
+</tr>
+<tr>
+<td><code>GET .../8090/jeecgboot/sys/cas/client/validateLogin</code></td>
+<td><strong>200</strong>（拿到后端业务 JSON）</td>
+</tr>
+<tr>
+<td><code>GET .../8090/jeecg-boot/sys/cas/client/validateLogin</code></td>
+<td><strong>200</strong></td>
+</tr>
+<tr>
+<td><code>GET .../8090/study/manage/context</code>（SPA 直访）</td>
+<td><strong>200</strong>（history 回落生效）</td>
+</tr>
+<tr>
+<td>102 页浏览器取证（34 页 × 3 视口，打在 nginx 上）</td>
+<td><strong>控制台错误 0 / 102</strong>、失败响应 0、R-04 命中 0、横向溢出 0 ⇒ <code>EVIDENCE_EXIT=0</code>；nginx 错误日志 <strong>0 行</strong></td>
+</tr>
+<tr>
+<td>反代出去的每一个后端请求</td>
+<td><strong>全是 200 或 101</strong>（零异常状态码）</td>
+</tr>
+</tbody>
+</table></div>
 </section>
 <section id="verify">
   <div class="sec-head"><span class="sec-num">07</span><h3>部署后验证</h3><span class="tag">验收</span></div>
