@@ -214,6 +214,12 @@ SQL **23** 个、版本目录 `versions/20261105.085009` + `manifest.json`），
 
 **本地复跑（注入本机口令后）**：`OK 表数口径一致（物理 27 / 归一 26 / 业务 24），文档 4 处表述一致` → **EXIT=0**。
 
+> **run 编号口径**：#15 的 `conclusion` 是 **`cancelled`**，**不是失败** ——
+> `ci.yml:52-54` 的 `concurrency: { group: ci-${{ github.ref }}, cancel-in-progress: true }`
+> 会在新 push 时顶掉正在跑的那次 ⇒ 编号天然跳号。
+> 连续绿的 run 是 **#10 / #11 / #12 / #13 / #14 / #16**（**#16 = 最终 HEAD `4a4291d`**），
+> `#15` 剔除。算「连红几次 / 第几次才绿」一律按官方 `run_number` + `conclusion` 分类。
+
 > **顺带登记 L-08**：本地跑这两道**连库**闸门前**必须先注入 `DB_PASSWORD`**
 > （`. '.\02-代码开发\05-源码\04-建库迁移\load-db-credential.ps1'`），
 > 否则回落 `root` ⇒ `Access denied` ⇒ 退 1。
