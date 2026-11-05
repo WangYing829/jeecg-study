@@ -36,7 +36,7 @@
 # ⑤ **不调用任何 .ps1**：CI 跑在 ubuntu-latest 上，建库走 bash 等价脚本
 #    `.github/scripts/2026110403-ci-init-db.sh`。
 #
-# ⑥ **闸门真跑**：7 道 Python 闸门 + Java 单测 + 前端构建全部执行，
+# ⑥ **闸门真跑**：9 道 Python 闸门 + Java 单测 + 前端构建全部执行，
 #    任何一道红都让 CI 变红。
 # ============================================================================
 name: jeecg-study CI
@@ -277,7 +277,7 @@ jobs:
             exit "$status"
           fi
 
-      - name: Python 闸门（8 道）
+      - name: Python 闸门（9 道）
         run: |
           set -uo pipefail
           emit_errors() {
@@ -305,6 +305,7 @@ jobs:
           run_gate "05-公共资源/2026110404-编码体检.py"
           run_gate "05-公共资源/2026110406-路径写法检查.py"
           run_gate "05-公共资源/2026103021-唯一索引清单生成.py" --check
+          run_gate "05-公共资源/2026110407-表数口径检查.py"
           run_gate "05-公共资源/2026103015-追溯矩阵生成.py"
 
       # 用 `vite build` 而不是 `pnpm build`：后者在 vite 之后还串了

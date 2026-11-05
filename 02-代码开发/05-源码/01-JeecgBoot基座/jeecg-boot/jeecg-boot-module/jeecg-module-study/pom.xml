@@ -46,6 +46,21 @@
         </dependency>
     </dependencies>
 
+    <properties>
+        <!--
+          skipTests 走 property，而不是硬编码。
+          背景：上游 jeecg-boot/pom.xml 的 surefire 把 <skipTests> 硬编码为 true（打包跳过测试）；
+          本模块为了让 mvn test 能跑，把 <skipTests> 也硬编码成 false。
+          硬编码的写法有个真实后果：**命令行 -DskipTests=true 会被完全忽略** ⇒
+          「构建时跳过测试」根本跳不掉 —— 构建会跑全部 357 条测试，
+          而测试要连真实库 ⇒ 构建成败取决于机器上有没有注入数据库口令
+          （实测：无口令时 dataSource 创建失败 ⇒ 227 条 error，构建假红）。
+          改成 ${skipTests} 后：默认 false（mvn test 照跑，CI 不受影响），
+          构建时用 -DskipTests=true 显式跳过（见 04-建库迁移/build-and-sync.ps1）。
+        -->
+        <skipTests>false</skipTests>
+    </properties>
+
     <build>
         <plugins>
             <!-- The JeecgBoot parent POM skips tests globally. Keep study-module tests runnable. -->
@@ -53,7 +68,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <skipTests>false</skipTests>
+                    <skipTests>${skipTests}</skipTests>
                 </configuration>
             </plugin>
         </plugins>

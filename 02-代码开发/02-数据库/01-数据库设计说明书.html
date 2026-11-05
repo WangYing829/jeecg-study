@@ -368,8 +368,8 @@
   <main class="main">
     <div class="kicker"><i></i>代码开发 · 数据模型</div>
     <h2 class="title">数据库设计说明书</h2>
-    <p class="sub">jeecg-study 数据库设计说明书 V1.2。基于 MySQL 8 的单库 jeecg-study（平台表 133 张与业务表同库），给出 23 张业务表的完整 DDL、索引、ER 关系与数据字典，支撑「六模块共享一份学情」「多孩子多家长按 child_id 隔离」与「语境库一次建库两处受益」三个核心目标。</p>
-    <div class="facts"><div class="fact"><b>23</b><span>业务表</span></div><div class="fact"><b>18</b><span>核心实体</span></div><div class="fact"><b>MySQL 8</b><span>数据库</span></div><div class="fact"><b>jeecg-study</b><span>单库名</span></div><div class="fact"><b>10</b><span>模块实体表</span></div><div class="fact"><b>0</b><span>租户字段</span></div></div>
+    <p class="sub">jeecg-study 数据库设计说明书 V1.2。基于 MySQL 8 的单库 jeecg-study（平台表 133 张与业务表同库），给出 24 张业务表的完整 DDL、索引、ER 关系与数据字典，支撑「六模块共享一份学情」「多孩子多家长按 child_id 隔离」与「语境库一次建库两处受益」三个核心目标。</p>
+    <div class="facts"><div class="fact"><b>24</b><span>业务表</span></div><div class="fact"><b>18</b><span>核心实体</span></div><div class="fact"><b>MySQL 8</b><span>数据库</span></div><div class="fact"><b>jeecg-study</b><span>单库名</span></div><div class="fact"><b>10</b><span>模块实体表</span></div><div class="fact"><b>0</b><span>租户字段</span></div></div>
 
 <section id="db">
   <div class="sec-head"><span class="sec-num">01</span><h3>库与连接约定</h3><span class="tag">怎么连</span></div>
@@ -386,7 +386,7 @@
 <tbody>
 <tr>
 <td><code>jeecg-study</code></td>
-<td><strong>平台表</strong>（JeecgBoot 自带 133 张：<code>sys_*</code> <code>qiankun_*</code> <code>onl_*</code> <code>airag_*</code> 等）<strong>+ 业务表</strong>（本文件定义的 17 张）</td>
+<td><strong>平台表</strong>（JeecgBoot 自带 133 张：<code>sys_*</code> <code>qiankun_*</code> <code>onl_*</code> <code>airag_*</code> 等）<strong>+ 业务表</strong>（本文件定义的 24 张）</td>
 <td>JeecgBoot v3.9.2 上游全量脚本（只改库名）+ 本项目业务表</td>
 </tr>
 </tbody>
@@ -2870,7 +2870,7 @@ ALTER TABLE `study_eye_usage` ADD KEY `idx_eye_child` (`child_id`, `del_flag`);
 </blockquote>
 <h3>12.2 初始化顺序</h3>
 <pre class="cmd"><code>01-平台库初始化.sql       平台表 133 张 + 种子 7446 条（单库，先建平台表）
-02-schema.sql              建表（18 张业务表 + 1 张迁移记录表，含 4 张家庭与成员表）
+02-schema.sql              建表（17 张业务表 + 2 张基础设施表，含 4 张家庭与成员表）
 03-init.sql                业务种子（教材版本 / 首个上下文 / 枚举字典 / 坐标树骨架）
 04-fix.sql                 增量：7 张行为表加 child_id
 05-partition.sql           创建当月 practice_record 分表
@@ -2884,6 +2884,11 @@ ALTER TABLE `study_eye_usage` ADD KEY `idx_eye_child` (`child_id`, `del_flag`);
 <p><strong>为什么 12 / 13、14 / 15 是独立增量脚本</strong>：铁律 2「变更走增量脚本，不改历史脚本」。
 <code>02-schema.sql</code> / <code>06-cleanup.sql</code> 已在新环境执行过，回改会导致环境间 schema 不一致；
 因此新表走独立增量脚本，清理语句也不塞回 <code>06-cleanup.sql</code>，而是配套一个单独的清理脚本。</p>
+<p><strong>业务表口径（三口径，别混用）</strong>：全库业务表 <strong>24 张</strong>（物理 27 张 / 归一 26 张）。
+拆解：<code>02-schema.sql</code> 17 张 + <code>12-writing-scenario.sql</code> 1 张 + <code>14-grammar-context-game.sql</code> 4 张
++ <code>23-seed-notification-preference-and-ai-feedback.sql</code> 2 张；另有 2 张基础设施表
+（<code>study_id_sequence</code> / <code>study_schema_migration</code>）与按月分区表（<code>study_practice_record_202610</code> / <code>_202611</code>）。
+该口径由 <code>05-公共资源/2026110407-表数口径检查.py</code> 钉死（改表后三处一起改）。</p>
 <p><strong>14 号脚本建 4 张表</strong>：<code>study_sentence_context</code> / <code>study_word_context</code> /
 <code>study_grammar_game_question</code>（内容表，无 <code>child_id</code>）+ <code>study_grammar_game_record</code>（行为表，必带 <code>child_id</code>）。
 它依赖 <code>study_word</code> 的既有种子（主例句直接取 <code>study_word.context_sentence</code>），
@@ -3093,7 +3098,7 @@ DELETE FROM study_knowledge_point  WHERE point_code LIKE 'SEED%';
 </div>
 
 <button class="m-fab" id="fab" type="button">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/></svg>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
   目录
 </button>
 

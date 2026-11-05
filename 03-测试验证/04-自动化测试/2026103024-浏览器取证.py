@@ -33,7 +33,12 @@ from playwright.sync_api import sync_playwright
 
 # ------------------------------------------------------------------ 常量
 
-FRONT = "http://127.0.0.1:8589"
+# 前端地址：默认打**开发服务器**（vite dev）。
+# 打**发布候选产物**时用 --front 覆盖（例：`--front http://127.0.0.1:4173`，
+# 4173 是 `vite preview` 托管 builds/latest/frontend/dist 的端口）。
+# 这个开关是必需的：2026-11-05 挖到的 E-51（上一版发布候选的前端产物少 1389 个按需加载 chunk）
+# 只有在**真实构建产物**上跑一遍才能暴露 —— 对着 dev server 取证永远看不到产物残缺。
+FRONT = os.environ.get("STUDY_FRONT", "http://127.0.0.1:8589")
 BACKEND = "http://127.0.0.1:8590/jeecg-boot"
 # dev profile 的 jeecg.signatureSecret（application-dev.yml），验证码 redis key 前缀要用
 SIGNATURE_SECRET = "dd05f1c54d63749eda95f9fa6d49v442a"
@@ -49,7 +54,12 @@ VIEWPORTS = [
     {"key": "M", "w": 390, "h": 844, "label": "手机 390×844"},
 ]
 
-# 13 个页面（§11.2）。code 用于文件名与报告里的编号；role 决定用哪个身份登录。
+# 33 个页面态。
+#   A01-A09 / B01-B03 / C01-C02 = §11.2 的既有 13 个（管理端 9 + 家长端 3 + 孩子端 2）
+#   D01-D18 / E01-E02            = 2026-11-04 §3.15.4 上线的 20 个页面（学习端 18 + 家长端 2）
+# code 用于文件名与报告里的编号；role 决定用哪个身份登录。
+# 带 :code / :unitCode 的路径用的是**库里的真实取值**（不是占位符）：
+#   ERR-000491（属 demo 孩子 ST-CHILD-DEMO-01）· MTH-MA-000001 · GRP-0007 · U01
 PAGES = [
     ("A01", "管理端", "上下文配置", "/study/manage/context", "admin"),
     ("A02", "管理端", "坐标树", "/study/manage/coordinate", "admin"),
@@ -65,6 +75,27 @@ PAGES = [
     ("B03", "家长端", "关联管理", "/study-parent/child/CHD-000001/relations", "parent"),
     ("C01", "孩子端", "孩子登录页·家庭码", "/study/kid/login", "kid"),
     ("C02", "孩子端", "孩子登录页·选孩子与PIN", "/study/kid/login", "kid"),
+    # ↓ 2026-11-05 补齐：上一轮上线的 20 个页面此前零浏览器取证
+    ("D01", "孩子端", "今日首页", "/study/kid/home", "kid"),
+    ("D02", "孩子端", "今日复习", "/study/kid/review", "kid"),
+    ("D03", "孩子端", "错题录入", "/study/kid/error/import", "kid"),
+    ("D04", "孩子端", "我的错题本", "/study/kid/error", "kid"),
+    ("D05", "孩子端", "错题详情", "/study/kid/error/ERR-000491", "kid"),
+    ("D06", "孩子端", "错题统计", "/study/kid/error/statistics", "kid"),
+    ("D07", "孩子端", "课内单元闯关", "/study/kid/word/unit/U01", "kid"),
+    ("D08", "孩子端", "课外词线", "/study/kid/word/out", "kid"),
+    ("D09", "孩子端", "熟词测试", "/study/kid/word/known-test", "kid"),
+    ("D10", "孩子端", "背诵统计", "/study/kid/word/stats", "kid"),
+    ("D11", "孩子端", "数学闯关", "/study/kid/math", "kid"),
+    ("D12", "孩子端", "母题关卡", "/study/kid/math/mother/MTH-MA-000001", "kid"),
+    ("D13", "孩子端", "母题讲解", "/study/kid/math/mother/MTH-MA-000001/teach", "kid"),
+    ("D14", "孩子端", "母题变式练习", "/study/kid/math/variant/MTH-MA-000001", "kid"),
+    ("D15", "孩子端", "口述确认", "/study/kid/math/oral/MTH-MA-000001", "kid"),
+    ("D16", "孩子端", "语法点详情", "/study/kid/grammar/GRP-0007", "kid"),
+    ("D17", "孩子端", "句子变形器", "/study/kid/grammar/transform", "kid"),
+    ("D18", "孩子端", "错句收藏馆", "/study/kid/grammar/collection", "kid"),
+    ("E01", "家长端", "周报", "/study-parent/weekly", "parent"),
+    ("E02", "家长端", "薄弱考点", "/study-parent/weakpoint", "parent"),
 ]
 
 # 账号（底座演示账号，明文口令只在本机测试库使用，不入库）
@@ -203,8 +234,13 @@ TOKEN_JS = """() => {
 }"""
 
 
-def wait_token(page, timeout_ms=30000):
-    """等 token 真正落进底座的复合缓存里。"""
+def wait_token(page, timeout_ms=60000):
+    """等 token 真正落进底座的复合缓存里。
+
+    超时给到 60 秒：vite dev server **冷启动**时首次编译登录页可能要几十秒，
+    登录请求本身会卡在编译等待上 —— 30 秒不够，会把**成功的登录**判成失败
+    （2026-11-05 实测：同一个脚本 admin 首次失败、稍后重跑即成功）。
+    """
     deadline = time.time() + timeout_ms / 1000.0
     while time.time() < deadline:
         try:
@@ -374,12 +410,32 @@ def log(msg):
     print(str(msg).encode("ascii", "replace").decode("ascii"))
 
 
+def rel_to_repo(path):
+    """截图路径转成「相对仓库根」的 POSIX 风格。
+
+    ⚠ `os.path.relpath` 在**跨盘**时会抛 ValueError
+    （path is on mount 'C:', start on mount 'D:'）——
+    用 `--out` 指向别的盘（如 %TEMP%）取证时必炸。
+    跨盘时退化成绝对路径，不影响取证本身。
+    """
+    try:
+        return os.path.relpath(path, REPO).replace("\\", "/")
+    except ValueError:
+        return os.path.abspath(path).replace("\\", "/")
+
+
 def main():
+    global FRONT
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=DEFAULT_SHOTS)
     ap.add_argument("--json", default=DEFAULT_JSON)
     ap.add_argument("--tmp", default=os.environ.get("TEMP", "."))
+    ap.add_argument("--front", default=FRONT,
+                    help="前端地址；打发布候选产物时传 `vite preview` 的端口（如 http://127.0.0.1:4173）")
     args = ap.parse_args()
+
+    FRONT = args.front
+    print("[front] %s" % FRONT)
 
     if not os.path.isdir(args.out):
         os.makedirs(args.out)
@@ -404,8 +460,10 @@ def main():
         for vp in VIEWPORTS:
             for code, group, name, path, role in PAGES:
                 shot = os.path.join(args.out, "%s-%s-%dx%d-%s.png" % (code, vp["key"], vp["w"], vp["h"], name))
-                # 孩子端两页是**未登录**状态（登录页本身），用干净上下文，不带 storage_state
-                state = None if role == "kid" else states.get(role)
+                # 只有「登录页」本身（C01/C02）用**未登录**上下文；
+                # 其余孩子端页面必须带 kid 的 storage_state，
+                # 否则会跳回登录页 —— 截出来的全是登录页，却**看起来很正常**。
+                state = None if code in ("C01", "C02") else states.get(role)
                 ctx = browser.new_context(
                     viewport={"width": vp["w"], "height": vp["h"]},
                     storage_state=state,
@@ -418,11 +476,20 @@ def main():
                 metrics, err = capture(page, url, shot, prepare)
                 ctx.close()
 
+                # **落到登录页 = 这次取证是假的**（未登录 / 登录态失效 / 路由守卫踢回）。
+                # 没有这条判据时，一屏屏「登录页」会被当成正常页面混进报告 ——
+                # 2026-11-05 实测踩过：admin 登录失败 ⇒ 9 张管理端截图全是登录页，
+                # 而每一张的「横向溢出 / 控制台错误 / 4xx」指标都是 0，看起来完全正常。
+                landed = (metrics.get("url") or "")
+                if "/login" in landed and code not in ("C01", "C02"):
+                    metrics["redirectedToLogin"] = True
+                    err = err or ("页面落到登录页（%s）：未登录 / 登录态失效 / 路由守卫踢回" % landed)
+
                 rec = {
                     "code": code, "group": group, "name": name, "path": path,
                     "role": role, "viewport": vp["key"], "viewportLabel": vp["label"],
                     "width": vp["w"], "height": vp["h"],
-                    "shot": os.path.relpath(shot, REPO).replace("\\", "/"),
+                    "shot": rel_to_repo(shot),
                     "shotBytes": os.path.getsize(shot) if os.path.isfile(shot) else 0,
                     "metrics": metrics,
                 }

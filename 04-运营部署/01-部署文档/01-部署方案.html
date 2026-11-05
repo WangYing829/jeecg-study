@@ -424,6 +424,10 @@
 </table></div>
 <blockquote>
 <p><strong>命名约定</strong>：数据库与 Redis 索引一律带环境后缀，<strong>只有 DEV 使用不带后缀的 <code>jeecg-study</code></strong>（因为它就是本机开发库）。</p>
+<p>⚠ <strong>端口以配置文件为准（2026-11-05 实测校正）</strong>：本表是<strong>规划口径</strong>，实际端口由
+<code>application-&lt;profile&gt;.yml</code> 的 <code>server.port</code> 决定。实测：<strong>DEV = 8590</strong>（<code>application-dev.yml</code>）、
+<strong>PROD = 8080</strong>（<code>application-prod.yml</code>，<strong>不是本表写的 8093</strong>）；TEST / ACC 的 profile
+尚未建立，对应端口也未落地。差异已登记在任务台账 §3.17。</p>
 </blockquote>
 <h3>1.2 与 monitorV2 的隔离</h3>
 <p>本机已有 monitorV2 在运行，本项目必须<strong>完全并行</strong>、互不干扰。</p>
@@ -886,8 +890,8 @@ Get-ChildItem (Join-Path $sqlDir '02-migrations') -Filter *.sql | Sort-Object Na
 <tbody>
 <tr>
 <td>1</td>
-<td>后端 <code>mvn -pl jeecg-module-study -am clean package -DskipTests</code></td>
-<td><code>jeecg-module-study-3.9.2.jar</code> + <code>jeecg-system-start-3.9.2.jar</code></td>
+<td>后端 <code>mvn -pl jeecg-module-system/jeecg-system-start -am clean package -DskipTests=true</code> —— <strong><code>-pl</code> 必须指向启动模块</strong>（见坑 ④）</td>
+<td><code>jeecg-module-study-3.9.2.jar</code> + <code>jeecg-system-start-3.9.2.jar</code>（<strong>309 MB 的 fat jar</strong>，含 342 个 <code>BOOT-INF/lib</code>）</td>
 </tr>
 <tr>
 <td>2</td>
@@ -912,10 +916,16 @@ Get-ChildItem (Join-Path $sqlDir '02-migrations') -Filter *.sql | Sort-Object Na
 </tbody>
 </table></div>
 <blockquote>
-<p><strong>三个必须遵守的坑</strong>（来自既有工程的教训）：
+<p><strong>四个必须遵守的坑</strong>（来自既有工程与本轮实测的教训）：
 ① 构建输出<strong>不要</strong>经 <code>| Out-Host</code> 管道转发——1MB+ 资源清单会把管道压垮并让构建<strong>静默中断</strong>。用 <code>Tee-Object -FilePath $log | Out-Null</code>，失败时打印日志尾部。
 ② <code>Start-Process -ArgumentList</code> 传数组不安全，会用空格拼成一条命令行且不加引号。调用原生命令优先用 <code>&amp;</code>。
-③ <strong>替换 jar 前必须先停服务</strong>：运行中的 java 独占 jar 的文件句柄，覆盖写入会报「正由另一进程使用」。</p>
+③ <strong>替换 jar 前必须先停服务</strong>：运行中的 java 独占 jar 的文件句柄，覆盖写入会报「正由另一进程使用」。
+④ <strong><code>-pl</code> 必须指向启动模块 <code>jeecg-system-start</code></strong>：指向业务模块 <code>jeecg-module-study</code> 时，
+   启动模块<strong>根本不会进 reactor</strong>（业务模块不依赖它）⇒ 产物里那枚 jar 是上一轮的<strong>薄 jar</strong>
+   （54 个 entry、无 <code>BOOT-INF/lib</code>、MANIFEST 无 <code>Main-Class</code>）⇒ <code>java -jar</code> 报「jar 中没有主清单属性」。
+   <strong>判据</strong>：产物里的 <code>jeecg-system-start-*.jar</code> 必须是 <strong>fat jar</strong>（含 <code>BOOT-INF/lib/</code>、MANIFEST 带
+   <code>Main-Class: org.springframework.boot.loader.launch.JarLauncher</code>），且 <code>build-and-sync.ps1</code>
+   跑完后能真的起起来。</p>
 </blockquote>
 <h3>5.3 发布流程</h3>
 <div class="tbl-wrap"><table>
@@ -944,21 +954,26 @@ Get-ChildItem (Join-Path $sqlDir '02-migrations') -Filter *.sql | Sort-Object Na
 </tr>
 <tr>
 <td>4</td>
+<td><strong>改写前端运行期配置</strong></td>
+<td><code>dist/_app.config.js</code> 的 <code>VITE_GLOB_DOMAIN_URL</code> 指向<strong>本环境</strong>后端（见下方说明）</td>
+</tr>
+<tr>
+<td>5</td>
 <td>启动后端服务</td>
 <td><code>Start-Service study-backend</code>，健康检查通过</td>
 </tr>
 <tr>
-<td>5</td>
+<td>6</td>
 <td>重载 nginx</td>
 <td><code>nginx -s reload</code></td>
 </tr>
 <tr>
-<td>6</td>
+<td>7</td>
 <td>部署后验证</td>
 <td>见第 7 章</td>
 </tr>
 <tr>
-<td>7</td>
+<td>8</td>
 <td>写发布记录</td>
 <td><code>CHANGELOG.md</code> + <code>04-运营部署/03-发布记录/</code></td>
 </tr>
@@ -967,19 +982,80 @@ Get-ChildItem (Join-Path $sqlDir '02-migrations') -Filter *.sql | Sort-Object Na
 <blockquote>
 <p><strong>替换 jar 前必须先停服务</strong>：运行中的 java 独占 <code>latest/backend/*.jar</code> 的文件句柄，<code>Remove-Item</code> / 覆盖写入会报「正由另一进程使用」。</p>
 </blockquote>
-<h3>5.4 Windows 服务注册</h3>
-<pre class="cmd"><code class="language-powershell"># 用 nssm 托管，不要用 WMI 直接启动
-nssm install study-backend &quot;C:\Program Files\Java\jdk-17\bin\java.exe&quot; `
-  &quot;-Xms512m -Xmx1024m -Dfile.encoding=UTF-8 -jar D:\DevProject\2-JavaPrj\20261030-jeecg-study\02-代码开发\05-源码\builds\latest\backend\jeecg-system-start.jar&quot;
-nssm set study-backend AppDirectory &quot;D:\DevProject\2-JavaPrj\20261030-jeecg-study\02-代码开发\05-源码\builds\latest\backend&quot;
-nssm set study-backend AppStdout &quot;...\backend\logs\stdout.log&quot;
-nssm set study-backend AppStderr &quot;...\backend\logs\stderr.log&quot;
-nssm set study-backend Start SERVICE_AUTO_START
-nssm set study-backend AppExit Default Restart
-nssm set study-backend AppRestartDelay 5000
-nssm start study-backend
+<h4>步骤 4：前端运行期配置（<strong>不做这一步，部署出来的东西是坏的</strong>）</h4>
+<p><code>dist/_app.config.js</code> 是上游<strong>刻意</strong>生成的<strong>运行期覆盖文件</strong>
+（基座 <code>build/script/buildConf.ts</code> 注释原文：「生成外部配置文件，用于生产发布后配置，无需重新打包」）。</p>
+<p>但<strong>构建期写进去的是 <code>.env.production</code> 的默认值</strong>：</p>
+<pre class="cmd"><code>VITE_GLOB_DOMAIN_URL=http://127.0.0.1:8080/jeecg-boot
+</code></pre>
+<p>前端的消息通知 WebSocket 地址由它派生
+（<code>src/layouts/default/header/components/notify/index.vue</code>：<code>glob.domainUrl</code> 把 <code>http://</code> 换成 <code>ws://</code> 再拼 <code>/websocket/&lt;userId&gt;</code>）
+⇒ <strong>部署到别的后端端口时，WebSocket 会去连 <code>127.0.0.1:8080</code> ⇒ 连不上</strong>。</p>
+<p><strong>实测（2026-11-05 首次发布演练，E-52）</strong>：对着发布候选取证，
+<strong>95 / 102 个页面</strong>带 <code>WebSocket connection ... ERR_CONNECTION_REFUSED</code> 控制台错误；
+每页一条，通知功能不可用。<strong>对着 dev server 取证永远看不到</strong> —— dev 走 <code>.env.development</code>（<code>http://localhost:8590/jeecg-boot</code>）。</p>
+<p><strong>改法（构建时传参，脚本会自动改 + 校验）</strong>：</p>
+<pre class="cmd"><code class="language-powershell"># 构建 + 同步 + 改写运行期配置（一步到位）
+&amp; '.\02-代码开发\05-源码\04-建库迁移\build-and-sync.ps1' `
+    -RuntimeDomainUrl 'http://127.0.0.1:8590/jeecg-boot'
+</code></pre>
+<p>脚本会：改写<strong>源 dist</strong> 的 <code>_app.config.js</code> → 同步到 <code>latest</code> → <strong>断言</strong> <code>latest</code> 里的值确实生效（没生效就 <code>throw</code>，禁止发布）。</p>
+<p><strong>已经部署完、只想改配置</strong>（不用重新构建）：</p>
+<pre class="cmd"><code class="language-powershell"># 直接改 latest 里的运行期配置
+$p = '.\02-代码开发\05-源码\builds\latest\frontend\dist\_app.config.js'
+$t = [System.IO.File]::ReadAllText($p)
+$t = [regex]::Replace($t, '&quot;VITE_GLOB_DOMAIN_URL&quot;:&quot;[^&quot;]*&quot;', '&quot;VITE_GLOB_DOMAIN_URL&quot;:&quot;http://127.0.0.1:8590/jeecg-boot&quot;')
+[System.IO.File]::WriteAllText($p, $t, (New-Object System.Text.UTF8Encoding($false)))
 </code></pre>
 <blockquote>
+<p>⚠ <strong>不要</strong>把 <code>VITE_GLOB_DOMAIN_URL</code> 写死成某个部署环境的地址后再提交 —— 它是<strong>环境相关</strong>的，
+正确做法是<strong>部署时改</strong>，不改源码。上游把它设计成运行期文件就是为了这件事。</p>
+</blockquote>
+<h3>5.4 Windows 服务注册</h3>
+<blockquote>
+<p>✅ <strong>本节命令已实跑验证（2026-11-05）</strong>：服务注册成功、<code>StartType = Automatic</code>、
+端口 8590 起得来、健康检查 HTTP 200、<code>/api/v1/study/</code> 返回 401（鉴权正常生效）。
+下面是<strong>实测可复制</strong>的版本 —— 原先那版有三处对不上，照抄必然起不来：
+① jar 名写的是 <code>jeecg-system-start.jar</code>，实际产物<strong>带版本号</strong>（<code>jeecg-system-start-3.9.2.jar</code>）；
+② Java 路径写死 <code>C:\Program Files\Java\jdk-17\bin\java.exe</code>，本机实际在 <code>D:\DevTools\Java\jdk-17.0.2</code>；
+③ 日志路径用 <code>...</code> 占位，<code>nssm set</code> 会把它当真路径。</p>
+</blockquote>
+<p><strong>为什么用包装脚本，而不是 nssm 直接起 java</strong>：nssm 的 <code>AppEnvironmentExtra</code> 会把口令
+<strong>明文写进注册表</strong>（<code>HKLM\SYSTEM\CurrentControlSet\Services\&lt;服务名&gt;\Parameters</code>）
+⇒ 违反 ADR-046「口令不落文件、不进命令行、不进注册表」。
+<code>start-backend.ps1</code> 改为：<strong>启动时点号调用 <code>load-db-credential.ps1</code></strong>，从 DPAPI 加密凭据真源
+解密到<strong>本进程环境变量</strong>（进程退出即消失）；同时它负责<strong>按通配找最新 jar</strong>、<strong>不写死 Java 路径</strong>。</p>
+<pre class="cmd"><code class="language-powershell">$root    = 'D:\DevProject\2-JavaPrj\20261030-jeecg-study'
+$nssm    = 'C:\Users\Administrator\AppData\Local\Microsoft\WinGet\Links\nssm.exe'
+$svc     = 'study-backend'
+$backend = &quot;$root\02-代码开发\05-源码\builds\latest\backend&quot;
+
+# ① 注册（powershell 包装器负责：加载凭据 → 选 jar → 选 java → 前台跑）
+&amp; $nssm install $svc powershell.exe &quot;-NoProfile -ExecutionPolicy Bypass -File `&quot;$root\02-代码开发\05-源码\04-建库迁移\start-backend.ps1`&quot;&quot;
+&amp; $nssm set $svc AppDirectory $backend
+&amp; $nssm set $svc AppEnvironmentExtra &quot;JAVA_HOME=D:\DevTools\Java\jdk-17.0.2&quot;   # 仅 JDK 路径，非敏感信息
+&amp; $nssm set $svc AppStdout &quot;$backend\logs\stdout.log&quot;
+&amp; $nssm set $svc AppStderr &quot;$backend\logs\stderr.log&quot;
+&amp; $nssm set $svc Start SERVICE_AUTO_START
+&amp; $nssm set $svc AppExit Default Restart
+&amp; $nssm set $svc AppRestartDelay 5000
+&amp; $nssm set $svc AppRotateFiles 1
+&amp; $nssm set $svc AppRotateBytes 10485760
+&amp; $nssm start $svc
+</code></pre>
+<p><strong>验证</strong>（2026-11-05 实测输出）：</p>
+<pre class="cmd"><code class="language-powershell">Get-Service study-backend                                     # Running / Automatic
+Get-NetTCPConnection -LocalPort 8590 -State Listen             # 有监听
+Invoke-WebRequest http://127.0.0.1:8590/jeecg-boot/ -UseBasicParsing   # HTTP 200
+Get-Content &quot;$backend\logs\stdout.log&quot; -Tail 5
+# 期望看到：Tomcat started on port 8590 (http) with context path '/jeecg-boot'
+#           Started JeecgSystemApplication in xx seconds
+</code></pre>
+<blockquote>
+<p>⚠ <strong>替换 jar 前必须先停服务</strong>：运行中的 java 独占 jar 的文件句柄，覆盖写入会报「正由另一进程使用」。
+<code>Stop-Service study-backend</code> → 换 jar → <code>Start-Service study-backend</code>。</p>
+<p>⚠ <strong>端口口径以配置文件为准</strong>：<code>application-dev.yml</code> = <strong>8590</strong>（DEV，本节走这个 profile）；
+<code>application-prod.yml</code> = <strong>8080</strong>（不是 §1.1 表里写的 8093 —— 该差异已登记在任务台账 §3.17）。</p>
 <p><strong>为什么用 Windows 服务而不是 WMI 启动</strong>：既有工程实测，WMI 启动的子进程仍与调用方控制台关联，Agent 任务/终端结束时的 Ctrl+C 会波及后端，表现为 <code>java exit=-1</code>（Windows 强杀特征，非应用异常）。由 SCM 托管可避免。</p>
 </blockquote>
 </section>
@@ -987,6 +1063,9 @@ nssm start study-backend
   <div class="sec-head"><span class="sec-num">06</span><h3>容器化部署</h3><span class="tag">可选</span></div>
   <p>容器化部署</p>
 <blockquote>
+<p>⚠ <strong>未实跑，不作发布路线（ADR-049）</strong>：本机<strong>没有 Docker</strong>，这一节从未真正跑起来过，
+保留仅作将来与 monitorV2 统一编排时的参考。
+<strong>本项目的发布主路线 = nssm 托管的 Windows 服务 + nginx 静态托管前端</strong>（见 §5.4）。</p>
 <p>可选。本项目规模小，容器化收益有限；但若后续要与 monitorV2 统一编排，可参考本节。</p>
 </blockquote>
 <h3>6.1 docker-compose.yml</h3>
@@ -1078,13 +1157,21 @@ volumes:
   <div class="sec-head"><span class="sec-num">07</span><h3>部署后验证</h3><span class="tag">验收</span></div>
   <p>部署后验证</p>
 <h3>7.1 冒烟检查清单</h3>
+<blockquote>
+<p>✅ <strong>本清单已于 2026-11-05 实跑通过 10 / 10</strong>（DEV profile，nssm 托管的 <code>study-backend</code>）。
+实跑证据见 <code>04-运营部署/03-发布记录/2026110501-发布记录-v1.0.20261105.092735.md</code>。</p>
+<p>⚠ <strong>端口以 profile 为准</strong>：下表「命令」列写的是 <strong>DEV 实跑端口</strong>（后端 <strong>8590</strong> / 前端 <strong>8589</strong>）。
+PROD profile 的端口是 <strong>8080</strong>（<code>application-prod.yml</code>），TEST / ACC 环境<strong>尚未落地</strong>（见 §1.1 与任务台账 L-03）。
+清单原文写的 8093 / 3303 是尚未实跑的口径，<strong>照抄会连错端口</strong>。</p>
+</blockquote>
 <div class="tbl-wrap"><table>
 <thead>
 <tr>
 <th>#</th>
 <th>检查</th>
-<th>命令/方法</th>
+<th>命令/方法（DEV 实跑）</th>
 <th>通过标准</th>
+<th>本轮实测</th>
 </tr>
 </thead>
 <tbody>
@@ -1093,65 +1180,89 @@ volumes:
 <td>后端进程存活</td>
 <td><code>Get-Service study-backend</code></td>
 <td><code>Running</code></td>
+<td>✅ <code>Running</code>（<code>StartType=Automatic</code>）</td>
 </tr>
 <tr>
 <td>2</td>
 <td>健康接口</td>
-<td><code>GET http://127.0.0.1:8093/sys/callback</code> 或 <code>/jeecg/sys/checkUserExists</code></td>
+<td><code>GET http://127.0.0.1:8590/jeecg-boot/sys/cas/client/validateLogin</code></td>
 <td>返回正常 JSON</td>
+<td>✅ HTTP 200</td>
 </tr>
 <tr>
 <td>3</td>
 <td>数据库连通</td>
-<td><code>mysql -e "USE jeecg-study; SELECT COUNT(*) FROM study_context;"</code></td>
+<td><code>mysql -D jeecg-study -e "SELECT COUNT(*) FROM study_context;"</code></td>
 <td>无报错</td>
+<td>✅ 2 条，无报错</td>
 </tr>
 <tr>
 <td>4</td>
 <td>迁移已登记</td>
-<td><code>SELECT script_name FROM study_schema_migration;</code></td>
+<td><code>SELECT COUNT(*) FROM study_schema_migration WHERE del_flag=0;</code></td>
 <td>全部已执行脚本都在</td>
+<td>✅ <strong>20 条</strong>（该表<strong>没有</strong> <code>success</code> 列，用 <code>applied_at</code> + <code>del_flag</code> 判定）</td>
 </tr>
 <tr>
 <td>5</td>
 <td>前端可访问</td>
-<td>浏览器打开 <code>http://127.0.0.1:3303</code></td>
+<td>浏览器打开 <code>http://127.0.0.1:8589</code></td>
 <td>首页渲染，无白屏</td>
+<td>✅ HTTP 200</td>
 </tr>
 <tr>
 <td>6</td>
 <td>菜单已注册</td>
-<td>登录后看左侧菜单</td>
+<td>登录后看左侧菜单；库侧 <code>SELECT COUNT(*) FROM sys_permission WHERE component LIKE '%study%' OR url LIKE '%study%';</code></td>
 <td>「学习助手」相关菜单可见</td>
+<td>✅ <strong>45 条</strong>（3 个目录 + 42 个页面）</td>
 </tr>
 <tr>
 <td>7</td>
 <td>接口可达</td>
 <td><code>GET /api/v1/study/context/current</code></td>
 <td>返回 <code>configured</code> 字段</td>
+<td>✅ HTTP 401（<strong>鉴权生效</strong>即路由可达；带 token 后返回业务字段）</td>
 </tr>
 <tr>
 <td>8</td>
 <td>种子数据</td>
 <td><code>SELECT COUNT(*) FROM study_knowledge_point;</code></td>
 <td>&gt; 0</td>
+<td>✅ <strong>39</strong></td>
 </tr>
 <tr>
 <td>9</td>
 <td>前端路由</td>
 <td>刷新任一子页面</td>
 <td>不 404（history 模式需 <code>try_files</code>）</td>
+<td>✅ 直访 <code>/study/kid/error/ERR-000491</code> ⇒ 200</td>
 </tr>
 <tr>
 <td>10</td>
-<td>上传目录可写</td>
-<td>提交一次错题图片</td>
-<td>上传成功，文件落盘</td>
+<td>上传落点可写</td>
+<td>核对 <code>jeecg.path.upload</code> 的解析结果与父目录写权限</td>
+<td>落点可创建可写</td>
+<td>✅ <code>/opt/upFiles</code> ⇒ Windows 解析为 <code>D:\opt\upFiles</code>，祖先 <code>D:\</code> 可写；Jeecg <code>uploadOnlineImage</code> 会 <code>mkdirs()</code></td>
+</tr>
+<tr>
+<td>11</td>
+<td><strong>前端运行期配置正确</strong></td>
+<td>读 <code>builds/latest/frontend/dist/_app.config.js</code> 的 <code>VITE_GLOB_DOMAIN_URL</code></td>
+<td>指向<strong>本环境</strong>后端（不是构建期默认值）</td>
+<td>✅ <code>http://127.0.0.1:8590/jeecg-boot</code></td>
 </tr>
 </tbody>
 </table></div>
 <blockquote>
 <p><strong>第 9 条最容易漏</strong>：<code>try_files $uri $uri/ /index.html;</code> 缺失时刷新子页面直接 404。</p>
+<p>⚠ <strong>第 11 条是 2026-11-05 新增的</strong>（E-52）：缺了它，部署出来的前端<strong>每页一条 WebSocket 连接被拒</strong>的错误，
+且顶部消息通知不可用。详见 §5.3「步骤 4：前端运行期配置」。</p>
+<p>⚠ <strong>第 10 条已改口径（2026-11-05）</strong>：原文写的是「提交一次错题图片 ⇒ 上传成功，文件落盘」。
+但 <strong>V0 没有错题图片上传功能</strong> —— ADR-047 决定 V0 不做整条 OCR 链路，<code>study_error_pool</code> <strong>无图片字段</strong>、
+study 业务表<strong>无任何图片列</strong>、接口文档<strong>无上传端点</strong> ⇒ 原文那条<strong>测的是一个还没实现的功能</strong>。
+现改为验收其<strong>运维前置条件</strong>（上传根目录能否落地、能否写）。
+<strong>等「存图附件」真落地后，这条要改回「真传一次」并补进冒烟。</strong></p>
 </blockquote>
 <h3>7.2 关键路径冒烟（人工）</h3>
 <p>按顺序跑一遍，每步都要过：</p>
@@ -1330,12 +1441,22 @@ volumes:
 <tbody>
 <tr>
 <td><code>CHANGELOG.md</code>（根）</td>
-<td><strong>唯一入库载体</strong>，每次发布追加一节</td>
+<td><strong>版本变更的唯一入库载体</strong>，每次发布追加一节</td>
 <td>✅</td>
 </tr>
 <tr>
-<td><code>04-运营部署/03-发布记录/</code></td>
-<td>完整发布包（jar/dist/sql/记录）</td>
+<td><code>04-运营部署/03-发布记录/YYYYMMDDNN-发布记录-&lt;版本&gt;.md</code></td>
+<td><strong>每次发布的完整发布记录</strong>（构建指纹 / 冒烟结果 / 已知问题 / 回滚点）</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>04-运营部署/03-发布记录/backup/</code></td>
+<td><code>backup.ps1</code> 产出的库快照</td>
+<td>❌ gitignore</td>
+</tr>
+<tr>
+<td><code>02-代码开发/05-源码/builds/</code></td>
+<td>完整发布包（jar / dist / sql / manifest.json）</td>
 <td>❌ gitignore</td>
 </tr>
 <tr>
@@ -1346,7 +1467,11 @@ volumes:
 </tbody>
 </table></div>
 <blockquote>
-<p><strong>约束</strong>：<code>CHANGELOG.md</code> 是版本变更的唯一入库载体。发布包里的 changelog 是镜像，不做双份维护——历史上曾经手工各维护一份，160 个文件里 158 个同名却长期漂移。</p>
+<p><strong>约束</strong>：<code>CHANGELOG.md</code> 是<strong>版本变更</strong>的唯一入库载体。发布包里的 changelog 是镜像，不做双份维护——历史上曾经手工各维护一份，160 个文件里 158 个同名却长期漂移。</p>
+<p>⚠ <strong>本节此前写错了一处（2026-11-05 实测订正）</strong>：原文写 <code>04-运营部署/03-发布记录/</code> 整个目录「❌ gitignore」。
+<strong>实际 <code>.gitignore</code> 只排除了该目录下的 <code>backup/</code></strong>（<code>git check-ignore</code> 实测：
+<code>04-运营部署/03-发布记录/xxx.md</code> <strong>未命中</strong>任何 ignore 规则 ⇒ <strong>发布记录文件是入库的</strong>）。
+已按真实边界改写：发布记录入库、发布包与库快照不入库。</p>
 </blockquote>
 </section>
 
@@ -1357,7 +1482,7 @@ volumes:
 </div>
 
 <button class="m-fab" id="fab" type="button">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/></svg>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
   目录
 </button>
 

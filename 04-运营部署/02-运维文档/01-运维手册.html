@@ -582,6 +582,41 @@ Get-Content 'C:\ProgramData\jeecg-study\logs\monthly-partition.log' -Tail 10
 <blockquote>
 <p><strong>错题图片是唯一不在数据库里的业务数据</strong>，必须单独备份。丢了图片不影响学情统计，但原始错题就没了。</p>
 </blockquote>
+<h3>2.1.1 备份落点与入库边界（2026-11-05 实测确认）</h3>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>结论</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>落点</td>
+<td><code>&lt;repo&gt;\04-运营部署\03-发布记录\backup\</code>（<strong>在仓库工作区内</strong>）</td>
+</tr>
+<tr>
+<td>入库边界</td>
+<td>该目录由 <code>.gitignore</code> 整棵排除 ⇒ 备份<strong>永不进 git</strong></td>
+</tr>
+<tr>
+<td>内容安全</td>
+<td>2026-11-05 对实际备份做过一次<strong>内容扫描</strong>：解压后 7.19 MB / 5854 行，<strong>未发现任何明文凭据</strong> —— <code>password</code> / <code>token</code> / <code>secret</code> / <code>salt</code> 等命中项全部是<strong>列名定义</strong>与 BCrypt 哈希；无 <code>GRANT</code> / <code>IDENTIFIED BY</code> / 明文口令 / JWT / 带口令的 JDBC URL</td>
+</tr>
+<tr>
+<td>保留周期</td>
+<td>业务库 30 天、平台库 8 份（§2.1 表）；过期由 <code>backup.ps1</code> 自动清理</td>
+</tr>
+<tr>
+<td><strong>已知限制</strong></td>
+<td><strong>本地安全策略禁止 Agent 把文件写到工作区外</strong> ⇒ 「把备份挪到仓库外」这条处置<strong>当前无法自动执行</strong>，需人工操作。因此选择「<strong>保留在既定落点 + 确认内容安全 + 登记策略</strong>」这条路，而不是删除备份 —— 删除对数据零收益（库还在、备份脚本随时可重跑），却会让恢复演练失去样本</td>
+</tr>
+<tr>
+<td>巡检</td>
+<td>§1.1 第 4 项（当天有 <code>.sql.gz</code> 且大小 &gt; 0）+ §1.2 第 3 项（<strong>抽一份做还原演练</strong>）—— 备份不验证等于没备份</td>
+</tr>
+</tbody>
+</table></div>
 <h3>2.2 备份脚本</h3>
 <blockquote>
 <p>脚本已落成真文件：<strong><code>02-代码开发/05-源码/04-建库迁移/backup.ps1</code></strong>（UTF-8 带 BOM）。
@@ -1261,7 +1296,7 @@ CI / 其它机器没有凭据真源时 R7 会<strong>跳过并提示</strong>（
 </div>
 
 <button class="m-fab" id="fab" type="button">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/></svg>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
   目录
 </button>
 

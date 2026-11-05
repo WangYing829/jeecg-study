@@ -487,10 +487,15 @@
 <td><code>order</code></td>
 <td>string</td>
 <td>—</td>
-<td>排序，格式 <code>column,asc\|desc</code></td>
+<td>排序，格式 <code>column,asc\|desc</code>。<strong>当前实现的分页端点均不支持该参数</strong>（见各端点的「排序」说明），排序由服务端固定</td>
 </tr>
 </tbody>
 </table></div>
+<blockquote>
+<p><strong><code>order</code> 的口径</strong>：本说明书的分页端点<strong>一律按服务端固定排序</strong>返回，<strong>不接受前端自定义 <code>order</code></strong>。
+以 <code>GET /practice/records</code> 为例，排序固定为 <code>create_time DESC, id DESC</code>（见 §5.5）——
+前端传 <code>order</code> 不会报错，但<strong>不生效</strong>，不会改变返回顺序。</p>
+</blockquote>
 <p><strong>响应结构</strong>：</p>
 <pre class="cmd"><code class="language-json">{
   &quot;records&quot;: [],
@@ -871,7 +876,7 @@
 <td>21</td>
 <td>GET</td>
 <td><code>/practice/{contentId}/explanation/feedback</code></td>
-<td>提交「我不同意」</td>
+<td>查询该题的反馈状态；携带 <code>disagree=true</code> 时记录一次用户异议</td>
 <td>R-02</td>
 </tr>
 <tr>
@@ -934,7 +939,7 @@
 <td>28</td>
 <td>GET</td>
 <td><code>/error-pool/{code}</code></td>
-<td>错题详情</td>
+<td>错题详情（<strong>不含题干 / 答案 / 解析</strong>，见 §6.5）</td>
 <td>F-WRG-04</td>
 </tr>
 <tr>
@@ -969,7 +974,7 @@
 <td>33</td>
 <td>GET</td>
 <td><code>/error-pool/statistics/hot</code></td>
-<td>高频错题/薄弱点</td>
+<td>高频错题（<strong>只返回高频错题</strong>，不含薄弱点）</td>
 <td>F-PAR-01</td>
 </tr>
 <tr>
@@ -1908,15 +1913,321 @@
 <pre class="cmd"><code class="language-json">{
   &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
   &quot;result&quot;: {
+    &quot;contentId&quot;: &quot;QST-SELF-2026-0088&quot;,
+    &quot;motherCode&quot;: &quot;MTH-MA-0123&quot;,
     &quot;passed&quot;: false,
-    &quot;matchedKeywords&quot;: [&quot;路程&quot;, &quot;速度&quot;, &quot;时间&quot;],
-    &quot;missingKeywords&quot;: [&quot;和&quot;, &quot;等于&quot;],
-    &quot;followUpQuestion&quot;: &quot;如果两车速度不一样，这个关系还成立吗？想想「速度和」是怎么来的。&quot;,
+    &quot;matchedKeywords&quot;: [&quot;路程和&quot;, &quot;速度和&quot;],
+    &quot;missingKeywords&quot;: [&quot;相遇时间&quot;],
+    &quot;followUpQuestion&quot;: &quot;「行程问题·相遇」这道题里，哪几个量之间存在固定关系？&quot;,
     &quot;motherPassed&quot;: false
   }
 }
 </code></pre>
 <p><strong>规则</strong>：口述未通过时<strong>不给答案</strong>，只返回一条苏格拉底式追问（PRD F-MTH-03）。</p>
+<blockquote>
+<p><strong>关键词从哪来</strong>：判据是<strong>母题第 3 段「关键关系」</strong>（<code>keyRelation</code>），不是孩子这次说了什么。
+练习域<strong>复用</strong>母题域的同一个抽取器（<code>org.jeecg.modules.study.math.engine.NarrativeKeywordExtractor</code>），
+所以「练习域一套口径、母题域另一套口径」不存在。切分规则（可测、可复现）：</p>
+<ol>
+<li><strong>先把关系词当分隔符剔除</strong>（<code>等于</code> / <code>乘以</code> / <code>除以</code> / <code>加上</code> / <code>减去</code> / <code>大于</code> / <code>小于</code>）；</li>
+<li>再按「非字母数字汉字」切词；</li>
+<li>丢掉长度不足 2、长度超过 12、纯数字、以及虚词（<code>那么</code> / <code>所以</code> / <code>因为</code> / <code>如果</code> …）；</li>
+<li>保序去重，<strong>最多取 6 个</strong>。</li>
+</ol>
+<p>例如母题关键关系 <code>路程和 = 速度和 × 相遇时间</code> → 关键词 <code>["路程和", "速度和", "相遇时间"]</code>。
+<strong>粒度是「切出来的整段词」，不是单个字</strong>：<code>路程和</code> 是<strong>一个</strong>关键词，<code>和</code> / <code>等于</code> 永远不会被当成关键词
+（<code>等于</code> 在第 1 步就被当分隔符剔掉了，<code>和</code> 长度不足 2 在第 3 步被丢掉）。</p>
+<p>命中判定是<strong>子串包含</strong>（<code>speechText</code> 里包含该关键词即算命中），因此上面示例里
+<code>路程和</code> / <code>速度和</code> 命中，<code>相遇时间</code> 缺失 → <code>passed=false</code>。
+全部关键词命中才算 <code>passed=true</code>（母题口径）。</p>
+<p><strong><code>motherPassed</code> 的口径</strong>：<code>motherPassed</code> = 该母题<strong>已过关</strong>（<strong>变式全对</strong>口径）——
+服务端取母题进度里的「已过关母题集合」，判据是该母题要求过关的变式<strong>全部做对</strong>。
+<strong>口述结果本身不落库</strong>，所以口述既不会让母题过关、也不会把母题变成未过关；
+正式的过关判定仍走 <code>POST /math/mother/{code}/pass</code>（变式全对 <strong>且</strong> 口述通过才算过关）。
+没有关联母题的内容没有关键关系判据，此时 <code>passed</code> 与 <code>motherPassed</code> 均为 <code>false</code>。</p>
+</blockquote>
+<h3>5.5 GET /practice/records — 作答记录分页</h3>
+<p><strong>权限码</strong>：<code>study:parent:report:view</code>（家长端）/ <code>study:kid:practice:query</code>（孩子端），二选一即可。</p>
+<p><strong>请求参数</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>默认</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>childCode</code></td>
+<td>string</td>
+<td>否</td>
+<td>—</td>
+<td>孩子业务ID（<code>CHD-xxx</code>）。<strong>可选</strong>：家长侧传了则与关系表求交集（越权 <strong>4010</strong>）；孩子侧不传，服务端按会话取自己</td>
+</tr>
+<tr>
+<td><code>pageNo</code></td>
+<td>number</td>
+<td>否</td>
+<td>1</td>
+<td>页码，从 1 开始；小于 1 按 1 处理</td>
+</tr>
+<tr>
+<td><code>pageSize</code></td>
+<td>number</td>
+<td>否</td>
+<td>10</td>
+<td>每页条数，<strong>上限 100</strong>（超出按 100 截断）</td>
+</tr>
+<tr>
+<td><code>month</code></td>
+<td>string</td>
+<td>否</td>
+<td>当月</td>
+<td>统计月份 <code>yyyyMM</code>；格式非法返回 <strong>400</strong></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>不支持自定义排序</strong>：本接口<strong>不接受 <code>order</code> 参数</strong>（§1.3 已说明口径）。
+排序<strong>固定</strong>为 <code>create_time DESC, id DESC</code>（按提交时间倒序，同秒再按主键倒序，保证顺序稳定）。</p>
+</blockquote>
+<p><strong>响应字段</strong>（<code>PracticeRecordPageVO</code>）</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>records</code></td>
+<td>array</td>
+<td>当前页记录（<code>PracticeRecordVO</code>）</td>
+</tr>
+<tr>
+<td><code>total</code></td>
+<td>number</td>
+<td>总条数</td>
+</tr>
+<tr>
+<td><code>pageNo</code></td>
+<td>number</td>
+<td>当前页码</td>
+</tr>
+<tr>
+<td><code>pageSize</code></td>
+<td>number</td>
+<td>每页条数（回显实际生效值）</td>
+</tr>
+<tr>
+<td><code>pages</code></td>
+<td>number</td>
+<td>总页数</td>
+</tr>
+<tr>
+<td><code>month</code></td>
+<td>string</td>
+<td>统计所属月份 <code>yyyyMM</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>记录条目</strong>（<code>PracticeRecordVO</code>）</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>contentId</code></td>
+<td>内容业务ID</td>
+</tr>
+<tr>
+<td><code>contentType</code></td>
+<td>内容类型</td>
+</tr>
+<tr>
+<td><code>sourceModule</code></td>
+<td>来源模块</td>
+</tr>
+<tr>
+<td><code>knowledgePointCode</code></td>
+<td>考点业务ID</td>
+</tr>
+<tr>
+<td><code>correct</code></td>
+<td>是否正确（1 是 / 0 否）</td>
+</tr>
+<tr>
+<td><code>errorCause</code></td>
+<td>错因（答错时有值）</td>
+</tr>
+<tr>
+<td><code>errorCode</code></td>
+<td>生成的错题业务ID（答错时才有）</td>
+</tr>
+<tr>
+<td><code>durationMs</code></td>
+<td>本题耗时（毫秒）</td>
+</tr>
+<tr>
+<td><code>practiceDate</code></td>
+<td>练习日期 <code>yyyy-MM-dd</code></td>
+</tr>
+<tr>
+<td><code>createTime</code></td>
+<td>提交时间 <code>yyyy-MM-dd HH:mm:ss</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>不下发作答原文与答案</strong>（R-02 / R-04）：只给「做了什么题、对不对、错在哪」，家长端只看客观趋势。</p>
+<p><strong>分表口径</strong>：作答记录按月分表（<code>study_practice_record_yyyyMM</code>），不传 <code>month</code> 取当月表；
+传了历史月份而该月表尚未建时，<strong>不抛异常</strong>，只当这张表没有数据（缺表是运维的事，不该让报表整体挂掉）。</p>
+</blockquote>
+<p><strong>错误码</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>码</th>
+<th>触发场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>400</td>
+<td><code>month</code> 格式不是 <code>yyyyMM</code></td>
+</tr>
+<tr>
+<td>4010</td>
+<td>家长传的 <code>childCode</code> 不在关系表关联集合内，或当前身份没有任何可见孩子</td>
+</tr>
+</tbody>
+</table></div>
+<h3>5.6 GET /practice/stats/today — 今日练习统计</h3>
+<p><strong>权限码</strong>：<code>study:parent:report:view</code>（家长端）/ <code>study:kid:practice:query</code>（孩子端），二选一即可。</p>
+<p><strong>请求参数</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>childCode</code></td>
+<td>string</td>
+<td>否</td>
+<td>孩子业务ID（<code>CHD-xxx</code>）。家长侧传了则与关系表求交集（越权 <strong>4010</strong>）；孩子侧不传，服务端按会话取自己</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>响应字段</strong>（<code>PracticeTodayStatsVO</code>）</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>date</code></td>
+<td>string</td>
+<td>统计日期 <code>yyyy-MM-dd</code></td>
+</tr>
+<tr>
+<td><code>totalCount</code></td>
+<td>number</td>
+<td>作答总题数</td>
+</tr>
+<tr>
+<td><code>correctCount</code></td>
+<td>number</td>
+<td>做对题数</td>
+</tr>
+<tr>
+<td><code>wrongCount</code></td>
+<td>number</td>
+<td>做错题数</td>
+</tr>
+<tr>
+<td><code>durationMinutes</code></td>
+<td>number</td>
+<td>累计用时（分钟，服务端按毫秒汇总后换算）</td>
+</tr>
+<tr>
+<td><code>moduleCount</code></td>
+<td>number</td>
+<td>涉及的模块数（按来源模块去重计数）</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>只有客观计数，没有任何名次类字段</strong>（R-04）。
+统计口径：取<strong>当月表</strong> <code>study_practice_record_yyyyMM</code> 里 <code>practice_date = 今天</code> 的记录。</p>
+</blockquote>
+<p><strong>错误码</strong>：<strong>4010</strong>（越权）；当月表尚未建时返回全 0，不报错。</p>
+<h3>5.7 GET /practice/stats/streak — 连续学习天数</h3>
+<p><strong>权限码</strong>：<code>study:parent:report:view</code>（家长端）/ <code>study:kid:practice:query</code>（孩子端），二选一即可。</p>
+<p><strong>请求参数</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>childCode</code></td>
+<td>string</td>
+<td>否</td>
+<td>孩子业务ID（<code>CHD-xxx</code>）。家长侧传了则与关系表求交集（越权 <strong>4010</strong>）；孩子侧不传，服务端按会话取自己</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>响应字段</strong>（<code>PracticeStreakVO</code>）</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>days</code></td>
+<td>number</td>
+<td>连续学习天数</td>
+</tr>
+<tr>
+<td><code>todayCompleted</code></td>
+<td>boolean</td>
+<td>今天是否已完成练习</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>只跟自己比</strong>（R-04）：连续天数是<strong>这个孩子自己的</strong>累计，与任何其他人无关。
+统计口径：从当月表与前两个月表里取出有练习记录的日期去重，
+再从今天（今天没练则从昨天）往回数连续天数——<strong>今天没练不打断昨天起的连续段</strong>。</p>
+</blockquote>
+<p><strong>错误码</strong>：<strong>4010</strong>（越权）；历史月表尚未建时按「无记录」处理，不报错。</p>
 </section>
 <section id="error">
   <div class="sec-head"><span class="sec-num">06</span><h3>错题与排期接口</h3><span class="tag">复盘引擎</span></div>
@@ -2146,6 +2457,446 @@
 }
 </code></pre>
 <p><strong>排期规则</strong>（服务端计算，前端不参与）：当天→+1 天→+3 天→+7 天→+14 天；连续三次做对即移出；母题口述未过时 <code>archived</code> 恒为 <code>false</code>。</p>
+<h3>6.5 GET /error-pool/{code} — 错题详情</h3>
+<p><strong>权限码</strong>：<code>study:parent:error:query</code>（家长端）/ <code>study:kid:error:query</code>（孩子端），二选一即可。</p>
+<p><strong>路径参数</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>code</code></td>
+<td>string</td>
+<td>是</td>
+<td>错题业务ID（<code>ERR-00000123</code>）。为空或错题不存在返回 <strong>400</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>响应字段</strong>（<code>ErrorDetailVO</code>）</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>errorCode</code></td>
+<td>string</td>
+<td>错题业务ID</td>
+</tr>
+<tr>
+<td><code>sourceModule</code></td>
+<td>string</td>
+<td>来源模块</td>
+</tr>
+<tr>
+<td><code>contentType</code></td>
+<td>string</td>
+<td>内容类型</td>
+</tr>
+<tr>
+<td><code>contentId</code></td>
+<td>string</td>
+<td>关联内容业务ID</td>
+</tr>
+<tr>
+<td><code>knowledgePointCode</code></td>
+<td>string</td>
+<td>考点业务ID</td>
+</tr>
+<tr>
+<td><code>knowledgePointName</code></td>
+<td>string</td>
+<td>考点名称</td>
+</tr>
+<tr>
+<td><code>subjectCode</code></td>
+<td>string</td>
+<td>学科编码</td>
+</tr>
+<tr>
+<td><code>errorCause</code></td>
+<td>string</td>
+<td>错因（五维之一）</td>
+</tr>
+<tr>
+<td><code>errorCauseName</code></td>
+<td>string</td>
+<td>错因展示名</td>
+</tr>
+<tr>
+<td><code>judgeSource</code></td>
+<td>string</td>
+<td>判定来源（<code>rule</code> / <code>rule+model</code>）</td>
+</tr>
+<tr>
+<td><code>masteryState</code></td>
+<td>number</td>
+<td>掌握状态 1 未知 / 2 学习中 / 3 熟悉 / 4 掌握</td>
+</tr>
+<tr>
+<td><code>correctStreak</code></td>
+<td>number</td>
+<td>连续答对次数</td>
+</tr>
+<tr>
+<td><code>reviewStatus</code></td>
+<td>number</td>
+<td>复习状态 1 待复习 / 2 已移出</td>
+</tr>
+<tr>
+<td><code>nextReviewAt</code></td>
+<td>string</td>
+<td>下次复习日期 <code>yyyy-MM-dd</code></td>
+</tr>
+<tr>
+<td><code>lastReviewAt</code></td>
+<td>string</td>
+<td>上次复习时间 <code>yyyy-MM-dd HH:mm:ss</code></td>
+</tr>
+<tr>
+<td><code>archived</code></td>
+<td>boolean</td>
+<td>是否已移出复习队列</td>
+</tr>
+<tr>
+<td><code>createTime</code></td>
+<td>string</td>
+<td>入池时间 <code>yyyy-MM-dd HH:mm:ss</code></td>
+</tr>
+<tr>
+<td><code>copyrightType</code></td>
+<td>string</td>
+<td>版权类型（<code>SELF</code> / <code>PUBLIC</code>）</td>
+</tr>
+<tr>
+<td><code>sourceRef</code></td>
+<td>string</td>
+<td>出处</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>不含题干 / 答案 / 解析 —— 这是有意为之，按现状保留</strong>（R-01 反搜题边界）。
+错题详情是「按 ID 取内容」的入口；若在这里下发答案或解析，
+等于开了一条「拿错题 ID 换答案」的旁路，与 §8.1「家长端无答案查询」同一口径。</p>
+<p><strong>替代路径（孩子端要看原题）</strong>：
+- <strong>原题内容</strong>走 <code>GET /error-pool/{code}/variants</code> 拿变式题干，或走练习域的错题重做
+  <code>GET /practice/wrong/next</code>（<code>type=wrong</code>）取原题——两者都只给题干，<strong>答案在孩子作答之后才给</strong>；
+- <strong>解析</strong>走 <code>GET /practice/{contentId}/explanation</code>（必须<strong>先作答</strong>，未作答返回 <strong>4003</strong>）。</p>
+<p>换句话说：<strong>看题干随时可以，看答案必须先作答</strong>——这条边界在本接口上同样成立。</p>
+</blockquote>
+<p><strong>错误码</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>码</th>
+<th>触发场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>400</td>
+<td><code>code</code> 为空，或错题业务ID 不存在</td>
+</tr>
+<tr>
+<td>4010</td>
+<td>该错题归属的孩子不在当前身份的可见集合内</td>
+</tr>
+</tbody>
+</table></div>
+<h3>6.6 GET /error-pool/statistics/hot — 高频错题</h3>
+<p><strong>权限码</strong>：<code>study:parent:error:query</code>（家长端）/ <code>study:kid:error:query</code>（孩子端），二选一即可。</p>
+<p><strong>请求参数</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>默认</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>childCode</code></td>
+<td>string</td>
+<td>否</td>
+<td>—</td>
+<td>孩子业务ID（<code>CHD-xxx</code>）。家长侧传了则与关系表求交集（越权 <strong>4010</strong>）；孩子侧不传，服务端按会话取自己</td>
+</tr>
+<tr>
+<td><code>limit</code></td>
+<td>number</td>
+<td>否</td>
+<td>10</td>
+<td>返回条数，<strong>上限 50</strong>（超出按 50 截断）</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>响应字段</strong>（<code>ErrorHotStatisticVO</code> 数组）</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>errorCode</code></td>
+<td>string</td>
+<td>错题业务ID</td>
+</tr>
+<tr>
+<td><code>sourceModule</code></td>
+<td>string</td>
+<td>来源模块</td>
+</tr>
+<tr>
+<td><code>contentType</code></td>
+<td>string</td>
+<td>内容类型</td>
+</tr>
+<tr>
+<td><code>contentId</code></td>
+<td>string</td>
+<td>关联内容业务ID</td>
+</tr>
+<tr>
+<td><code>knowledgePointCode</code></td>
+<td>string</td>
+<td>考点业务ID</td>
+</tr>
+<tr>
+<td><code>knowledgePointName</code></td>
+<td>string</td>
+<td>考点名称</td>
+</tr>
+<tr>
+<td><code>errorCount</code></td>
+<td>number</td>
+<td>同一道题的出错次数</td>
+</tr>
+<tr>
+<td><code>masteryState</code></td>
+<td>number</td>
+<td>掌握状态 1–4</td>
+</tr>
+<tr>
+<td><code>lastErrorAt</code></td>
+<td>string</td>
+<td>最近一次错题时间 <code>yyyy-MM-dd HH:mm:ss</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>本接口只返回「高频错题」，不返回薄弱考点</strong>。
+口径是「<strong>按同一道题的出错次数</strong>从多到少」聚合（同一内容的多条错题合并计数），
+<strong>不是</strong>按考点聚合——考点维度的薄弱清单由 <code>GET /mastery/weak-points</code> 覆盖。</p>
+<p><strong>该端点遵守 R-04</strong>：响应里只有<strong>客观计数与状态</strong>，顺序由出错次数决定，
+但<strong>不出现任何名次 / 百分位类字段</strong>，也没有他人标识。</p>
+</blockquote>
+<p><strong>错误码</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>码</th>
+<th>触发场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4010</td>
+<td><code>childCode</code> 不在关系表关联集合内，或当前身份没有任何可见孩子</td>
+</tr>
+</tbody>
+</table></div>
+<h3>6.7 POST /review/queue/complete-batch — 批量完成复习</h3>
+<p><strong>权限码</strong>：<code>study:kid:review:add</code>。</p>
+<p><strong>请求</strong>（<code>ReviewBatchCompleteCommand</code>）</p>
+<pre class="cmd"><code class="language-json">{
+  &quot;items&quot;: [
+    {
+      &quot;errorCode&quot;: &quot;ERR-00000123&quot;,
+      &quot;correct&quot;: true,
+      &quot;errorCause&quot;: &quot;READING&quot;,
+      &quot;reviewDate&quot;: &quot;2026-10-30&quot;,
+      &quot;variantResults&quot;: [
+        { &quot;variantCode&quot;: &quot;QST-VAR-MTH-MA-0123-1-001&quot;, &quot;correct&quot;: true }
+      ]
+    }
+  ]
+}
+</code></pre>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>items</code></td>
+<td>array</td>
+<td>是</td>
+<td>待完成的复习项。每一项的结构与 <code>POST /review/queue/{code}/complete</code> <strong>完全一致</strong></td>
+</tr>
+<tr>
+<td><code>items[].errorCode</code></td>
+<td>string</td>
+<td>是</td>
+<td>错题业务ID</td>
+</tr>
+<tr>
+<td><code>items[].correct</code></td>
+<td>boolean</td>
+<td>是</td>
+<td>本次是否答对</td>
+</tr>
+<tr>
+<td><code>items[].errorCause</code></td>
+<td>string</td>
+<td>答错时必填</td>
+<td>错因（五维之一）；缺失返回 <strong>4001</strong></td>
+</tr>
+<tr>
+<td><code>items[].reviewDate</code></td>
+<td>string</td>
+<td>否</td>
+<td>复习日期 <code>yyyy-MM-dd</code>；不填取当天（服务端计算排期，前端不参与）</td>
+</tr>
+<tr>
+<td><code>items[].variantResults</code></td>
+<td>array</td>
+<td>否</td>
+<td>变式作答结果：<code>variantCode</code> + <code>correct</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>响应</strong>（<code>ReviewBatchCompleteVO</code>）</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>total</code></td>
+<td>number</td>
+<td>提交总项数</td>
+</tr>
+<tr>
+<td><code>succeeded</code></td>
+<td>number</td>
+<td>成功项数</td>
+</tr>
+<tr>
+<td><code>failed</code></td>
+<td>number</td>
+<td>失败项数</td>
+</tr>
+<tr>
+<td><code>items</code></td>
+<td>array</td>
+<td>逐项结果（<code>ReviewBatchItemVO</code>）</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>逐项结果</strong>（<code>ReviewBatchItemVO</code>）</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>errorCode</code></td>
+<td>string</td>
+<td>错题业务ID</td>
+</tr>
+<tr>
+<td><code>success</code></td>
+<td>boolean</td>
+<td>本项是否处理成功</td>
+</tr>
+<tr>
+<td><code>counted</code></td>
+<td>boolean</td>
+<td>本次是否计入「做对」（变式未全对时为 <code>false</code>）</td>
+</tr>
+<tr>
+<td><code>correctStreak</code></td>
+<td>number</td>
+<td>连续答对次数</td>
+</tr>
+<tr>
+<td><code>masteryState</code></td>
+<td>number</td>
+<td>掌握状态 1–4</td>
+</tr>
+<tr>
+<td><code>archived</code></td>
+<td>boolean</td>
+<td>是否已移出复习队列</td>
+</tr>
+<tr>
+<td><code>nextReviewAt</code></td>
+<td>string</td>
+<td>下次复习日期 <code>yyyy-MM-dd</code></td>
+</tr>
+<tr>
+<td><code>message</code></td>
+<td>string</td>
+<td>提示文案（失败时是该项的失败原因）</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>逐项独立</strong>：每一项都完整走一遍「完成一项复习」的流程（各自独立事务），
+<strong>单项失败不影响其它项</strong>——失败项 <code>success=false</code>，失败原因写在该项的 <code>message</code> 里，
+整批请求本身仍返回成功。
+排期推进口径与 §6.4 完全一致（含变式未全对不计入做对、同日幂等、并发 CAS 占用）。</p>
+</blockquote>
+<p><strong>错误码</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>码</th>
+<th>触发场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4001</td>
+<td>某一项答错但没带错因（<strong>逐项失败</strong>，不影响其它项）</td>
+</tr>
+<tr>
+<td>4010</td>
+<td>某一项归属的孩子不在当前身份的可见集合内（<strong>逐项失败</strong>）</td>
+</tr>
+</tbody>
+</table></div>
 </section>
 <section id="biz">
   <div class="sec-head"><span class="sec-num">07</span><h3>业务模块接口</h3><span class="tag">六模块</span></div>
@@ -2788,6 +3539,168 @@
 <p><strong>心跳请求</strong>：<code>{"active": true, "blueLight": false}</code>——<strong>服务端不信任客户端上报的时长</strong>，只按心跳次数 × 30 秒累加。这是系统设计 8.8 的落地。</p>
 <blockquote>
 <p>该通道不计入第 3 章的 89 个接口统计（属基础设施类）。</p>
+</blockquote>
+<h3>8.3 GET / PUT /parent/notification-preference — 提醒推送偏好</h3>
+<p><strong>权限码</strong>：<code>study:parent:pref</code>（家长端资源域<strong>唯一</strong>的写入口；父子接口共用同一权限码）</p>
+<p><strong>GET 请求参数</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>childCode</code></td>
+<td>string</td>
+<td>否</td>
+<td>孩子业务ID；<strong>留空 = 「全部孩子」这一档</strong>。指定孩子时必须与 <code>study_parent_child_rel</code> 求交集</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>PUT 请求体</strong>（<code>NotificationPreferenceRequest</code>）</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>childCode</code></td>
+<td>string</td>
+<td>否</td>
+<td>孩子业务ID；留空 = 「全部孩子」这一档</td>
+</tr>
+<tr>
+<td><code>reviewRemindEnabled</code></td>
+<td>boolean</td>
+<td>否</td>
+<td>复习提醒开关；<strong>不传 = 不修改</strong></td>
+</tr>
+<tr>
+<td><code>reviewRemindTime</code></td>
+<td>string</td>
+<td>否</td>
+<td>复习提醒推送时间，接受 <code>HH:mm</code> 或 <code>HH:mm:ss</code>；不传 = 不修改</td>
+</tr>
+<tr>
+<td><code>eyeRemindEnabled</code></td>
+<td>boolean</td>
+<td>否</td>
+<td>护眼提醒开关；不传 = 不修改</td>
+</tr>
+<tr>
+<td><code>eyeRemindTime</code></td>
+<td>string</td>
+<td>否</td>
+<td>护眼提醒推送时间，接受 <code>HH:mm</code> 或 <code>HH:mm:ss</code>；不传 = 不修改</td>
+</tr>
+<tr>
+<td><code>pushChannel</code></td>
+<td>string</td>
+<td>否</td>
+<td>推送渠道，取值 <code>APP</code> / <code>WECHAT</code> / <code>SMS</code>（大小写不敏感，入库统一转大写）；不传 = 不修改</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>写入语义</strong>：PUT 是<strong>部分更新</strong>——只覆盖请求里带了值的字段，其余保持原值（与 §1.5 的空值约定一致）。
+<strong>时间归一</strong>：传 <code>HH:mm</code> 时按 <code>HH:mm:ss</code> 落库（如 <code>19:00</code> → <code>19:00:00</code>）；时分越界或格式不符返回 400。
+<strong>默认档</strong>：无记录时返回默认档——复习提醒 <code>19:00:00</code>、护眼提醒 <code>19:30:00</code>、渠道 <code>APP</code>，两个开关均为开。
+<strong>渠道取值</strong>：不在 <code>APP / WECHAT / SMS</code> 之内返回 400。</p>
+</blockquote>
+<p><strong>响应字段</strong>（<code>NotificationPreferenceVO</code>，GET 与 PUT 返回同构）</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>childCode</code></td>
+<td>string</td>
+<td>孩子业务ID；空串 = 「全部孩子」这一档</td>
+</tr>
+<tr>
+<td><code>reviewRemindEnabled</code></td>
+<td>boolean</td>
+<td>复习提醒开关</td>
+</tr>
+<tr>
+<td><code>reviewRemindTime</code></td>
+<td>string</td>
+<td>复习提醒推送时间，格式 <code>HH:mm:ss</code></td>
+</tr>
+<tr>
+<td><code>eyeRemindEnabled</code></td>
+<td>boolean</td>
+<td>护眼提醒开关</td>
+</tr>
+<tr>
+<td><code>eyeRemindTime</code></td>
+<td>string</td>
+<td>护眼提醒推送时间，格式 <code>HH:mm:ss</code></td>
+</tr>
+<tr>
+<td><code>pushChannel</code></td>
+<td>string</td>
+<td>推送渠道 <code>APP</code> / <code>WECHAT</code> / <code>SMS</code></td>
+</tr>
+<tr>
+<td><code>updateTime</code></td>
+<td>string</td>
+<td>最后更新时间，格式 <code>yyyy-MM-dd HH:mm:ss</code>（GMT+8）</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>响应示例</strong></p>
+<pre class="cmd"><code class="language-json">{
+  &quot;success&quot;: true, &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;,
+  &quot;result&quot;: {
+    &quot;childCode&quot;: &quot;&quot;,
+    &quot;reviewRemindEnabled&quot;: true,
+    &quot;reviewRemindTime&quot;: &quot;19:00:00&quot;,
+    &quot;eyeRemindEnabled&quot;: true,
+    &quot;eyeRemindTime&quot;: &quot;19:30:00&quot;,
+    &quot;pushChannel&quot;: &quot;APP&quot;,
+    &quot;updateTime&quot;: &quot;2026-11-05 20:11:03&quot;
+  }
+}
+</code></pre>
+<p><strong>错误码</strong></p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th>code</th>
+<th>含义</th>
+<th>触发条件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>400</td>
+<td>参数非法</td>
+<td>推送时间格式不符或时分越界；推送渠道不在 <code>APP / WECHAT / SMS</code> 之内；请求体为空</td>
+</tr>
+<tr>
+<td>4010</td>
+<td>越权</td>
+<td>指定的 <code>childCode</code> 不在当前家长关联的孩子范围内</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>偏好<strong>不含任何孩子的学习数据</strong>，也不含名次类字段（R-04）。</p>
 </blockquote>
 </section>
 <section id="family">
@@ -3526,49 +4439,60 @@
 <section id="auth">
   <div class="sec-head"><span class="sec-num">13</span><h3>权限码设计</h3><span class="tag">细粒度</span></div>
   <p>权限码设计</p>
+<!--update-begin---author:mavis ---date:2026-11-05  for：【接口文档口径对齐】§13 权限码改为库内实际生效码（查库 sys_permission 实测 42 条）----------- -->
+
+<blockquote>
+<p><strong>本章以库内实际生效为准</strong>（2026-11-05 查库实测）：
+<code>sys_permission</code> 中 <code>perms LIKE 'study:%'</code> 共 <strong>42</strong> 条，全部 <code>del_flag=0</code>、<code>status=1</code>——
+<code>study:kid:*</code> <strong>14</strong> 条、<code>study:parent:*</code> <strong>23</strong> 条、<code>study:math:*</code> 与 <code>study:writing:*</code> <strong>5</strong> 条。
+下表全部取自这 42 条；<strong>库内不存在的码</strong>（<code>study:practice:do</code>、<code>study:practice:explain</code>、
+<code>study:parent:view</code>、<code>study:context:view</code> / <code>study:context:edit</code>、<code>study:kp:*</code>、
+<code>study:error:*</code>、<code>study:review:*</code>、<code>study:word:manage</code>、<code>study:kid:me</code>）<strong>一律不作数</strong>。
+角色与权限码的对应关系以 <code>sys_role_permission</code> 为准，见下方「角色映射」。</p>
+</blockquote>
 <div class="tbl-wrap"><table>
 <thead>
 <tr>
 <th>资源</th>
-<th>权限码示例</th>
+<th>权限码（库内实际生效）</th>
 <th>说明</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>上下文</td>
-<td><code>study:context:view</code> / <code>study:context:edit</code></td>
-<td></td>
+<td><code>study:parent:context:query</code> / <code>study:parent:context:edit</code></td>
+<td>取当前 / 列表用 <code>query</code>；创建切换与护眼间隔用 <code>edit</code></td>
 </tr>
 <tr>
 <td>坐标树</td>
-<td><code>study:kp:view</code> / <code>study:kp:edit</code> / <code>study:kp:import</code></td>
-<td></td>
+<td><code>study:parent:knowledge:query</code> / <code>study:parent:knowledge:edit</code> / <code>study:parent:knowledge:import</code></td>
+<td><code>import</code> 独立成码，便于审计</td>
 </tr>
 <tr>
 <td>练习</td>
-<td><code>study:practice:do</code> / <code>study:practice:explain</code></td>
-<td><code>explain</code> 独立成码，便于审计</td>
+<td><code>study:kid:practice:query</code> / <code>study:kid:practice:add</code></td>
+<td>取题（<code>query</code>）与提交作答（<code>add</code>）分码；<strong>家长角色不持此二码</strong></td>
 </tr>
 <tr>
 <td>错题</td>
-<td><code>study:error:view</code> / <code>study:error:add</code> / <code>study:error:edit</code> / <code>study:error:export</code></td>
-<td></td>
+<td><code>study:kid:error:query</code> / <code>study:kid:error:add</code> / <code>study:parent:error:query</code> / <code>study:parent:error:add</code> / <code>study:parent:error:edit</code></td>
+<td>同一端点家长与孩子<strong>各持一码</strong>（<code>@RequiresPermissions</code> 多值），二选一即可；改错因只有家长码 <code>study:parent:error:edit</code></td>
 </tr>
 <tr>
 <td>复习</td>
-<td><code>study:review:view</code> / <code>study:review:complete</code></td>
-<td></td>
+<td><code>study:kid:review:query</code> / <code>study:kid:review:add</code></td>
+<td>队列查询与完成复习；<code>GET /review/upcoming</code> 家长侧可用 <code>study:parent:error:query</code></td>
 </tr>
 <tr>
 <td>母题</td>
 <td><code>study:math:view</code> / <code>study:math:edit</code> / <code>study:math:pass</code></td>
-<td></td>
+<td>母题查看、维护与标记过关</td>
 </tr>
 <tr>
 <td>单词</td>
-<td><code>study:word:view</code> / <code>study:word:practice</code> / <code>study:word:manage</code></td>
-<td></td>
+<td><code>study:kid:word:view</code> / <code>study:kid:word:practice</code> / <code>study:kid:word:feedback</code> / <code>study:parent:word:view</code></td>
+<td>家长侧 <code>view</code> 只读孩子的单词统计</td>
 </tr>
 <tr>
 <td>语法</td>
@@ -3577,13 +4501,28 @@
 </tr>
 <tr>
 <td>写作</td>
-<td><code>study:writing:view</code> / <code>study:writing:train</code></td>
-<td></td>
+<td><code>study:writing:view</code> / <code>study:writing:train</code> / <code>study:parent:writing:query</code> / <code>study:parent:writing:feedback</code></td>
+<td>家长一句话反馈走 <code>study:parent:writing:feedback</code></td>
 </tr>
 <tr>
-<td>家长端</td>
-<td><code>study:parent:view</code> / <code>study:parent:feedback</code> / <code>study:parent:pref</code></td>
-<td></td>
+<td>家长端报告</td>
+<td><code>study:parent:report:view</code></td>
+<td>总览 / 周报 / 错因分布 / 掌握度弱项共用</td>
+</tr>
+<tr>
+<td>家长端偏好</td>
+<td><code>study:parent:pref</code></td>
+<td><code>GET/PUT /parent/notification-preference</code> 共用（见 §8.3）</td>
+</tr>
+<tr>
+<td>教材</td>
+<td><code>study:parent:textbook:query</code></td>
+<td>教材版本查询</td>
+</tr>
+<tr>
+<td>护眼</td>
+<td><code>study:kid:eye:usage</code></td>
+<td>护眼会话通道</td>
 </tr>
 <tr>
 <td>家庭</td>
@@ -3597,11 +4536,13 @@
 </tr>
 <tr>
 <td>孩子端</td>
-<td><code>study:kid:me</code> / <code>study:kid:logout</code></td>
+<td><code>study:kid:profile</code> / <code>study:kid:logout</code></td>
 <td><code>lookup</code> / <code>login</code> 免认证，<strong>不持权限码</strong></td>
 </tr>
 </tbody>
 </table></div>
+<!--update-end---author:mavis ---date:2026-11-05  for：【接口文档口径对齐】§13 权限码改为库内实际生效码（查库 sys_permission 实测 42 条）----------- -->
+
 <!--update-begin---author:mavis ---date:2026-10-31  for：【F-GRM-05 / F-GRM-04】语法域权限码并入既有口径（取消新增两码）----------- -->
 
 <blockquote>
@@ -3616,25 +4557,25 @@
 </blockquote>
 <!--update-end---author:mavis ---date:2026-10-31  for：【F-GRM-05 / F-GRM-04】语法域权限码并入既有口径（取消新增两码）----------- -->
 
-<p><strong>角色映射</strong></p>
+<p><strong>角色映射</strong>（2026-11-05 查库实测 <code>sys_role_permission</code>）</p>
 <div class="tbl-wrap"><table>
 <thead>
 <tr>
 <th>角色</th>
-<th>权限码前缀</th>
+<th>实际持有的权限码</th>
 <th>覆盖</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>study_kid</code></td>
-<td><code>study:kid:*</code> + <code>study:*:view</code> + <code>study:*:do/practice/train/complete/play</code></td>
-<td>做题、错题录入、复习、错句收藏、语法玩法；仅能读<strong>自己的</strong>数据</td>
+<td><code>study:kid:*</code> 全 14 条 + <code>study:writing:view</code> / <code>study:writing:train</code>（共 16 条）</td>
+<td>做题（<code>practice:add</code> / <code>practice:query</code>）、错题录入与查询、复习、单词、语法玩法、护眼上报；仅能读<strong>自己的</strong>数据</td>
 </tr>
 <tr>
 <td><code>study_parent</code></td>
-<td><code>study:parent:*</code> + <code>study:error:view</code> + <code>study:kp:view</code></td>
-<td>只读报表 + 一句话反馈 + 提醒偏好 + 家庭与孩子档案管理</td>
+<td><code>study:parent:*</code> 全 23 条 + <code>study:math:view</code> / <code>study:math:edit</code> / <code>study:math:pass</code> + <code>study:writing:view</code> / <code>study:writing:train</code>（共 28 条）</td>
+<td>只读报表 + 一句话反馈 + 提醒偏好 + 家庭与孩子档案管理 + 母题维护与标记过关</td>
 </tr>
 <tr>
 <td><code>admin</code></td>
@@ -3644,7 +4585,12 @@
 </tbody>
 </table></div>
 <blockquote>
-<p>家长角色<strong>不持有</strong> <code>study:practice:do</code>，因此在服务端就无法作答——这是 R-03 与「家长端只读」的技术保证，不依赖前端隐藏按钮。</p>
+<p>家长角色<strong>不持有</strong> <code>study:kid:practice:query</code> / <code>study:kid:practice:add</code>，
+因此在服务端就无法取题与作答——这是「家长端只读」的技术保证，不依赖前端隐藏按钮。
+家长<strong>只读</strong>孩子练习数据靠的是「不持练习码」，而不是「持一个只读版的练习码」——
+库内没有 <code>study:practice:do</code> 这类码；家长要读孩子数据走
+<code>study:parent:report:view</code> / <code>study:parent:error:query</code> / <code>study:parent:word:view</code> /
+<code>study:parent:writing:query</code> 等<strong>家长侧只读码</strong>。</p>
 </blockquote>
 <h3>13.1 家长侧 <code>study:parent:*</code> 与孩子侧 <code>study:kid:*</code> 的划分</h3>
 <div class="tbl-wrap"><table>
@@ -3663,12 +4609,12 @@
 </tr>
 <tr>
 <td>能做什么</td>
-<td>家庭与成员管理、孩子档案管理与 PIN 重置、家长↔孩子关联、只读查看关联孩子的数据、提交反馈与申诉</td>
+<td>家庭与成员管理、孩子档案管理与 PIN 重置、家长↔孩子关联、只读查看关联孩子的数据、维护错因、提交反馈与申诉</td>
 <td>查看自己的信息、退出登录</td>
 </tr>
 <tr>
 <td>不能做什么</td>
-<td><strong>不得</strong>作答、不得改错因、不得查看未关联孩子的数据</td>
+<td><strong>不得</strong>取题与作答（不持 <code>study:kid:practice:query</code> / <code>study:kid:practice:add</code>）、不得查看未关联孩子的数据；改错因走家长码 <code>study:parent:error:edit</code>（属错题域，不在家长端只读报告域内）</td>
 <td><strong>不得</strong>查看其他孩子的数据、不得管理家庭成员</td>
 </tr>
 <tr>
@@ -3780,7 +4726,7 @@
 </div>
 
 <button class="m-fab" id="fab" type="button">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/></svg>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
   目录
 </button>
 

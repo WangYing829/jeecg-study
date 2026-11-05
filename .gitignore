@@ -23,6 +23,11 @@ __pycache__/
 *.tmp
 *.bak
 
+# 构建同步产物：build-and-sync.ps1 的输出（jar/dist 已由上面的通配覆盖，
+# 但 application-*.yml、SQL 镜像副本与 manifest.json 不会被通配排除 ⇒ 必须整棵排除）
+02-代码开发/05-源码/builds/
+02-代码开发/05-源码/03-构建发布/build-logs/
+
 # ── IDE / 本地工具 ────────────────────────────────────────
 .idea/
 .vscode/
