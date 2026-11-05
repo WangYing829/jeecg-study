@@ -55,11 +55,11 @@ function Set-RuntimeDomainUrl {
 }
 
 if ($RuntimeDomainUrl) {
-    Write-Host "运行期接口地址：$RuntimeDomainUrl"
+    Write-Host "运行期接口地址：$RuntimeDomainUrl（按参数显式指定）"
 } else {
-    Write-Host '⚠ 未指定 -RuntimeDomainUrl：产物的 VITE_GLOB_DOMAIN_URL 仍是构建期默认值'
-    Write-Host '  （http://127.0.0.1:8080/jeecg-boot）⇒ WebSocket 会连不上，通知功能不可用。'
-    Write-Host '  部署到非 8080 的后端时，务必手动改写 dist/_app.config.js。'
+    Write-Host '运行期接口地址：沿用构建期默认值（相对路径 /jeecgboot）'
+    Write-Host '  构建后会**断言**产物里的 VITE_GLOB_DOMAIN_URL 必须是相对路径 ——'
+    Write-Host '  绝对地址会把部署环境写死进包（E-52 的根因），构建阶段直接禁止发布。'
 }
 
 # 05-源码 根（本脚本在 05-源码\04-建库迁移\ 下）
@@ -260,17 +260,33 @@ if (-not $SkipFrontend) {
         }
         Write-Host '  前端产物完整性校验通过（文件数一致 + index.html 引用齐全）'
 
-        # ③ 运行期配置判据：改了就要**验**改了，不接受「以为改了」
+        # ③ 运行期配置判据：**产物里不允许出现绝对地址**。
+        #    相对路径（/jeecgboot）意味着同一份产物在任何 host:port 下都能直接用
+        #    （nginx 同源反代即可）；绝对地址会把部署环境写死进包里 ——
+        #    换个端口/域名就得重打包，这正是 E-52 的根因。
         $latestCfg = Join-Path (Join-Path $latest 'frontend\dist') '_app.config.js'
+        if (-not (Test-Path $latestCfg)) {
+            throw '前端产物不完整：dist\_app.config.js 不存在，禁止发布'
+        }
+        $cfgTxt = [System.IO.File]::ReadAllText($latestCfg)
+        $m = [regex]::Match($cfgTxt, '"VITE_GLOB_DOMAIN_URL":"([^"]*)"')
+        if (-not $m.Success) {
+            throw '前端运行期配置缺失：dist\_app.config.js 里没有 VITE_GLOB_DOMAIN_URL，禁止发布'
+        }
+        $cfgUrl = $m.Groups[1].Value
         if ($RuntimeDomainUrl) {
-            if (-not (Test-Path $latestCfg)) {
-                throw '前端产物不完整：dist\_app.config.js 不存在，禁止发布'
+            if ($cfgUrl -ne $RuntimeDomainUrl) {
+                throw ("前端运行期配置未生效：期望 VITE_GLOB_DOMAIN_URL={0}，实际 {1}，禁止发布" -f $RuntimeDomainUrl, $cfgUrl)
             }
-            $cfgTxt = [System.IO.File]::ReadAllText($latestCfg)
-            if ($cfgTxt -notmatch [regex]::Escape('"VITE_GLOB_DOMAIN_URL":"' + $RuntimeDomainUrl + '"')) {
-                throw ("前端运行期配置未生效：dist\_app.config.js 里没有 VITE_GLOB_DOMAIN_URL={0}，禁止发布" -f $RuntimeDomainUrl)
+            Write-Host ("  运行期配置校验通过（VITE_GLOB_DOMAIN_URL = {0}，按 -RuntimeDomainUrl 指定）" -f $cfgUrl)
+        } else {
+            if ($cfgUrl -match '^https?://') {
+                throw ("前端产物把后端地址写死了（VITE_GLOB_DOMAIN_URL={0}）⇒ 换环境必须重打包，禁止发布；请改用相对路径（如 /jeecgboot）或显式传 -RuntimeDomainUrl" -f $cfgUrl)
             }
-            Write-Host ("  运行期配置校验通过（VITE_GLOB_DOMAIN_URL = {0}）" -f $RuntimeDomainUrl)
+            if (-not $cfgUrl.StartsWith('/')) {
+                throw ("前端运行期配置既不是绝对地址也不是相对路径（VITE_GLOB_DOMAIN_URL={0}），禁止发布" -f $cfgUrl)
+            }
+            Write-Host ("  运行期配置校验通过（VITE_GLOB_DOMAIN_URL = {0}，相对路径 ⇒ 同一份产物环境无关）" -f $cfgUrl)
         }
     } else {
         Write-Host '  跳过（dist 不存在）'

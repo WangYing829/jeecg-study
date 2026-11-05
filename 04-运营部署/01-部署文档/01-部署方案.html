@@ -954,8 +954,8 @@ Get-ChildItem (Join-Path $sqlDir '02-migrations') -Filter *.sql | Sort-Object Na
 </tr>
 <tr>
 <td>4</td>
-<td><strong>改写前端运行期配置</strong></td>
-<td><code>dist/_app.config.js</code> 的 <code>VITE_GLOB_DOMAIN_URL</code> 指向<strong>本环境</strong>后端（见下方说明）</td>
+<td>前端运行期配置</td>
+<td><strong>不需要改写</strong> —— <code>VITE_GLOB_DOMAIN_URL</code> 已是相对路径 <code>/jeecgboot</code>，环境无关（见下方说明）</td>
 </tr>
 <tr>
 <td>5</td>
@@ -982,34 +982,66 @@ Get-ChildItem (Join-Path $sqlDir '02-migrations') -Filter *.sql | Sort-Object Na
 <blockquote>
 <p><strong>替换 jar 前必须先停服务</strong>：运行中的 java 独占 <code>latest/backend/*.jar</code> 的文件句柄，<code>Remove-Item</code> / 覆盖写入会报「正由另一进程使用」。</p>
 </blockquote>
-<h4>步骤 4：前端运行期配置（<strong>不做这一步，部署出来的东西是坏的</strong>）</h4>
+<h4>步骤 4：前端运行期配置（<strong>相对路径 ⇒ 这一步已不需要手工改</strong>）</h4>
 <p><code>dist/_app.config.js</code> 是上游<strong>刻意</strong>生成的<strong>运行期覆盖文件</strong>
 （基座 <code>build/script/buildConf.ts</code> 注释原文：「生成外部配置文件，用于生产发布后配置，无需重新打包」）。</p>
-<p>但<strong>构建期写进去的是 <code>.env.production</code> 的默认值</strong>：</p>
-<pre class="cmd"><code>VITE_GLOB_DOMAIN_URL=http://127.0.0.1:8080/jeecg-boot
+<p><strong>本项目已把它改成相对路径</strong>（2026-11-05，E-53）：</p>
+<pre class="cmd"><code>VITE_GLOB_DOMAIN_URL=/jeecgboot
 </code></pre>
-<p>前端的消息通知 WebSocket 地址由它派生
-（<code>src/layouts/default/header/components/notify/index.vue</code>：<code>glob.domainUrl</code> 把 <code>http://</code> 换成 <code>ws://</code> 再拼 <code>/websocket/&lt;userId&gt;</code>）
-⇒ <strong>部署到别的后端端口时，WebSocket 会去连 <code>127.0.0.1:8080</code> ⇒ 连不上</strong>。</p>
+<p><code>/jeecgboot</code> 是<strong>同一个前缀</strong>，<code>VITE_GLOB_API_URL</code>（前端所有接口请求的父前缀）也用它，
+后端的 context path 是 <code>/jeecg-boot</code> ⇒ 由 nginx 做一次前缀转换即可：</p>
+<pre class="cmd"><code>浏览器 ──/jeecgboot/...──▶ nginx ──/jeecg-boot/...──▶ 后端(8590)
+</code></pre>
+<p><strong>为什么必须是相对路径</strong>：</p>
+<div class="tbl-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>绝对地址（原来的 <code>http://127.0.0.1:8080/jeecg-boot</code>）</th>
+<th>相对路径（现在的 <code>/jeecgboot</code>）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>换端口/域名</td>
+<td><strong>要重打包</strong>（或每次部署手工改 <code>dist/_app.config.js</code>）</td>
+<td><strong>不用改</strong>，同一份产物到处能用</td>
+</tr>
+<tr>
+<td>忘了改的后果</td>
+<td>WebSocket 每页一条 <code>ERR_CONNECTION_REFUSED</code>，通知不可用</td>
+<td>不存在这个坑</td>
+</tr>
+<tr>
+<td>构建期能否拦住</td>
+<td>不能（构建成功、退出码 0，产物带着错误的地址上线）</td>
+<td><strong>能</strong>：<code>build-and-sync.ps1</code> 断言产物里不许出现绝对地址，出现即 <code>throw</code> 禁止发布</td>
+</tr>
+</tbody>
+</table></div>
 <p><strong>实测（2026-11-05 首次发布演练，E-52）</strong>：对着发布候选取证，
 <strong>95 / 102 个页面</strong>带 <code>WebSocket connection ... ERR_CONNECTION_REFUSED</code> 控制台错误；
 每页一条，通知功能不可用。<strong>对着 dev server 取证永远看不到</strong> —— dev 走 <code>.env.development</code>（<code>http://localhost:8590/jeecg-boot</code>）。</p>
-<p><strong>改法（构建时传参，脚本会自动改 + 校验）</strong>：</p>
-<pre class="cmd"><code class="language-powershell"># 构建 + 同步 + 改写运行期配置（一步到位）
-&amp; '.\02-代码开发\05-源码\04-建库迁移\build-and-sync.ps1' `
-    -RuntimeDomainUrl 'http://127.0.0.1:8590/jeecg-boot'
+<p><strong>现在的构建命令</strong>（<strong>不需要</strong>再传地址）：</p>
+<pre class="cmd"><code class="language-powershell">&amp; '.\02-代码开发\05-源码\04-建库迁移\build-and-sync.ps1'
 </code></pre>
-<p>脚本会：改写<strong>源 dist</strong> 的 <code>_app.config.js</code> → 同步到 <code>latest</code> → <strong>断言</strong> <code>latest</code> 里的值确实生效（没生效就 <code>throw</code>，禁止发布）。</p>
+<p>脚本会：同步产物 → 校验文件数与 <code>index.html</code> 引用（E-51）→ <strong>断言</strong> <code>latest/frontend/dist/_app.config.js</code> 里的
+<code>VITE_GLOB_DOMAIN_URL</code> <strong>必须是相对路径</strong>（以 <code>/</code> 开头）；是绝对地址就 <code>throw</code>「禁止发布」。</p>
+<blockquote>
+<p><strong>需要绝对地址的例外</strong>（比如后端与前端不同源、且没有反代）：显式传参，脚本会改写并校验生效。
+<code>powershell
+&amp; '.\02-代码开发\05-源码\04-建库迁移\build-and-sync.ps1' -RuntimeDomainUrl 'https://api.example.com/jeecg-boot'</code></p>
+</blockquote>
 <p><strong>已经部署完、只想改配置</strong>（不用重新构建）：</p>
 <pre class="cmd"><code class="language-powershell"># 直接改 latest 里的运行期配置
 $p = '.\02-代码开发\05-源码\builds\latest\frontend\dist\_app.config.js'
 $t = [System.IO.File]::ReadAllText($p)
-$t = [regex]::Replace($t, '&quot;VITE_GLOB_DOMAIN_URL&quot;:&quot;[^&quot;]*&quot;', '&quot;VITE_GLOB_DOMAIN_URL&quot;:&quot;http://127.0.0.1:8590/jeecg-boot&quot;')
+$t = [regex]::Replace($t, '&quot;VITE_GLOB_DOMAIN_URL&quot;:&quot;[^&quot;]*&quot;', '&quot;VITE_GLOB_DOMAIN_URL&quot;:&quot;/jeecgboot&quot;')
 [System.IO.File]::WriteAllText($p, $t, (New-Object System.Text.UTF8Encoding($false)))
 </code></pre>
 <blockquote>
 <p>⚠ <strong>不要</strong>把 <code>VITE_GLOB_DOMAIN_URL</code> 写死成某个部署环境的地址后再提交 —— 它是<strong>环境相关</strong>的，
-正确做法是<strong>部署时改</strong>，不改源码。上游把它设计成运行期文件就是为了这件事。</p>
+正确做法是<strong>用相对路径</strong>，让 nginx 去适配具体环境。</p>
 </blockquote>
 <h3>5.4 Windows 服务注册</h3>
 <blockquote>
@@ -1136,10 +1168,18 @@ volumes:
         try_files $uri $uri/ /index.html;
     }
 
-    location /api/ {
-        proxy_pass http://study-backend:8590;
+    # 后端接口 + WebSocket。
+    # 前端的 VITE_GLOB_API_URL（所有接口请求的父前缀）与 VITE_GLOB_DOMAIN_URL（上传/文件/WebSocket）
+    # **都是 /jeecgboot**；后端的 context path 是 /jeecg-boot
+    # ⇒ 这里必须把 /jeecgboot/ 换成 /jeecg-boot/（proxy_pass 带尾斜杠 = 替换匹配到的前缀）。
+    # ⚠ WebSocket 必须透传 Upgrade / Connection，否则顶部消息通知连不上（E-52）。
+    location /jeecgboot/ {
+        proxy_pass http://study-backend:8590/jeecg-boot/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection &quot;upgrade&quot;;
         proxy_read_timeout 60s;
     }
 
@@ -1150,6 +1190,11 @@ volumes:
 }
 </code></pre>
 <blockquote>
+<p>⚠ <strong>2026-11-05 订正</strong>：原配置里的 <code>location /api/ { proxy_pass http://study-backend:8590; }</code> <strong>是错的</strong> ——
+它没有补上后端的 context path <code>/jeecg-boot</code>，请求打到后端会 <strong>404</strong>；
+而前端本来也不走 <code>/api/</code>（接口父前缀是 <code>/jeecgboot</code>）⇒ 这段配置<strong>删掉</strong>，换成上面的 <code>/jeecgboot/</code>。</p>
+<p>⚠ <strong>本段配置仍未实跑</strong>（本机没装 nginx，见台账 L-04）⇒ 首次部署时<strong>必须</strong>按 §7.1 的清单逐条验证，
+尤其是第 11 条（WebSocket 能不能连上）。</p>
 <p><strong>静态资源用 hash 文件名 + 长缓存</strong>（<code>/assets/xxx.a1b2c3.js</code>），<code>index.html</code> 不缓存。</p>
 </blockquote>
 </section>
@@ -1247,10 +1292,10 @@ PROD profile 的端口是 <strong>8080</strong>（<code>application-prod.yml</co
 </tr>
 <tr>
 <td>11</td>
-<td><strong>前端运行期配置正确</strong></td>
-<td>读 <code>builds/latest/frontend/dist/_app.config.js</code> 的 <code>VITE_GLOB_DOMAIN_URL</code></td>
-<td>指向<strong>本环境</strong>后端（不是构建期默认值）</td>
-<td>✅ <code>http://127.0.0.1:8590/jeecg-boot</code></td>
+<td><strong>前端运行期配置是相对路径</strong></td>
+<td>读 <code>builds/latest/frontend/dist/_app.config.js</code> 的 <code>VITE_GLOB_DOMAIN_URL</code>；再打开任意页面看控制台</td>
+<td>以 <code>/</code> 开头（<strong>不是</strong> <code>http://</code> 绝对地址）；控制台<strong>没有</strong> WebSocket 连接被拒的错误</td>
+<td>✅ <code>/jeecgboot</code></td>
 </tr>
 </tbody>
 </table></div>
@@ -1258,6 +1303,9 @@ PROD profile 的端口是 <strong>8080</strong>（<code>application-prod.yml</co
 <p><strong>第 9 条最容易漏</strong>：<code>try_files $uri $uri/ /index.html;</code> 缺失时刷新子页面直接 404。</p>
 <p>⚠ <strong>第 11 条是 2026-11-05 新增的</strong>（E-52）：缺了它，部署出来的前端<strong>每页一条 WebSocket 连接被拒</strong>的错误，
 且顶部消息通知不可用。详见 §5.3「步骤 4：前端运行期配置」。</p>
+<p>⚠ <strong>第 11 条的口径 2026-11-05 再次收口</strong>（E-53）：判据从「指向<strong>本环境</strong>后端」改成「<strong>必须是相对路径</strong>」。
+相对路径才是<strong>环境无关</strong>的 —— 绝对地址一旦配错，换个端口/域名就得重打包；
+而构建期已经能拦住（<code>build-and-sync.ps1</code> 断言产物里不许出现绝对地址，出现即禁止发布）。</p>
 <p>⚠ <strong>第 10 条已改口径（2026-11-05）</strong>：原文写的是「提交一次错题图片 ⇒ 上传成功，文件落盘」。
 但 <strong>V0 没有错题图片上传功能</strong> —— ADR-047 决定 V0 不做整条 OCR 链路，<code>study_error_pool</code> <strong>无图片字段</strong>、
 study 业务表<strong>无任何图片列</strong>、接口文档<strong>无上传端点</strong> ⇒ 原文那条<strong>测的是一个还没实现的功能</strong>。

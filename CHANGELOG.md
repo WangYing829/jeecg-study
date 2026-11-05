@@ -243,6 +243,49 @@ SQL **23** 个、版本目录 `versions/20261105.085009` + `manifest.json`），
 > 凡是「脚本会往产物里写某个字段」的改动，都要回头看一眼已生成的产物；
 > 而产物不入库 ⇒ **git 里查不出来**，只能翻产物目录才发现。
 
+### ⑪ E-53：`VITE_GLOB_DOMAIN_URL` 改成**相对路径** ⇒ 产物不再绑定环境
+
+用户指令（2026-11-05）：「`VITE_GLOB_DOMAIN_URL` 直接改成相对路径」。
+
+**改前**：产物里写死 `http://127.0.0.1:8080/jeecg-boot`（E-52 的根因）⇒ 换环境要手工改 `dist/_app.config.js`，
+忘了改就是 **95/102 个页面 WebSocket 连不上**。
+**改后**：`VITE_GLOB_DOMAIN_URL=/jeecgboot` —— 与 `VITE_GLOB_API_URL`（前端**所有**接口请求的父前缀）**同前缀**，
+后端 context path 是 `/jeecg-boot` ⇒ nginx 做一次前缀转换即可：
+
+```
+浏览器 ──/jeecgboot/...──▶ nginx ──/jeecg-boot/...──▶ 后端(8590)
+```
+
+| 落点 | 改动 |
+|---|---|
+| 基座 `jeecgboot-vue3/.env.production` | → **`/jeecgboot`**（留 update 痕迹）⇒ **以后每次构建出来就是相对路径** |
+| `build-and-sync.ps1` | **断言**产物里的 `VITE_GLOB_DOMAIN_URL` 必须是相对路径；是 `http://` 开头就 `throw`「产物把后端地址写死了 ⇒ 换环境必须重打包，禁止发布」 |
+| 产物三份 | 源 dist / `builds/latest` / `versions/20261105.092735` 的 `_app.config.js` 统一改为 `/jeecgboot`；版本清单 `runtimeDomainUrl` 同步 |
+| 《部署方案》§5.3 步骤 4 / §6.2 nginx / §7.1 第 11 条 | 步骤 4 改成「相对路径 ⇒ **不需要**手工改」；nginx 里**原本就是错的** `location /api/`（没补后端 context path ⇒ 必然 404）换成 `location /jeecgboot/` + **WebSocket 升级头**；第 11 条判据改成「**必须是相对路径**」 |
+| 基座 overlay | `.env.production` 新增进 overlay（487 → **488**） |
+
+**为什么相对路径是对的**：① **环境无关** —— 同一份产物换 host:port 不用重打包；
+② **一处转换** —— nginx 只需一个 location（前端本来就有两个前缀：`VITE_GLOB_API_URL` + `VITE_GLOB_DOMAIN_URL`）；
+③ **构建期能拦住** —— 绝对地址配错是「构建成功、退出码 0、上线才炸」，相对路径写成断言，错在构建机上。
+
+**验证（对着真实产物）**：`vite preview` 托管 `builds/latest/frontend/dist` ⇒ 浏览器拿到的
+`VITE_GLOB_DOMAIN_URL = /jeecgboot`；preview 代理带 `ws: true`（基座 `build/vite/proxy.ts`）
+⇒ 相对路径的 WebSocket 会被**代理升级**到后端，**等价于 nginx 反代**；
+重跑 102 页取证（34 页 × 3 视口）：**控制台错误 0 / 102**（E-52 修复前 95/102），其余指标同样全零。
+
+**正向验证（不能只看「没有报错」）**：「0 条控制台错误」也可能是「压根没发起连接」⇒
+另跑一个监听 Playwright `websocket` 事件的脚本，登录后台页实测：
+
+```
+WS count  = 1
+WS url    = ws://127.0.0.1:4173/jeecgboot/websocket/<userId>_<md5(token)>
+WS closed = False        ← 连接已建立并保持
+console err = 0
+```
+
+⇒ 相对路径被浏览器**解析成同源 ws 地址**（`WebSocket` 构造器按 base URL 解析相对路径，
+scheme 由 http→ws / https→wss），再由反代升级给后端 —— **成立**。
+
 ## [1.17.0] - 2026-11-04
 
 ### 阶段：项目进展梳理 —— 数字全部重测，发布链路判定为空白

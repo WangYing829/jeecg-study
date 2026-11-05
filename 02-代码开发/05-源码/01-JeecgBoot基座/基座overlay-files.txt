@@ -17,6 +17,7 @@ jeecgboot-vue3/.env
 jeecgboot-vue3/.env.development
 jeecgboot-vue3/.env.docker
 jeecgboot-vue3/.env.dockercloud
+jeecgboot-vue3/.env.production
 jeecgboot-vue3/index.html
 jeecgboot-vue3/src/router/routes/index.ts
 jeecgboot-vue3/src/router/routes/modules/about.ts
